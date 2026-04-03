@@ -4,698 +4,405 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MusicBox 🎵</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #060608;
+  --bg2: rgba(10,10,15,0.92);
+  --bg3: rgba(20,20,28,0.85);
+  --bg4: rgba(30,30,40,0.9);
+  --bg5: rgba(255,255,255,0.04);
+  --accent: #1db954;
+  --accent2: #14ff72;
+  --red: #ff4757;
+  --blue: #5b8dee;
+  --text: #ffffff;
+  --text2: #aab0c0;
+  --text3: #4a5060;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.12);
+  --glow: rgba(29,185,84,0.15);
+  --radius: 14px;
+  --player-h: 88px;
+}
+html,body { height:100%; overflow:hidden; }
+body {
+  font-family: 'Syne', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  position: relative;
+}
 
-  :root {
-    --bg: #080808;
-    --bg2: #111111;
-    --bg3: #1a1a1a;
-    --bg4: #222222;
-    --accent: #1db954;
-    --accent2: #17a348;
-    --accent3: #14ff72;
-    --red: #ff4757;
-    --text: #ffffff;
-    --text2: #aaaaaa;
-    --text3: #555555;
-    --border: #2a2a2a;
-    --radius: 12px;
-    --player-h: 90px;
-  }
+/* ── BACKGROUND ── */
+.bg-layer {
+  position: fixed; inset: 0; z-index: 0;
+  background-image: url('/bg.jpg');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  filter: brightness(0.18) saturate(0.6);
+  pointer-events: none;
+}
+.bg-overlay {
+  position: fixed; inset: 0; z-index: 1;
+  background: linear-gradient(135deg,
+    rgba(6,6,10,0.82) 0%,
+    rgba(6,6,10,0.65) 50%,
+    rgba(10,8,18,0.88) 100%);
+  pointer-events: none;
+}
 
-  html, body { height: 100%; overflow: hidden; }
+/* ── APP LAYOUT ── */
+.app {
+  position: relative; z-index: 2;
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  grid-template-rows: 1fr var(--player-h);
+  height: 100vh;
+}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    display: flex;
-    flex-direction: column;
-  }
+/* ── AUTH SCREEN ── */
+#auth-screen {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(12px);
+}
+.auth-box {
+  background: rgba(12,12,18,0.97);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 40px;
+  width: 360px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 60px var(--glow);
+}
+.auth-logo {
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin-bottom: 8px;
+}
+.auth-logo span { color: var(--accent); }
+.auth-sub { text-align:center; color:var(--text2); font-size:0.82rem; margin-bottom:28px; }
+.auth-tabs { display:flex; gap:4px; background:rgba(255,255,255,0.04); border-radius:10px; padding:4px; margin-bottom:24px; }
+.auth-tab { flex:1; padding:8px; text-align:center; font-size:0.83rem; font-weight:700; border-radius:7px; cursor:pointer; color:var(--text3); transition:all 0.15s; }
+.auth-tab.active { background:var(--accent); color:#000; }
+.auth-input {
+  width:100%; background:rgba(255,255,255,0.05); border:1px solid var(--border);
+  border-radius:10px; padding:11px 15px; font-size:0.88rem; color:var(--text);
+  font-family:'Syne',sans-serif; outline:none; margin-bottom:10px; transition:border-color 0.2s;
+}
+.auth-input:focus { border-color:var(--accent); }
+.auth-input::placeholder { color:var(--text3); }
+.auth-btn {
+  width:100%; background:var(--accent); color:#000; border:none; border-radius:30px;
+  padding:12px; font-size:0.9rem; font-weight:800; cursor:pointer; font-family:'Syne',sans-serif;
+  transition:all 0.15s; margin-top:4px; letter-spacing:0.5px;
+}
+.auth-btn:hover { background:var(--accent2); transform:scale(1.02); }
+.auth-error { color:var(--red); font-size:0.78rem; text-align:center; margin-top:8px; min-height:18px; }
 
-  /* ─── LAYOUT ─── */
-  .app {
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    grid-template-rows: 1fr var(--player-h);
-    height: 100vh;
-  }
+/* ── SIDEBAR ── */
+.sidebar {
+  background: rgba(5,5,8,0.9);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+  backdrop-filter: blur(20px);
+}
+.logo { padding:20px 16px 14px; display:flex; align-items:center; gap:9px; font-size:1.25rem; font-weight:900; letter-spacing:-0.5px; border-bottom:1px solid var(--border); }
+.logo span { color:var(--accent); }
+.logo-sub { font-size:0.65rem; color:var(--text3); font-weight:400; letter-spacing:0px; display:block; margin-top:1px; }
+.user-chip { margin:10px 12px; background:var(--bg5); border:1px solid var(--border); border-radius:10px; padding:8px 12px; display:flex; align-items:center; justify-content:space-between; }
+.user-chip-name { font-size:0.8rem; font-weight:700; }
+.user-chip-role { font-size:0.65rem; padding:2px 8px; border-radius:20px; font-weight:700; }
+.role-admin { background:rgba(255,71,87,0.2); color:var(--red); }
+.role-user  { background:rgba(29,185,84,0.15); color:var(--accent); }
+.sidebar-label { font-size:0.6rem; font-weight:700; letter-spacing:2px; color:var(--text3); text-transform:uppercase; padding:12px 16px 5px; }
+.nav-item { display:flex; align-items:center; gap:9px; padding:8px 12px; margin:1px 8px; border-radius:9px; cursor:pointer; font-size:0.85rem; font-weight:600; color:var(--text2); transition:all 0.15s; }
+.nav-item:hover { background:var(--bg5); color:var(--text); }
+.nav-item.active { background:rgba(29,185,84,0.12); color:var(--accent); }
+.nav-item .icon { font-size:0.95rem; width:18px; text-align:center; }
+.folders-list { flex:1; overflow-y:auto; padding:0 8px 8px; }
+.folders-list::-webkit-scrollbar { width:2px; }
+.folders-list::-webkit-scrollbar-thumb { background:var(--bg4); border-radius:2px; }
+.folder-item { display:flex; align-items:center; justify-content:space-between; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:0.8rem; color:var(--text2); transition:all 0.15s; margin-bottom:2px; }
+.folder-item:hover { background:var(--bg5); color:var(--text); }
+.folder-item.active { background:rgba(29,185,84,0.1); color:var(--accent); }
+.folder-item-left { display:flex; align-items:center; gap:7px; }
+.folder-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.folder-count { font-size:0.68rem; background:rgba(255,255,255,0.06); padding:1px 6px; border-radius:20px; color:var(--text3); }
+.add-folder-btn { margin:4px 12px 10px; background:transparent; border:1px dashed var(--border2); border-radius:9px; padding:7px; text-align:center; font-size:0.78rem; color:var(--text3); cursor:pointer; font-family:'Syne',sans-serif; transition:all 0.15s; }
+.add-folder-btn:hover { border-color:var(--accent); color:var(--accent); }
+.logout-btn { margin:0 12px 12px; background:rgba(255,71,87,0.08); border:1px solid rgba(255,71,87,0.2); border-radius:9px; padding:7px; text-align:center; font-size:0.78rem; color:var(--red); cursor:pointer; font-family:'Syne',sans-serif; transition:all 0.15s; }
+.logout-btn:hover { background:rgba(255,71,87,0.15); }
 
-  /* ─── SIDEBAR ─── */
-  .sidebar {
-    background: #050505;
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    grid-row: 1 / 2;
-  }
+/* ── MAIN ── */
+.main { display:flex; flex-direction:column; overflow:hidden; background:transparent; }
+.tabs { display:flex; gap:2px; padding:14px 22px 0; border-bottom:1px solid var(--border); }
+.tab { padding:8px 16px; font-size:0.83rem; font-weight:700; color:var(--text3); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.15s; white-space:nowrap; }
+.tab:hover { color:var(--text2); }
+.tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.content { flex:1; overflow-y:auto; padding:22px; }
+.content::-webkit-scrollbar { width:3px; }
+.content::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
+.view { display:none; }
+.view.active { display:block; }
 
-  .logo {
-    padding: 24px 20px 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 1.3rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    border-bottom: 1px solid var(--border);
-  }
-  .logo-icon { font-size: 1.5rem; }
-  .logo span { color: var(--accent); }
+/* ── CARDS ── */
+.glass-card { background:rgba(10,10,16,0.6); border:1px solid var(--border); border-radius:var(--radius); backdrop-filter:blur(10px); }
 
-  .sidebar-section { padding: 16px 12px 8px; }
-  .sidebar-label {
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--text3);
-    text-transform: uppercase;
-    padding: 0 8px;
-    margin-bottom: 6px;
-  }
+/* ── SECTION TITLE ── */
+.section-title { font-size:1.35rem; font-weight:900; margin-bottom:14px; letter-spacing:-0.5px; }
+.section-title span { color:var(--accent); }
+.grid-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
 
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: var(--text2);
-    transition: all 0.15s;
-    user-select: none;
-  }
-  .nav-item:hover { background: var(--bg3); color: var(--text); }
-  .nav-item.active { background: var(--bg3); color: var(--accent); }
-  .nav-item .icon { font-size: 1rem; width: 20px; text-align: center; }
+/* ── BUTTONS ── */
+.btn { display:inline-flex; align-items:center; gap:5px; padding:8px 18px; border-radius:30px; font-size:0.82rem; font-weight:700; cursor:pointer; border:none; font-family:'Syne',sans-serif; transition:all 0.15s; }
+.btn-green { background:var(--accent); color:#000; }
+.btn-green:hover { background:var(--accent2); transform:scale(1.02); }
+.btn-red { background:rgba(255,71,87,0.12); color:var(--red); border:1px solid rgba(255,71,87,0.25); }
+.btn-red:hover { background:rgba(255,71,87,0.22); }
+.btn-ghost { background:rgba(255,255,255,0.05); color:var(--text2); border:1px solid var(--border2); }
+.btn-ghost:hover { border-color:rgba(255,255,255,0.2); color:var(--text); }
+.btn-sm { padding:5px 12px; font-size:0.74rem; }
+.btn-icon { padding:6px 9px; border-radius:7px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text2); cursor:pointer; font-size:0.85rem; transition:all 0.15s; font-family:'Syne',sans-serif; }
+.btn-icon:hover { color:var(--text); border-color:var(--border2); }
 
-  .folders-list { flex: 1; overflow-y: auto; padding: 0 12px 12px; }
-  .folders-list::-webkit-scrollbar { width: 3px; }
-  .folders-list::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+/* ── TRACK LIST ── */
+.track-list { display:flex; flex-direction:column; gap:2px; }
+.track-list-header { display:grid; grid-template-columns:34px 1fr auto; gap:10px; padding:5px 10px; font-size:0.65rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); border-bottom:1px solid var(--border); margin-bottom:6px; }
+.track-row { display:grid; grid-template-columns:34px 1fr auto; align-items:center; gap:10px; padding:7px 10px; border-radius:8px; cursor:pointer; transition:background 0.1s; border:1px solid transparent; }
+.track-row:hover { background:rgba(255,255,255,0.04); }
+.track-row.playing { background:rgba(29,185,84,0.07); border-color:rgba(29,185,84,0.18); }
+.track-num { font-size:0.78rem; color:var(--text3); text-align:center; font-family:'DM Mono',monospace; }
+.track-row.playing .track-num { color:var(--accent); }
+.track-info { min-width:0; }
+.track-title { font-size:0.87rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.track-row.playing .track-title { color:var(--accent); }
+.track-meta { font-size:0.72rem; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; display:flex; gap:8px; }
+.track-actions { display:flex; gap:5px; align-items:center; opacity:0; transition:opacity 0.15s; }
+.track-row:hover .track-actions { opacity:1; }
+.track-folder-tag { font-size:0.68rem; padding:2px 7px; border-radius:20px; background:rgba(255,255,255,0.06); white-space:nowrap; }
+.uploader-tag { font-size:0.68rem; color:var(--text3); }
 
-  .folder-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 7px 10px;
-    border-radius: 7px;
-    cursor: pointer;
-    font-size: 0.83rem;
-    color: var(--text2);
-    transition: all 0.15s;
-    margin-bottom: 2px;
-  }
-  .folder-item:hover { background: var(--bg3); color: var(--text); }
-  .folder-item.active { background: var(--bg3); color: var(--accent); }
-  .folder-item-left { display: flex; align-items: center; gap: 8px; }
-  .folder-count {
-    font-size: 0.7rem;
-    background: var(--bg4);
-    padding: 1px 6px;
-    border-radius: 20px;
-    color: var(--text3);
-  }
+/* ── PLAYING BARS ── */
+@keyframes bar { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(0.3)} }
+.playing-bars { display:flex; align-items:flex-end; gap:2px; height:14px; }
+.playing-bars span { display:block; width:3px; height:100%; background:var(--accent); border-radius:2px; animation:bar 0.7s ease infinite; }
+.playing-bars span:nth-child(2) { animation-delay:0.15s; height:70%; }
+.playing-bars span:nth-child(3) { animation-delay:0.3s; height:50%; }
 
-  .add-folder-btn {
-    margin: 4px 12px 12px;
-    background: var(--bg3);
-    border: 1px dashed var(--border);
-    border-radius: 8px;
-    padding: 8px;
-    text-align: center;
-    font-size: 0.8rem;
-    color: var(--text3);
-    cursor: pointer;
-    font-family: 'Syne', sans-serif;
-    transition: all 0.15s;
-  }
-  .add-folder-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(29,185,84,0.05); }
+/* ── EMPTY STATE ── */
+.empty-state { text-align:center; padding:50px 20px; color:var(--text3); }
+.empty-state-icon { font-size:2.8rem; margin-bottom:10px; }
+.empty-state-text { font-size:0.95rem; font-weight:700; margin-bottom:5px; color:var(--text2); }
+.empty-state-sub { font-size:0.8rem; }
 
-  /* ─── MAIN ─── */
-  .main {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background: var(--bg);
-  }
+/* ── DROPZONE ── */
+.dropzone { border:2px dashed var(--border2); border-radius:var(--radius); padding:30px; text-align:center; cursor:pointer; transition:all 0.2s; margin-bottom:20px; background:rgba(255,255,255,0.02); position:relative; }
+.dropzone:hover,.dropzone.drag-over { border-color:var(--accent); background:rgba(29,185,84,0.04); }
+.dropzone input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+.dropzone-icon { font-size:2.2rem; margin-bottom:7px; }
+.dropzone-text { font-size:0.9rem; font-weight:700; color:var(--text2); margin-bottom:3px; }
+.dropzone-sub { font-size:0.76rem; color:var(--text3); }
 
-  /* Tabs */
-  .tabs {
-    display: flex;
-    gap: 4px;
-    padding: 16px 24px 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .tab {
-    padding: 8px 18px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text3);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.15s;
-    letter-spacing: 0.3px;
-    white-space: nowrap;
-  }
-  .tab:hover { color: var(--text2); }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+/* ── FORM INPUTS ── */
+.upload-meta { display:grid; grid-template-columns:1fr 1fr auto; gap:8px; margin-bottom:12px; }
+.meta-input { background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:9px; padding:9px 13px; font-size:0.83rem; color:var(--text); font-family:'Syne',sans-serif; outline:none; transition:border-color 0.2s; }
+.meta-input:focus { border-color:var(--accent); }
+.meta-input::placeholder { color:var(--text3); }
+.meta-input option { background:#111; }
 
-  /* Content area */
-  .content { flex: 1; overflow-y: auto; padding: 24px; }
-  .content::-webkit-scrollbar { width: 4px; }
-  .content::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+/* ── SEARCH ── */
+.search-input { width:100%; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:30px; padding:10px 18px; font-size:0.88rem; color:var(--text); font-family:'Syne',sans-serif; outline:none; transition:border-color 0.2s; margin-bottom:20px; }
+.search-input:focus { border-color:var(--accent); }
+.search-input::placeholder { color:var(--text3); }
 
-  /* Views */
-  .view { display: none; }
-  .view.active { display: block; }
+/* ── STATS ── */
+.stats-grid { display:flex; gap:10px; margin-bottom:22px; flex-wrap:wrap; }
+.stat-card { background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:12px; padding:14px 18px; min-width:110px; }
+.stat-icon { font-size:1.3rem; }
+.stat-val { font-size:1.5rem; font-weight:900; margin-top:3px; }
+.stat-label { font-size:0.7rem; color:var(--text3); margin-top:1px; }
 
-  /* ─── SEARCH BAR ─── */
-  .search-bar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 24px;
-  }
-  .search-input {
-    flex: 1;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 30px;
-    padding: 10px 18px;
-    font-size: 0.9rem;
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .search-input:focus { border-color: var(--accent); }
-  .search-input::placeholder { color: var(--text3); }
+/* ── ADMIN BADGE ── */
+.badge { display:inline-flex; align-items:center; gap:4px; font-size:0.65rem; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:3px 9px; border-radius:20px; margin-bottom:14px; }
+.badge-green { color:var(--accent); background:rgba(29,185,84,0.1); border:1px solid rgba(29,185,84,0.2); }
+.badge-red { color:var(--red); background:rgba(255,71,87,0.1); border:1px solid rgba(255,71,87,0.2); }
 
-  /* ─── DROPZONE ─── */
-  .dropzone {
-    border: 2px dashed var(--border);
-    border-radius: var(--radius);
-    padding: 32px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-bottom: 24px;
-    background: var(--bg2);
-    position: relative;
-  }
-  .dropzone:hover, .dropzone.drag-over {
-    border-color: var(--accent);
-    background: rgba(29,185,84,0.04);
-  }
-  .dropzone input[type="file"] {
-    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-  }
-  .dropzone-icon { font-size: 2.5rem; margin-bottom: 8px; }
-  .dropzone-text { font-size: 0.95rem; font-weight: 600; color: var(--text2); margin-bottom: 4px; }
-  .dropzone-sub { font-size: 0.78rem; color: var(--text3); }
+/* ── PLAYER ── */
+.player {
+  grid-column:1/-1; height:var(--player-h);
+  background:rgba(5,5,10,0.95); border-top:1px solid var(--border);
+  backdrop-filter:blur(20px);
+  display:grid; grid-template-columns:260px 1fr 200px;
+  align-items:center; padding:0 22px; gap:14px; position:relative; z-index:10;
+}
+.player-info { display:flex; align-items:center; gap:10px; min-width:0; }
+.player-thumb { width:46px; height:46px; border-radius:8px; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0; border:1px solid var(--border2); }
+.player-track { min-width:0; }
+.player-title { font-size:0.85rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.player-artist { font-size:0.72rem; color:var(--text2); margin-top:1px; }
+.player-center { display:flex; flex-direction:column; align-items:center; gap:7px; }
+.player-controls { display:flex; align-items:center; gap:14px; }
+.ctrl-btn { background:none; border:none; color:var(--text2); font-size:1rem; cursor:pointer; padding:3px; transition:color 0.15s; line-height:1; }
+.ctrl-btn:hover { color:var(--text); }
+.ctrl-btn.play-btn { background:var(--accent); color:#000; width:34px; height:34px; border-radius:50%; font-size:0.85rem; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+.ctrl-btn.play-btn:hover { background:var(--accent2); transform:scale(1.06); }
+.progress-bar-wrap { width:100%; display:flex; align-items:center; gap:7px; font-size:0.7rem; font-family:'DM Mono',monospace; color:var(--text3); }
+.progress-bar { flex:1; height:3px; background:rgba(255,255,255,0.1); border-radius:2px; cursor:pointer; }
+.progress-fill { height:100%; background:var(--accent); border-radius:2px; width:0%; pointer-events:none; }
+.player-right { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+.vol-slider { -webkit-appearance:none; width:68px; height:3px; border-radius:2px; background:rgba(255,255,255,0.1); outline:none; }
+.vol-slider::-webkit-slider-thumb { -webkit-appearance:none; width:11px; height:11px; border-radius:50%; background:var(--text2); cursor:pointer; }
 
-  /* Upload meta */
-  .upload-meta {
-    display: grid;
-    grid-template-columns: 1fr 1fr auto;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-  .meta-input {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 9px 14px;
-    font-size: 0.85rem;
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .meta-input:focus { border-color: var(--accent); }
-  .meta-input::placeholder { color: var(--text3); }
-  .meta-input option { background: var(--bg3); }
+/* ── MODAL ── */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); display:flex; align-items:center; justify-content:center; z-index:100; opacity:0; pointer-events:none; transition:opacity 0.2s; backdrop-filter:blur(5px); }
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal { background:rgba(10,10,16,0.98); border:1px solid var(--border2); border-radius:18px; padding:26px; width:350px; transform:translateY(14px); transition:transform 0.2s; }
+.modal-overlay.open .modal { transform:translateY(0); }
+.modal-title { font-size:1.05rem; font-weight:800; margin-bottom:14px; }
+.modal-input { width:100%; background:rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:9px; padding:10px 13px; font-size:0.86rem; color:var(--text); font-family:'Syne',sans-serif; outline:none; margin-bottom:10px; transition:border-color 0.2s; }
+.modal-input:focus { border-color:var(--accent); }
+.modal-actions { display:flex; gap:7px; justify-content:flex-end; margin-top:3px; }
 
-  /* ─── BUTTONS ─── */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 9px 20px;
-    border-radius: 30px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    cursor: pointer;
-    border: none;
-    font-family: 'Syne', sans-serif;
-    transition: all 0.15s;
-    letter-spacing: 0.3px;
-  }
-  .btn-green { background: var(--accent); color: #000; }
-  .btn-green:hover { background: var(--accent3); transform: scale(1.03); }
-  .btn-red { background: rgba(255,71,87,0.15); color: var(--red); border: 1px solid rgba(255,71,87,0.3); }
-  .btn-red:hover { background: rgba(255,71,87,0.25); }
-  .btn-ghost { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
-  .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
-  .btn-sm { padding: 5px 12px; font-size: 0.75rem; }
-  .btn-icon { padding: 7px 10px; border-radius: 8px; background: var(--bg3); border: 1px solid var(--border); color: var(--text2); cursor: pointer; font-size: 0.9rem; transition: all 0.15s; }
-  .btn-icon:hover { color: var(--text); border-color: var(--text3); }
+/* ── TOAST ── */
+.toast-container { position:fixed; bottom:calc(var(--player-h) + 14px); right:18px; z-index:200; display:flex; flex-direction:column; gap:7px; pointer-events:none; }
+.toast { background:rgba(12,12,18,0.97); border:1px solid var(--border2); border-radius:10px; padding:9px 15px; font-size:0.8rem; font-weight:600; display:flex; align-items:center; gap:7px; animation:tIn 0.25s ease, tOut 0.25s ease 2.5s forwards; }
+.toast.success { border-color:rgba(29,185,84,0.3); }
+.toast.error { border-color:rgba(255,71,87,0.35); color:var(--red); }
+@keyframes tIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:none} }
+@keyframes tOut { from{opacity:1} to{opacity:0} }
 
-  /* ─── TRACK LIST ─── */
-  .section-title {
-    font-size: 1.4rem;
-    font-weight: 800;
-    margin-bottom: 16px;
-    letter-spacing: -0.5px;
-  }
-  .section-title span { color: var(--accent); }
-
-  .track-list { display: flex; flex-direction: column; gap: 4px; }
-
-  .track-row {
-    display: grid;
-    grid-template-columns: 36px 1fr auto;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.12s;
-    border: 1px solid transparent;
-  }
-  .track-row:hover { background: var(--bg3); }
-  .track-row.playing { background: rgba(29,185,84,0.08); border-color: rgba(29,185,84,0.2); }
-
-  .track-num {
-    font-size: 0.8rem;
-    color: var(--text3);
-    text-align: center;
-    font-family: 'DM Mono', monospace;
-  }
-  .track-row.playing .track-num { color: var(--accent); }
-
-  .track-info { min-width: 0; }
-  .track-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .track-row.playing .track-title { color: var(--accent); }
-  .track-artist {
-    font-size: 0.75rem;
-    color: var(--text2);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: 1px;
-  }
-
-  .track-actions { display: flex; gap: 6px; align-items: center; opacity: 0; transition: opacity 0.15s; }
-  .track-row:hover .track-actions { opacity: 1; }
-  .track-folder-tag {
-    font-size: 0.7rem;
-    padding: 2px 8px;
-    border-radius: 20px;
-    background: var(--bg4);
-    color: var(--text3);
-    white-space: nowrap;
-  }
-
-  /* ─── EMPTY STATE ─── */
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text3);
-  }
-  .empty-state-icon { font-size: 3rem; margin-bottom: 12px; }
-  .empty-state-text { font-size: 1rem; font-weight: 600; margin-bottom: 6px; color: var(--text2); }
-  .empty-state-sub { font-size: 0.82rem; }
-
-  /* ─── PLAYER ─── */
-  .player {
-    grid-column: 1 / -1;
-    background: #0e0e0e;
-    border-top: 1px solid var(--border);
-    display: grid;
-    grid-template-columns: 280px 1fr 200px;
-    align-items: center;
-    padding: 0 24px;
-    gap: 16px;
-    height: var(--player-h);
-    position: relative;
-    z-index: 10;
-  }
-
-  .player-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
-  .player-thumb {
-    width: 48px; height: 48px;
-    border-radius: 8px;
-    background: var(--bg3);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem;
-    flex-shrink: 0;
-    border: 1px solid var(--border);
-  }
-  .player-track { min-width: 0; }
-  .player-title {
-    font-size: 0.88rem;
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .player-artist { font-size: 0.75rem; color: var(--text2); margin-top: 2px; }
-
-  .player-center { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-  .player-controls { display: flex; align-items: center; gap: 16px; }
-  .ctrl-btn {
-    background: none;
-    border: none;
-    color: var(--text2);
-    font-size: 1rem;
-    cursor: pointer;
-    padding: 4px;
-    transition: color 0.15s;
-    line-height: 1;
-  }
-  .ctrl-btn:hover { color: var(--text); }
-  .ctrl-btn.play-btn {
-    background: var(--accent);
-    color: #000;
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    font-size: 0.9rem;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.15s;
-  }
-  .ctrl-btn.play-btn:hover { background: var(--accent3); transform: scale(1.06); }
-
-  .progress-bar-wrap {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.72rem;
-    font-family: 'DM Mono', monospace;
-    color: var(--text3);
-  }
-  .progress-bar {
-    flex: 1;
-    height: 4px;
-    background: var(--bg4);
-    border-radius: 2px;
-    cursor: pointer;
-    position: relative;
-    overflow: visible;
-  }
-  .progress-fill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 2px;
-    width: 0%;
-    pointer-events: none;
-    transition: width 0.2s linear;
-  }
-  .progress-bar:hover .progress-fill { background: var(--accent3); }
-
-  .player-right { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
-  .vol-wrap { display: flex; align-items: center; gap: 6px; }
-  .vol-slider {
-    -webkit-appearance: none;
-    width: 70px;
-    height: 4px;
-    border-radius: 2px;
-    background: var(--bg4);
-    outline: none;
-  }
-  .vol-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 12px; height: 12px;
-    border-radius: 50%;
-    background: var(--text2);
-    cursor: pointer;
-  }
-  .vol-icon { font-size: 0.9rem; color: var(--text3); }
-
-  /* ─── MODAL ─── */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.8);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 100;
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.2s;
-    backdrop-filter: blur(4px);
-  }
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
-  .modal {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 28px;
-    width: 360px;
-    transform: translateY(16px);
-    transition: transform 0.2s;
-  }
-  .modal-overlay.open .modal { transform: translateY(0); }
-  .modal-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 16px; }
-  .modal-input {
-    width: 100%;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 0.9rem;
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    outline: none;
-    margin-bottom: 12px;
-  }
-  .modal-input:focus { border-color: var(--accent); }
-  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
-
-  /* ─── TOAST ─── */
-  .toast-container {
-    position: fixed;
-    bottom: calc(var(--player-h) + 16px);
-    right: 20px;
-    z-index: 200;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    pointer-events: none;
-  }
-  .toast {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 16px;
-    font-size: 0.83rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    animation: toastIn 0.3s ease, toastOut 0.3s ease 2.5s forwards;
-    pointer-events: none;
-  }
-  .toast.success { border-color: rgba(29,185,84,0.4); }
-  .toast.error { border-color: rgba(255,71,87,0.4); color: var(--red); }
-  @keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
-  @keyframes toastOut { from { opacity:1; } to { opacity:0; } }
-
-  /* ─── PLAYING ANIMATION ─── */
-  @keyframes pulse { 0%,100% { opacity:1; transform:scaleY(1); } 50% { opacity:0.7; transform:scaleY(0.5); } }
-  .playing-bars { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
-  .playing-bars span {
-    display: block; width: 3px; background: var(--accent); border-radius: 2px;
-    animation: pulse 0.8s ease infinite;
-  }
-  .playing-bars span:nth-child(2) { animation-delay: 0.15s; height: 80%; }
-  .playing-bars span:nth-child(3) { animation-delay: 0.3s; height: 60%; }
-
-  /* ─── RESPONSIVE scroll ─── */
-  .track-list-header {
-    display: grid;
-    grid-template-columns: 36px 1fr auto;
-    gap: 12px;
-    padding: 6px 12px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--text3);
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 8px;
-  }
-
-  /* Folder color dots */
-  .folder-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  /* Download all btn */
-  .dl-hint {
-    font-size: 0.75rem;
-    color: var(--text3);
-    text-align: center;
-    padding: 8px;
-  }
-
-  /* AI badge */
-  .ai-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--accent);
-    background: rgba(29,185,84,0.1);
-    border: 1px solid rgba(29,185,84,0.2);
-    padding: 3px 10px;
-    border-radius: 20px;
-    margin-bottom: 16px;
-  }
-
-  .grid-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-  }
+/* ── USERS TABLE ── */
+.user-row { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:10px; padding:8px 12px; border-radius:8px; border:1px solid transparent; }
+.user-row:hover { background:rgba(255,255,255,0.03); }
 </style>
 </head>
 <body>
 
-<div class="app">
+<div class="bg-layer"></div>
+<div class="bg-overlay"></div>
 
-  <!-- ─── SIDEBAR ─── -->
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">🎵 Music<span>Box</span></div>
+    <div class="auth-sub">Kopīga mūzikas platforma</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="at-login" onclick="authTab('login')">Ieiet</div>
+      <div class="auth-tab" id="at-register" onclick="authTab('register')">Reģistrēties</div>
+    </div>
+    <input class="auth-input" type="text" id="auth-user" placeholder="Lietotājvārds" autocomplete="username">
+    <input class="auth-input" type="password" id="auth-pass" placeholder="Parole" autocomplete="current-password">
+    <button class="auth-btn" id="auth-submit" onclick="doAuth()">Ieiet</button>
+    <div class="auth-error" id="auth-error"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="main-app" style="display:none;">
+
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="logo">
-      <span class="logo-icon">🎵</span>
-      Music<span>Box</span>
+      🎵 Music<span>Box</span>
+      <span class="logo-sub">Shared Platform</span>
     </div>
+    <div class="user-chip" id="user-chip">
+      <span class="user-chip-name" id="chip-name">—</span>
+      <span class="user-chip-role role-user" id="chip-role">user</span>
+    </div>
+    <div class="sidebar-label">Navigācija</div>
+    <div class="nav-item active" onclick="switchTab('library')" id="nav-library"><span class="icon">🏠</span> Bibliotēka</div>
+    <div class="nav-item" onclick="switchTab('upload')" id="nav-upload"><span class="icon">📤</span> Augšupielādēt</div>
+    <div class="nav-item" onclick="switchTab('search')" id="nav-search"><span class="icon">🔍</span> Meklēt</div>
+    <div class="nav-item" onclick="switchTab('admin')" id="nav-admin" style="display:none;"><span class="icon">🛡</span> Admin</div>
 
-    <div class="sidebar-section">
-      <div class="sidebar-label">Navigācija</div>
-      <div class="nav-item active" onclick="switchTab('library')" id="nav-library">
-        <span class="icon">🏠</span> Bibliotēka
-      </div>
-      <div class="nav-item" onclick="switchTab('upload')" id="nav-upload">
-        <span class="icon">📤</span> Augšupielādēt
-      </div>
-      <div class="nav-item" onclick="switchTab('search')" id="nav-search">
-        <span class="icon">🔍</span> Meklēt
-      </div>
-      <div class="nav-item" onclick="switchTab('admin')" id="nav-admin">
-        <span class="icon">🧑‍💼</span> Admin
-      </div>
-    </div>
-
-    <div class="sidebar-section" style="padding-bottom:4px;">
-      <div class="sidebar-label">Mapes</div>
-    </div>
+    <div class="sidebar-label">Mapes</div>
     <div class="folders-list" id="folders-list"></div>
     <button class="add-folder-btn" onclick="openAddFolder()">+ Jauna mape</button>
+    <button class="logout-btn" onclick="doLogout()">🚪 Iziet</button>
   </aside>
 
-  <!-- ─── MAIN ─── -->
+  <!-- MAIN -->
   <main class="main">
     <div class="tabs">
       <div class="tab active" id="tab-library" onclick="switchTab('library')">🎵 Bibliotēka</div>
       <div class="tab" id="tab-upload" onclick="switchTab('upload')">📤 Upload</div>
       <div class="tab" id="tab-search" onclick="switchTab('search')">🔍 Meklēt</div>
-      <div class="tab" id="tab-admin" onclick="switchTab('admin')">🧑‍💼 Admin</div>
+      <div class="tab" id="tab-admin" style="display:none;" onclick="switchTab('admin')">🛡 Admin</div>
     </div>
-
     <div class="content">
 
-      <!-- LIBRARY VIEW -->
+      <!-- LIBRARY -->
       <div class="view active" id="view-library">
         <div class="grid-header">
           <div class="section-title" id="library-title">Visa <span>Mūzika</span></div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-ghost btn-sm" onclick="downloadAll()">⬇ Lejupielādēt visu</button>
-          </div>
+          <button class="btn btn-ghost btn-sm" onclick="downloadAllTracks()">⬇ Lejupielādēt visu</button>
         </div>
-        <div class="track-list-header">
-          <div>#</div><div>Nosaukums</div><div>Mape</div>
-        </div>
+        <div class="track-list-header"><div>#</div><div>Nosaukums</div><div>Mape / Darbības</div></div>
         <div class="track-list" id="track-list"></div>
-        <div class="empty-state" id="empty-library" style="display:none;">
+        <div class="empty-state" id="empty-library">
           <div class="empty-state-icon">🎵</div>
           <div class="empty-state-text">Nav mūzikas</div>
           <div class="empty-state-sub">Augšupielādē pirmo dziesmu!</div>
         </div>
       </div>
 
-      <!-- UPLOAD VIEW -->
+      <!-- UPLOAD -->
       <div class="view" id="view-upload">
         <div class="section-title">Augšupielādēt <span>Mūziku</span></div>
-
         <div class="dropzone" id="dropzone">
           <input type="file" id="file-input" accept="audio/*" multiple>
           <div class="dropzone-icon">🎵</div>
           <div class="dropzone-text">Velc & Nomet audio failu šeit</div>
-          <div class="dropzone-sub">vai klikšķini lai izvēlētos • MP3, WAV, OGG, FLAC</div>
+          <div class="dropzone-sub">vai klikšķini • MP3, WAV, OGG, FLAC (max 100MB)</div>
         </div>
-
         <div class="upload-meta">
-          <input class="meta-input" type="text" id="upload-title" placeholder="Nosaukums (automātiski no faila)">
+          <input class="meta-input" type="text" id="upload-title" placeholder="Nosaukums">
           <input class="meta-input" type="text" id="upload-artist" placeholder="Izpildītājs">
-          <select class="meta-input" id="upload-folder">
-            <option value="default">📁 Nav mapes</option>
-          </select>
+          <select class="meta-input" id="upload-folder"></select>
         </div>
-
-        <button class="btn btn-green" onclick="uploadSelected()">
-          ⬆ Augšupielādēt
-        </button>
-
-        <div id="upload-preview" style="margin-top:20px;"></div>
+        <button class="btn btn-green" onclick="uploadFile()">⬆ Augšupielādēt</button>
+        <div id="upload-preview" style="margin-top:18px;"></div>
       </div>
 
-      <!-- SEARCH VIEW -->
+      <!-- SEARCH -->
       <div class="view" id="view-search">
         <div class="section-title">Meklēt <span>Mūziku</span></div>
-        <div class="ai-badge">🤖 Viedā meklēšana</div>
-        <div class="search-bar">
-          <input class="search-input" type="text" id="search-input" placeholder="Meklē pēc nosaukuma vai izpildītāja..." oninput="doSearch()">
-        </div>
+        <div class="badge badge-green">🤖 Viedā meklēšana</div>
+        <input class="search-input" type="text" id="search-input" placeholder="Nosaukums, izpildītājs..." oninput="doSearch()">
         <div class="track-list" id="search-results"></div>
         <div class="empty-state" id="search-empty">
           <div class="empty-state-icon">🔍</div>
-          <div class="empty-state-text">Sāc rakstīt lai meklētu</div>
-          <div class="empty-state-sub">Meklē pēc nosaukuma, izpildītāja vai mapes</div>
+          <div class="empty-state-text">Sāc rakstīt</div>
+          <div class="empty-state-sub">Meklē pēc nosaukuma, izpildītāja</div>
         </div>
       </div>
 
-      <!-- ADMIN VIEW -->
+      <!-- ADMIN -->
       <div class="view" id="view-admin">
         <div class="section-title">Admin <span>Panelis</span></div>
-        <div id="admin-stats" style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;"></div>
-        <div class="track-list-header">
-          <div>#</div><div>Fails</div><div>Darbības</div>
-        </div>
-        <div class="track-list" id="admin-list"></div>
+        <div class="badge badge-red">🛡 Tikai adminiem</div>
+        <div class="stats-grid" id="admin-stats"></div>
+
+        <div class="section-title" style="font-size:1rem;margin-bottom:10px;">👤 Lietotāji</div>
+        <div id="admin-users" style="margin-bottom:24px;"></div>
+
+        <div class="section-title" style="font-size:1rem;margin-bottom:10px;">🎵 Visi faili</div>
+        <div class="track-list" id="admin-tracks"></div>
       </div>
 
     </div>
   </main>
 
-  <!-- ─── PLAYER ─── -->
+  <!-- PLAYER -->
   <div class="player">
     <div class="player-info">
-      <div class="player-thumb" id="player-thumb">🎵</div>
+      <div class="player-thumb">🎵</div>
       <div class="player-track">
         <div class="player-title" id="player-title">Nav izvēlēts</div>
         <div class="player-artist" id="player-artist">— Izvēlies dziesmu —</div>
@@ -703,9 +410,9 @@
     </div>
     <div class="player-center">
       <div class="player-controls">
-        <button class="ctrl-btn" onclick="prevTrack()" title="Iepriekšējā">⏮</button>
+        <button class="ctrl-btn" onclick="prevTrack()">⏮</button>
         <button class="ctrl-btn play-btn" id="play-btn" onclick="togglePlay()">▶</button>
-        <button class="ctrl-btn" onclick="nextTrack()" title="Nākamā">⏭</button>
+        <button class="ctrl-btn" onclick="nextTrack()">⏭</button>
       </div>
       <div class="progress-bar-wrap">
         <span id="time-cur">0:00</span>
@@ -716,601 +423,485 @@
       </div>
     </div>
     <div class="player-right">
-      <div class="vol-wrap">
-        <span class="vol-icon">🔊</span>
-        <input class="vol-slider" type="range" id="vol-slider" min="0" max="1" step="0.01" value="0.8" oninput="setVolume(this.value)">
-      </div>
-      <button class="btn-icon" onclick="downloadCurrent()" title="Lejupielādēt">⬇</button>
+      <span style="font-size:0.85rem;color:var(--text3)">🔊</span>
+      <input class="vol-slider" type="range" min="0" max="1" step="0.01" value="0.8" oninput="setVol(this.value)">
+      <button class="btn-icon" onclick="dlCurrent()">⬇</button>
     </div>
   </div>
-
 </div>
 
-<!-- ─── MODAL ─── -->
-<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+<!-- MODAL: New Folder -->
+<div class="modal-overlay" id="modal-folder" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal">
-    <div class="modal-title" id="modal-title">Jauna mape</div>
-    <input class="modal-input" type="text" id="modal-input" placeholder="Mapes nosaukums...">
+    <div class="modal-title">📁 Jauna mape</div>
+    <input class="modal-input" type="text" id="modal-fname" placeholder="Mapes nosaukums...">
     <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal()">Atcelt</button>
-      <button class="btn btn-green btn-sm" onclick="confirmModal()">Izveidot</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-folder').classList.remove('open')">Atcelt</button>
+      <button class="btn btn-green btn-sm" onclick="createFolder()">Izveidot</button>
     </div>
   </div>
 </div>
 
-<!-- ─── RENAME MODAL ─── -->
-<div class="modal-overlay" id="rename-overlay" onclick="closeRename(event)">
+<!-- MODAL: Edit Track -->
+<div class="modal-overlay" id="modal-edit" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal">
-    <div class="modal-title">Rediģēt dziesmu</div>
-    <input class="modal-input" type="text" id="rename-title" placeholder="Nosaukums">
-    <input class="modal-input" type="text" id="rename-artist" placeholder="Izpildītājs">
-    <select class="meta-input modal-input" id="rename-folder" style="width:100%;margin-bottom:12px;"></select>
+    <div class="modal-title">✏️ Rediģēt</div>
+    <input class="modal-input" type="text" id="edit-title" placeholder="Nosaukums">
+    <input class="modal-input" type="text" id="edit-artist" placeholder="Izpildītājs">
+    <select class="meta-input modal-input" id="edit-folder" style="width:100%;margin-bottom:10px;"></select>
     <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" onclick="closeRename()">Atcelt</button>
-      <button class="btn btn-green btn-sm" onclick="confirmRename()">Saglabāt</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-edit').classList.remove('open')">Atcelt</button>
+      <button class="btn btn-green btn-sm" onclick="saveEdit()">Saglabāt</button>
     </div>
   </div>
 </div>
 
-<!-- ─── TOAST ─── -->
-<div class="toast-container" id="toast-container"></div>
-
-<!-- ─── HIDDEN AUDIO ─── -->
-<audio id="audio-engine" preload="auto"></audio>
+<div class="toast-container" id="toasts"></div>
+<audio id="aud" preload="auto"></audio>
 
 <script>
-// ════════════════════════════════════════════
+// ═══════════════════════════════════════════
 //  STATE
-// ════════════════════════════════════════════
-const STORAGE_KEY = 'musicbox_v2';
-
-let db = {
-  tracks: [],
-  folders: [
-    { id: 'default', name: 'Bez mapes', color: '#555' },
-    { id: 'f1', name: 'Pop', color: '#ff6b9d' },
-    { id: 'f2', name: 'Rap', color: '#ffa502' },
-    { id: 'f3', name: 'Chill', color: '#5352ed' },
-    { id: 'f4', name: 'Mans Upload', color: '#1db954' },
-  ]
-};
-
-let currentTrackIdx = -1;
+// ═══════════════════════════════════════════
+let me = null;
+let tracks = [];
+let folders = [];
+let currentIdx = -1;
 let isPlaying = false;
-let activeFolder = null; // null = all
+let activeFolder = null;
+let editingId = null;
 let pendingFile = null;
-let renamingId = null;
 
-const audio = document.getElementById('audio-engine');
+const aud = document.getElementById('aud');
 
-// ════════════════════════════════════════════
-//  PERSIST
-// ════════════════════════════════════════════
-function save() {
-  // Save metadata only, not actual audio data
-  const toSave = {
-    tracks: db.tracks.map(t => ({...t, dataUrl: undefined})),
-    folders: db.folders
-  };
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave)); } catch(e) {}
+// ═══════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════
+function authTab(t) {
+  document.getElementById('at-login').classList.toggle('active', t==='login');
+  document.getElementById('at-register').classList.toggle('active', t==='register');
+  document.getElementById('auth-submit').textContent = t==='login' ? 'Ieiet' : 'Reģistrēties';
+  document.getElementById('auth-error').textContent = '';
 }
 
-function loadMeta() {
+async function doAuth() {
+  const mode = document.getElementById('at-login').classList.contains('active') ? 'login' : 'register';
+  const username = document.getElementById('auth-user').value.trim();
+  const password = document.getElementById('auth-pass').value;
+  if (!username || !password) { showAuthErr('Aizpildi visus laukus'); return; }
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      db.tracks = parsed.tracks || [];
-      if (parsed.folders && parsed.folders.length) db.folders = parsed.folders;
-    }
+    const r = await api('/api/auth/'+mode, 'POST', { username, password });
+    if (r.error) { showAuthErr(r.error); return; }
+    me = r.user;
+    afterLogin();
+  } catch(e) { showAuthErr('Kļūda: ' + e.message); }
+}
+
+document.getElementById('auth-pass').addEventListener('keydown', e => { if(e.key==='Enter') doAuth(); });
+
+function showAuthErr(msg) { document.getElementById('auth-error').textContent = msg; }
+
+async function checkAuth() {
+  try {
+    const r = await api('/api/auth/me');
+    if (r.loggedIn) { me = r.user; afterLogin(); }
   } catch(e) {}
 }
 
-// Audio blobs stored separately (IndexedDB)
-const idb = {
-  db: null,
-  open() {
-    return new Promise((res, rej) => {
-      const req = indexedDB.open('musicbox_audio', 1);
-      req.onupgradeneeded = e => e.target.result.createObjectStore('audio');
-      req.onsuccess = e => { this.db = e.target.result; res(); };
-      req.onerror = () => res(); // graceful fail
-    });
-  },
-  put(id, blob) {
-    if (!this.db) return;
-    const tx = this.db.transaction('audio', 'readwrite');
-    tx.objectStore('audio').put(blob, id);
-  },
-  get(id) {
-    return new Promise((res) => {
-      if (!this.db) return res(null);
-      const tx = this.db.transaction('audio', 'readonly');
-      const req = tx.objectStore('audio').get(id);
-      req.onsuccess = () => res(req.result || null);
-      req.onerror = () => res(null);
-    });
-  },
-  del(id) {
-    if (!this.db) return;
-    const tx = this.db.transaction('audio', 'readwrite');
-    tx.objectStore('audio').delete(id);
+function afterLogin() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'grid';
+  document.getElementById('chip-name').textContent = me.username;
+  document.getElementById('chip-role').textContent = me.role;
+  document.getElementById('chip-role').className = 'user-chip-role ' + (me.role==='admin' ? 'role-admin' : 'role-user');
+  if (me.role === 'admin') {
+    document.getElementById('nav-admin').style.display = 'flex';
+    document.getElementById('tab-admin').style.display = 'block';
   }
-};
+  loadAll();
+}
 
-// ════════════════════════════════════════════
-//  INIT
-// ════════════════════════════════════════════
-async function init() {
-  await idb.open();
-  loadMeta();
+async function doLogout() {
+  await api('/api/auth/logout', 'POST');
+  location.reload();
+}
+
+// ═══════════════════════════════════════════
+//  API HELPER
+// ═══════════════════════════════════════════
+async function api(url, method='GET', body=null) {
+  const opts = { method, headers:{} };
+  if (body) { opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
+  const r = await fetch(url, opts);
+  return r.json();
+}
+
+// ═══════════════════════════════════════════
+//  LOAD DATA
+// ═══════════════════════════════════════════
+async function loadAll() {
+  await Promise.all([loadFolders(), loadTracks()]);
   renderFolders();
   renderLibrary();
-  renderAdmin();
-  renderUploadFolderSelect();
-  setupDrop();
-  setupAudio();
+  renderFolderSelects();
 }
 
-// ════════════════════════════════════════════
+async function loadFolders() {
+  const r = await api('/api/folders');
+  folders = r.folders || [];
+}
+
+async function loadTracks() {
+  const url = activeFolder ? `/api/tracks?folder=${activeFolder}` : '/api/tracks';
+  const r = await api(url);
+  tracks = r.tracks || [];
+}
+
+// ═══════════════════════════════════════════
 //  TABS
-// ════════════════════════════════════════════
-function switchTab(tab) {
-  ['library','upload','search','admin'].forEach(t => {
-    document.getElementById('view-'+t).classList.toggle('active', t===tab);
-    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
-    document.getElementById('nav-'+t).classList.toggle('active', t===tab);
+// ═══════════════════════════════════════════
+function switchTab(t) {
+  ['library','upload','search','admin'].forEach(x => {
+    const v = document.getElementById('view-'+x);
+    const tab = document.getElementById('tab-'+x);
+    const nav = document.getElementById('nav-'+x);
+    if (v) v.classList.toggle('active', x===t);
+    if (tab) tab.classList.toggle('active', x===t);
+    if (nav) nav.classList.toggle('active', x===t);
   });
-  if (tab === 'admin') renderAdmin();
-  if (tab === 'search') document.getElementById('search-input').focus();
+  if (t==='admin') loadAdmin();
+  if (t==='search') document.getElementById('search-input').focus();
 }
 
-// ════════════════════════════════════════════
+// ═══════════════════════════════════════════
 //  FOLDERS
-// ════════════════════════════════════════════
-const FOLDER_COLORS = ['#1db954','#ff6b9d','#ffa502','#5352ed','#00d2d3','#ff4757','#ff6348','#7bed9f'];
+// ═══════════════════════════════════════════
+const COLORS = ['#1db954','#ff6b9d','#ffa502','#5352ed','#00d2d3','#ff4757','#7bed9f','#eccc68'];
 
 function renderFolders() {
   const el = document.getElementById('folders-list');
-  el.innerHTML = '';
-  // All
-  const allDiv = document.createElement('div');
-  allDiv.className = 'folder-item' + (activeFolder === null ? ' active' : '');
-  allDiv.innerHTML = `<div class="folder-item-left"><span>🎵</span> Visa mūzika</div><span class="folder-count">${db.tracks.length}</span>`;
-  allDiv.onclick = () => { activeFolder = null; renderFolders(); renderLibrary(); };
-  el.appendChild(allDiv);
-
-  db.folders.forEach(f => {
-    const count = db.tracks.filter(t => t.folderId === f.id).length;
-    const div = document.createElement('div');
-    div.className = 'folder-item' + (activeFolder === f.id ? ' active' : '');
-    div.innerHTML = `
-      <div class="folder-item-left">
-        <div class="folder-dot" style="background:${f.color}"></div>
-        ${f.name}
-      </div>
-      <span class="folder-count">${count}</span>`;
-    div.onclick = () => { activeFolder = f.id; renderFolders(); renderLibrary(); };
-    el.appendChild(div);
+  const totalCount = folders.reduce((a,f)=>a+(f.count||0),0);
+  let html = `<div class="folder-item${activeFolder===null?' active':''}" onclick="setFolder(null)">
+    <div class="folder-item-left"><span>🎵</span> Visa mūzika</div>
+    <span class="folder-count">${tracks.length}</span></div>`;
+  folders.forEach(f => {
+    html += `<div class="folder-item${activeFolder===f.id?' active':''}" onclick="setFolder('${f.id}')">
+      <div class="folder-item-left"><div class="folder-dot" style="background:${f.color}"></div>${esc(f.name)}</div>
+      <span class="folder-count">${f.count||0}</span></div>`;
   });
+  el.innerHTML = html;
+}
+
+async function setFolder(id) {
+  activeFolder = id;
+  await loadAll();
 }
 
 function openAddFolder() {
-  document.getElementById('modal-title').textContent = '📁 Jauna mape';
-  document.getElementById('modal-input').value = '';
-  document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(() => document.getElementById('modal-input').focus(), 100);
+  document.getElementById('modal-fname').value = '';
+  document.getElementById('modal-folder').classList.add('open');
+  setTimeout(()=>document.getElementById('modal-fname').focus(),80);
 }
-function closeModal(e) {
-  if (!e || e.target === document.getElementById('modal-overlay'))
-    document.getElementById('modal-overlay').classList.remove('open');
-}
-function confirmModal() {
-  const name = document.getElementById('modal-input').value.trim();
+async function createFolder() {
+  const name = document.getElementById('modal-fname').value.trim();
   if (!name) return;
-  const color = FOLDER_COLORS[Math.floor(Math.random()*FOLDER_COLORS.length)];
-  db.folders.push({ id: 'f_'+Date.now(), name, color });
-  save();
-  renderFolders();
-  renderUploadFolderSelect();
-  closeModal();
-  toast('✅ Mape izveidota: ' + name);
+  const color = COLORS[Math.floor(Math.random()*COLORS.length)];
+  const r = await api('/api/folders','POST',{name,color});
+  if (r.error) { toast(r.error,'error'); return; }
+  document.getElementById('modal-folder').classList.remove('open');
+  toast('✅ Mape: '+name);
+  await loadAll();
 }
 
-// ════════════════════════════════════════════
-//  UPLOAD
-// ════════════════════════════════════════════
-function setupDrop() {
-  const dz = document.getElementById('dropzone');
-  const fi = document.getElementById('file-input');
-
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault();
-    dz.classList.remove('drag-over');
-    handleFiles(e.dataTransfer.files);
-  });
-  fi.addEventListener('change', () => handleFiles(fi.files));
-}
-
-function handleFiles(files) {
-  if (!files || !files.length) return;
-  pendingFile = files[0];
-  // Auto fill title from filename
-  const name = pendingFile.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g,' ');
-  document.getElementById('upload-title').value = name;
-  // Preview
-  const prev = document.getElementById('upload-preview');
-  prev.innerHTML = `<div class="track-row" style="background:var(--bg3);cursor:default;">
-    <div style="font-size:1.2rem;text-align:center;">🎵</div>
-    <div class="track-info">
-      <div class="track-title">${pendingFile.name}</div>
-      <div class="track-artist">${(pendingFile.size/1024/1024).toFixed(2)} MB · ${pendingFile.type || 'audio'}</div>
-    </div>
-    <div style="color:var(--accent);font-size:0.8rem;font-weight:700;">Gatavs</div>
-  </div>`;
-  toast('🎵 Fails izvēlēts: ' + pendingFile.name);
-
-  // If multiple files, queue them
-  if (files.length > 1) {
-    for (let i = 1; i < files.length; i++) {
-      queueUpload(files[i]);
-    }
-  }
-}
-
-async function queueUpload(file) {
-  const id = 'tr_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-  const name = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g,' ');
-  const folderId = document.getElementById('upload-folder').value || 'default';
-  const track = { id, title: name, artist: '', folderId, filename: file.name, addedAt: Date.now() };
-  idb.put(id, file);
-  db.tracks.push(track);
-  save();
-  toast('✅ ' + name);
-}
-
-async function uploadSelected() {
-  if (!pendingFile) { toast('⚠ Izvēlies failu!', 'error'); return; }
-  const title = document.getElementById('upload-title').value.trim() || pendingFile.name;
-  const artist = document.getElementById('upload-artist').value.trim();
-  const folderId = document.getElementById('upload-folder').value || 'default';
-  const id = 'tr_' + Date.now();
-  const track = { id, title, artist, folderId, filename: pendingFile.name, addedAt: Date.now() };
-  idb.put(id, pendingFile);
-  db.tracks.push(track);
-  save();
-  renderFolders();
-  renderLibrary();
-  renderAdmin();
-  pendingFile = null;
-  document.getElementById('upload-title').value = '';
-  document.getElementById('upload-artist').value = '';
-  document.getElementById('upload-preview').innerHTML = '';
-  document.getElementById('file-input').value = '';
-  toast('✅ Augšupielādēts: ' + title, 'success');
-}
-
-function renderUploadFolderSelect() {
-  ['upload-folder','rename-folder'].forEach(id => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    sel.innerHTML = db.folders.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+function renderFolderSelects() {
+  const opts = folders.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join('');
+  ['upload-folder','edit-folder'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=opts;
   });
 }
 
-// ════════════════════════════════════════════
-//  LIBRARY RENDER
-// ════════════════════════════════════════════
-function getFolderName(id) {
-  const f = db.folders.find(x => x.id === id);
-  return f ? f.name : '—';
-}
-function getFolderColor(id) {
-  const f = db.folders.find(x => x.id === id);
-  return f ? f.color : '#555';
+function getFolderInfo(id) {
+  return folders.find(f=>f.id===id) || { name:'—', color:'#555' };
 }
 
-function getFilteredTracks() {
-  if (activeFolder === null) return db.tracks;
-  return db.tracks.filter(t => t.folderId === activeFolder);
-}
-
+// ═══════════════════════════════════════════
+//  LIBRARY
+// ═══════════════════════════════════════════
 function renderLibrary() {
-  const list = document.getElementById('track-list');
-  const empty = document.getElementById('empty-library');
-  const title = document.getElementById('library-title');
-  const tracks = getFilteredTracks();
-
-  if (activeFolder === null) {
-    title.innerHTML = 'Visa <span>Mūzika</span>';
-  } else {
-    const f = db.folders.find(x => x.id === activeFolder);
-    title.innerHTML = `📁 <span>${f ? f.name : ''}</span>`;
-  }
-
-  if (!tracks.length) {
-    list.innerHTML = '';
-    empty.style.display = 'block';
-    return;
-  }
-  empty.style.display = 'none';
-  list.innerHTML = tracks.map((t, i) => buildTrackRow(t, i, 'library')).join('');
+  const list=document.getElementById('track-list');
+  const empty=document.getElementById('empty-library');
+  const title=document.getElementById('library-title');
+  if (activeFolder===null) title.innerHTML='Visa <span>Mūzika</span>';
+  else { const f=getFolderInfo(activeFolder); title.innerHTML=`📁 <span>${esc(f.name)}</span>`; }
+  if (!tracks.length) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  list.innerHTML = tracks.map((t,i)=>trackRow(t,i)).join('');
 }
 
-function buildTrackRow(t, i, context) {
-  const isPlay = db.tracks.indexOf(t) === currentTrackIdx && isPlaying;
-  const numCell = isPlay
-    ? `<div class="playing-bars"><span style="height:100%"></span><span></span><span></span></div>`
+function trackRow(t, i) {
+  const playing = i===currentIdx && isPlaying;
+  const f = getFolderInfo(t.folderId);
+  const num = playing
+    ? `<div class="playing-bars"><span></span><span></span><span></span></div>`
     : `<span class="track-num">${i+1}</span>`;
-  const fColor = getFolderColor(t.folderId);
-  return `
-  <div class="track-row ${isPlay?'playing':''}" id="row-${t.id}" onclick="playTrack('${t.id}')">
-    <div style="display:flex;align-items:center;justify-content:center;">${numCell}</div>
+  const canEdit = me && (me.role==='admin' || t.uploaderId===me.id);
+  return `<div class="track-row${playing?' playing':''}" onclick="playAt(${i})">
+    <div style="display:flex;align-items:center;justify-content:center;">${num}</div>
     <div class="track-info">
       <div class="track-title">${esc(t.title)}</div>
-      <div class="track-artist">${esc(t.artist || 'Nezināms izpildītājs')}</div>
+      <div class="track-meta">
+        <span>${esc(t.artist||'Nezināms')}</span>
+        <span class="uploader-tag">👤 ${esc(t.uploadedBy||'?')}</span>
+      </div>
     </div>
     <div class="track-actions" onclick="event.stopPropagation()">
-      <span class="track-folder-tag" style="color:${fColor}">${esc(getFolderName(t.folderId))}</span>
-      <button class="btn-icon" onclick="downloadTrack('${t.id}')" title="Lejupielādēt">⬇</button>
-      <button class="btn-icon" onclick="openRename('${t.id}')" title="Rediģēt">✏️</button>
-      <button class="btn-icon" style="color:var(--red)" onclick="deleteTrack('${t.id}')" title="Dzēst">🗑</button>
+      <span class="track-folder-tag" style="color:${f.color}">${esc(f.name)}</span>
+      <button class="btn-icon" onclick="dlTrack('${t.id}')">⬇</button>
+      ${canEdit?`<button class="btn-icon" onclick="openEdit('${t.id}')">✏️</button>
+      <button class="btn-icon" style="color:var(--red)" onclick="delTrack('${t.id}')">🗑</button>`:''}
     </div>
   </div>`;
 }
 
-// ════════════════════════════════════════════
-//  ADMIN
-// ════════════════════════════════════════════
-function renderAdmin() {
-  const stats = document.getElementById('admin-stats');
-  const list = document.getElementById('admin-list');
-
-  const totalTracks = db.tracks.length;
-  const totalFolders = db.folders.length;
-  const recentAdded = db.tracks.filter(t => Date.now() - t.addedAt < 86400000*7).length;
-
-  stats.innerHTML = [
-    { label: 'Kopā dziesmas', val: totalTracks, icon: '🎵' },
-    { label: 'Mapes', val: totalFolders, icon: '📁' },
-    { label: 'Šonedēļ pievienotas', val: recentAdded, icon: '🆕' },
-  ].map(s => `
-    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px 20px;min-width:120px;">
-      <div style="font-size:1.5rem;">${s.icon}</div>
-      <div style="font-size:1.6rem;font-weight:800;margin-top:4px;">${s.val}</div>
-      <div style="font-size:0.75rem;color:var(--text3);margin-top:2px;">${s.label}</div>
-    </div>`).join('');
-
-  if (!db.tracks.length) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📂</div><div class="empty-state-text">Nav failu</div></div>';
-    return;
-  }
-  list.innerHTML = db.tracks.map((t, i) => `
-    <div class="track-row">
-      <span class="track-num">${i+1}</span>
-      <div class="track-info">
-        <div class="track-title">${esc(t.title)}</div>
-        <div class="track-artist">${esc(t.artist||'—')} · <span style="color:${getFolderColor(t.folderId)}">${esc(getFolderName(t.folderId))}</span></div>
-      </div>
-      <div class="track-actions" style="opacity:1;display:flex;gap:6px;">
-        <button class="btn btn-ghost btn-sm" onclick="openRename('${t.id}')">✏️ Rediģēt</button>
-        <button class="btn btn-red btn-sm" onclick="deleteTrack('${t.id}')">🗑 Dzēst</button>
-      </div>
-    </div>`).join('');
+// ═══════════════════════════════════════════
+//  UPLOAD
+// ═══════════════════════════════════════════
+function setupDrop() {
+  const dz=document.getElementById('dropzone');
+  const fi=document.getElementById('file-input');
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');handleFile(e.dataTransfer.files[0]);});
+  fi.addEventListener('change',()=>handleFile(fi.files[0]));
+}
+function handleFile(f) {
+  if (!f) return;
+  pendingFile = f;
+  const name = f.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ');
+  document.getElementById('upload-title').value = name;
+  document.getElementById('upload-preview').innerHTML=`<div class="track-row" style="background:rgba(255,255,255,0.04);cursor:default;">
+    <div style="text-align:center;font-size:1.1rem;">🎵</div>
+    <div class="track-info"><div class="track-title">${esc(f.name)}</div>
+    <div class="track-meta"><span>${(f.size/1024/1024).toFixed(2)} MB</span></div></div>
+    <div style="color:var(--accent);font-size:0.78rem;font-weight:700;">Gatavs ✓</div></div>`;
+  toast('🎵 '+f.name);
 }
 
-// ════════════════════════════════════════════
+async function uploadFile() {
+  if (!pendingFile) { toast('Izvēlies failu!','error'); return; }
+  const fd = new FormData();
+  fd.append('audio', pendingFile);
+  fd.append('title', document.getElementById('upload-title').value.trim() || pendingFile.name);
+  fd.append('artist', document.getElementById('upload-artist').value.trim());
+  fd.append('folderId', document.getElementById('upload-folder').value || 'default');
+  try {
+    const r = await fetch('/api/upload', { method:'POST', body:fd });
+    const data = await r.json();
+    if (data.error) { toast(data.error,'error'); return; }
+    toast('✅ Augšupielādēts: '+data.track.title,'success');
+    pendingFile = null;
+    document.getElementById('upload-title').value='';
+    document.getElementById('upload-artist').value='';
+    document.getElementById('upload-preview').innerHTML='';
+    document.getElementById('file-input').value='';
+    await loadAll();
+  } catch(e) { toast('Kļūda: '+e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════
 //  SEARCH
-// ════════════════════════════════════════════
+// ═══════════════════════════════════════════
+let searchTimer;
 function doSearch() {
-  const q = document.getElementById('search-input').value.toLowerCase().trim();
-  const res = document.getElementById('search-results');
-  const emp = document.getElementById('search-empty');
-  if (!q) { res.innerHTML=''; emp.style.display='block'; return; }
-  emp.style.display='none';
-  const hits = db.tracks.filter(t =>
-    t.title.toLowerCase().includes(q) ||
-    (t.artist||'').toLowerCase().includes(q) ||
-    getFolderName(t.folderId).toLowerCase().includes(q)
-  );
-  if (!hits.length) {
-    res.innerHTML='';
-    emp.style.display='block';
-    emp.querySelector('.empty-state-text').textContent = 'Nav rezultātu';
-    emp.querySelector('.empty-state-sub').textContent = `Nav dziesmu priekš "${q}"`;
-    return;
-  }
-  res.innerHTML = hits.map((t,i) => buildTrackRow(t,i,'search')).join('');
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async ()=>{
+    const q = document.getElementById('search-input').value.trim();
+    const res=document.getElementById('search-results');
+    const emp=document.getElementById('search-empty');
+    if (!q) { res.innerHTML=''; emp.style.display='block'; return; }
+    const r = await api('/api/search?q='+encodeURIComponent(q));
+    const hits = r.results||[];
+    emp.style.display='none';
+    if (!hits.length) {
+      res.innerHTML='';
+      emp.style.display='block';
+      emp.querySelector('.empty-state-text').textContent='Nav rezultātu';
+      return;
+    }
+    res.innerHTML = hits.map((t,i)=>trackRow(t,i)).join('');
+  }, 250);
 }
 
-// ════════════════════════════════════════════
-//  AUDIO PLAYER
-// ════════════════════════════════════════════
-function setupAudio() {
-  audio.addEventListener('timeupdate', onTimeUpdate);
-  audio.addEventListener('ended', nextTrack);
-  audio.volume = 0.8;
-}
+// ═══════════════════════════════════════════
+//  PLAYER
+// ═══════════════════════════════════════════
+aud.addEventListener('timeupdate',()=>{
+  const c=aud.currentTime, d=aud.duration||0;
+  document.getElementById('time-cur').textContent=fmt(c);
+  document.getElementById('time-dur').textContent=fmt(d);
+  document.getElementById('progress-fill').style.width=d?(c/d*100)+'%':'0%';
+});
+aud.addEventListener('ended', nextTrack);
 
-async function playTrack(id) {
-  const idx = db.tracks.findIndex(t => t.id === id);
-  if (idx < 0) return;
-  currentTrackIdx = idx;
-  const t = db.tracks[idx];
-  // Load from IDB
-  const blob = await idb.get(id);
-  if (!blob) { toast('⚠ Audio fails nav atrasts. Pārlādē un augšupielādē vēlreiz.', 'error'); return; }
-  const url = URL.createObjectURL(blob);
-  audio.src = url;
-  audio.play().then(() => {
-    isPlaying = true;
-    updatePlayBtn();
-    updatePlayerInfo(t);
-    renderLibrary();
-    renderAdmin();
-  }).catch(err => toast('⚠ Nevar atskaņot: ' + err.message, 'error'));
+async function playAt(idx) {
+  currentIdx = idx;
+  const t = tracks[idx];
+  aud.src = '/uploads/' + t.filename;
+  await aud.play().catch(e=>toast('⚠ '+e.message,'error'));
+  isPlaying = true;
+  updatePlayBtn();
+  document.getElementById('player-title').textContent = t.title;
+  document.getElementById('player-artist').textContent = t.artist || t.uploadedBy || '—';
+  renderLibrary();
 }
 
 function togglePlay() {
-  if (currentTrackIdx < 0) return;
-  if (isPlaying) { audio.pause(); isPlaying = false; }
-  else { audio.play(); isPlaying = true; }
+  if (currentIdx<0) return;
+  if (isPlaying) { aud.pause(); isPlaying=false; }
+  else { aud.play(); isPlaying=true; }
   updatePlayBtn();
 }
+function prevTrack() { if (!tracks.length) return; playAt(currentIdx<=0?tracks.length-1:currentIdx-1); }
+function nextTrack() { if (!tracks.length) return; playAt(currentIdx>=tracks.length-1?0:currentIdx+1); }
+function updatePlayBtn() { document.getElementById('play-btn').textContent=isPlaying?'⏸':'▶'; }
+function seekTo(e) { const b=document.getElementById('progress-bar'); if(aud.duration) aud.currentTime=(e.offsetX/b.clientWidth)*aud.duration; }
+function setVol(v) { aud.volume=parseFloat(v); }
+function fmt(s) { if(!s||isNaN(s)) return '0:00'; const m=Math.floor(s/60); return m+':'+(''+(Math.floor(s%60))).padStart(2,'0'); }
 
-function prevTrack() {
-  if (!db.tracks.length) return;
-  const idx = currentTrackIdx <= 0 ? db.tracks.length - 1 : currentTrackIdx - 1;
-  playTrack(db.tracks[idx].id);
-}
-function nextTrack() {
-  if (!db.tracks.length) return;
-  const idx = currentTrackIdx >= db.tracks.length - 1 ? 0 : currentTrackIdx + 1;
-  playTrack(db.tracks[idx].id);
-}
-
-function updatePlayBtn() {
-  document.getElementById('play-btn').textContent = isPlaying ? '⏸' : '▶';
-}
-
-function updatePlayerInfo(t) {
-  document.getElementById('player-title').textContent = t.title;
-  document.getElementById('player-artist').textContent = t.artist || 'Nezināms izpildītājs';
-}
-
-function onTimeUpdate() {
-  const cur = audio.currentTime;
-  const dur = audio.duration || 0;
-  document.getElementById('time-cur').textContent = fmt(cur);
-  document.getElementById('time-dur').textContent = fmt(dur);
-  document.getElementById('progress-fill').style.width = dur ? (cur/dur*100)+'%' : '0%';
-}
-
-function seekTo(e) {
-  const bar = document.getElementById('progress-bar');
-  const pct = e.offsetX / bar.clientWidth;
-  if (audio.duration) audio.currentTime = pct * audio.duration;
-}
-
-function setVolume(v) { audio.volume = parseFloat(v); }
-
-function fmt(s) {
-  if (!s || isNaN(s)) return '0:00';
-  const m = Math.floor(s/60), sec = Math.floor(s%60);
-  return m + ':' + String(sec).padStart(2,'0');
-}
-
-// ════════════════════════════════════════════
+// ═══════════════════════════════════════════
 //  DOWNLOAD
-// ════════════════════════════════════════════
-async function downloadTrack(id) {
-  const t = db.tracks.find(x => x.id === id);
+// ═══════════════════════════════════════════
+function dlTrack(id) {
+  const t=tracks.find(x=>x.id===id);
   if (!t) return;
-  const blob = await idb.get(id);
-  if (!blob) { toast('⚠ Fails nav atrodams', 'error'); return; }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = t.title + (t.filename ? t.filename.match(/\.[^.]+$/)?.[0] || '.mp3' : '.mp3');
+  const a=document.createElement('a');
+  a.href='/uploads/'+t.filename;
+  a.download=t.title+(t.filename.match(/\.[^.]+$/)||['.mp3'])[0];
   a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast('⬇ Lejupielādē: ' + t.title);
+  toast('⬇ '+t.title);
+}
+function dlCurrent() { if(currentIdx>=0) dlTrack(tracks[currentIdx].id); }
+async function downloadAllTracks() {
+  if (!tracks.length) { toast('Nav dziesmu','error'); return; }
+  toast('⬇ Lejupielādē '+tracks.length+' dziesmas...');
+  for (const t of tracks) { await new Promise(r=>setTimeout(r,300)); dlTrack(t.id); }
 }
 
-async function downloadCurrent() {
-  if (currentTrackIdx < 0) return;
-  downloadTrack(db.tracks[currentTrackIdx].id);
+// ═══════════════════════════════════════════
+//  EDIT / DELETE
+// ═══════════════════════════════════════════
+function openEdit(id) {
+  editingId = id;
+  const t=tracks.find(x=>x.id===id); if(!t) return;
+  document.getElementById('edit-title').value=t.title;
+  document.getElementById('edit-artist').value=t.artist||'';
+  renderFolderSelects();
+  document.getElementById('edit-folder').value=t.folderId;
+  document.getElementById('modal-edit').classList.add('open');
 }
-
-async function downloadAll() {
-  const tracks = getFilteredTracks();
-  if (!tracks.length) { toast('Nav dziesmu', 'error'); return; }
-  toast(`⬇ Lejupielādē ${tracks.length} dziesmas...`);
-  for (const t of tracks) {
-    await new Promise(r => setTimeout(r, 300));
-    await downloadTrack(t.id);
-  }
-}
-
-// ════════════════════════════════════════════
-//  DELETE
-// ════════════════════════════════════════════
-function deleteTrack(id) {
-  const t = db.tracks.find(x => x.id === id);
-  if (!t) return;
-  if (!confirm(`Dzēst "${t.title}"?`)) return;
-  if (currentTrackIdx >= 0 && db.tracks[currentTrackIdx].id === id) {
-    audio.pause(); isPlaying = false; currentTrackIdx = -1;
-    document.getElementById('player-title').textContent = 'Nav izvēlēts';
-    document.getElementById('player-artist').textContent = '— Izvēlies dziesmu —';
-    document.getElementById('play-btn').textContent = '▶';
-  }
-  idb.del(id);
-  db.tracks = db.tracks.filter(x => x.id !== id);
-  // Fix currentIdx
-  if (currentTrackIdx >= db.tracks.length) currentTrackIdx = db.tracks.length - 1;
-  save();
-  renderFolders();
-  renderLibrary();
-  renderAdmin();
-  toast('🗑 Dzēsts: ' + t.title);
-}
-
-// ════════════════════════════════════════════
-//  RENAME / EDIT
-// ════════════════════════════════════════════
-function openRename(id) {
-  renamingId = id;
-  const t = db.tracks.find(x => x.id === id);
-  if (!t) return;
-  document.getElementById('rename-title').value = t.title;
-  document.getElementById('rename-artist').value = t.artist || '';
-  renderUploadFolderSelect();
-  document.getElementById('rename-folder').value = t.folderId;
-  document.getElementById('rename-overlay').classList.add('open');
-}
-function closeRename(e) {
-  if (!e || e.target === document.getElementById('rename-overlay'))
-    document.getElementById('rename-overlay').classList.remove('open');
-  renamingId = null;
-}
-function confirmRename() {
-  const t = db.tracks.find(x => x.id === renamingId);
-  if (!t) return;
-  t.title = document.getElementById('rename-title').value.trim() || t.title;
-  t.artist = document.getElementById('rename-artist').value.trim();
-  t.folderId = document.getElementById('rename-folder').value;
-  save();
-  renderFolders();
-  renderLibrary();
-  renderAdmin();
-  closeRename();
+async function saveEdit() {
+  const t=tracks.find(x=>x.id===editingId); if(!t) return;
+  const r=await api('/api/tracks/'+editingId,'PUT',{
+    title:document.getElementById('edit-title').value.trim()||t.title,
+    artist:document.getElementById('edit-artist').value.trim(),
+    folderId:document.getElementById('edit-folder').value
+  });
+  if(r.error){toast(r.error,'error');return;}
+  document.getElementById('modal-edit').classList.remove('open');
   toast('✅ Saglabāts');
-  if (currentTrackIdx >= 0 && db.tracks[currentTrackIdx].id === renamingId) updatePlayerInfo(t);
+  if(currentIdx>=0&&tracks[currentIdx].id===editingId){
+    document.getElementById('player-title').textContent=r.track.title;
+    document.getElementById('player-artist').textContent=r.track.artist||'—';
+  }
+  await loadAll();
+}
+async function delTrack(id) {
+  const t=tracks.find(x=>x.id===id); if(!t) return;
+  if (!confirm('Dzēst "'+t.title+'"?')) return;
+  const r=await api('/api/tracks/'+id,'DELETE');
+  if(r.error){toast(r.error,'error');return;}
+  if(currentIdx>=0&&tracks[currentIdx].id===id){
+    aud.pause(); isPlaying=false; currentIdx=-1;
+    document.getElementById('player-title').textContent='Nav izvēlēts';
+    document.getElementById('play-btn').textContent='▶';
+  }
+  toast('🗑 Dzēsts');
+  await loadAll();
 }
 
-// ════════════════════════════════════════════
+// ═══════════════════════════════════════════
+//  ADMIN
+// ═══════════════════════════════════════════
+async function loadAdmin() {
+  const [ustats, tstats] = await Promise.all([
+    api('/api/admin/users'),
+    api('/api/tracks')
+  ]);
+  const users = ustats.users||[];
+  const allTracks = tstats.tracks||[];
+
+  document.getElementById('admin-stats').innerHTML=[
+    {icon:'🎵',val:allTracks.length,label:'Kopā dziesmas'},
+    {icon:'👤',val:users.length,label:'Lietotāji'},
+    {icon:'📁',val:folders.length,label:'Mapes'},
+  ].map(s=>`<div class="stat-card"><div class="stat-icon">${s.icon}</div><div class="stat-val">${s.val}</div><div class="stat-label">${s.label}</div></div>`).join('');
+
+  document.getElementById('admin-users').innerHTML=users.map(u=>`
+    <div class="user-row">
+      <div><strong>${esc(u.username)}</strong> <span style="color:var(--text3);font-size:0.75rem;">${new Date(u.createdAt).toLocaleDateString('lv')}</span></div>
+      <span class="user-chip-role ${u.role==='admin'?'role-admin':'role-user'}">${u.role}</span>
+      <div style="display:flex;gap:6px;">
+        ${u.role!=='admin'?`<button class="btn-icon btn-sm" onclick="promoteUser('${u.id}')">⬆ Admin</button>
+        <button class="btn-icon btn-sm" style="color:var(--red)" onclick="delUser('${u.id}')">🗑</button>`:'<span style="color:var(--text3);font-size:0.75rem;">—</span>'}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('admin-tracks').innerHTML=allTracks.map((t,i)=>`
+    <div class="track-row">
+      <span class="track-num">${i+1}</span>
+      <div class="track-info"><div class="track-title">${esc(t.title)}</div>
+      <div class="track-meta"><span>${esc(t.artist||'—')}</span><span class="uploader-tag">👤 ${esc(t.uploadedBy||'?')}</span></div></div>
+      <div class="track-actions" style="opacity:1;display:flex;gap:5px;">
+        <button class="btn btn-ghost btn-sm" onclick="openEdit('${t.id}')">✏️</button>
+        <button class="btn btn-red btn-sm" onclick="delTrack('${t.id}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+async function promoteUser(id) {
+  if (!confirm('Padarīt par admin?')) return;
+  const r=await api('/api/admin/users/'+id+'/role','PUT',{role:'admin'});
+  if(r.error){toast(r.error,'error');return;}
+  toast('✅ Lietotājs tagad ir admin');
+  loadAdmin();
+}
+async function delUser(id) {
+  if (!confirm('Dzēst lietotāju?')) return;
+  const r=await api('/api/admin/users/'+id,'DELETE');
+  if(r.error){toast(r.error,'error');return;}
+  toast('🗑 Lietotājs dzēsts');
+  loadAdmin();
+}
+
+// ═══════════════════════════════════════════
 //  UTILS
-// ════════════════════════════════════════════
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function toast(msg, type = 'success') {
-  const c = document.getElementById('toast-container');
-  const d = document.createElement('div');
-  d.className = 'toast ' + type;
-  d.textContent = msg;
+// ═══════════════════════════════════════════
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toast(msg,type='success'){
+  const c=document.getElementById('toasts');
+  const d=document.createElement('div');
+  d.className='toast '+(type||'success');
+  d.textContent=msg;
   c.appendChild(d);
-  setTimeout(() => d.remove(), 3000);
+  setTimeout(()=>d.remove(),3000);
 }
 
-// ════════════════════════════════════════════
-//  START
-// ════════════════════════════════════════════
-init();
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+setupDrop();
+checkAuth();
 </script>
 </body>
 </html>
