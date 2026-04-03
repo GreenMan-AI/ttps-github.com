@@ -1,105 +1,99 @@
-# GREENMAN·AI — Music Platform v2.0
+# 🎵 MusicBox — Shared Music Platform
 
-## ⚡ UZSTĀDĪŠANA (3 soļi)
+Pilna mūzikas platforma ar lietotāju reģistrāciju, kopīgu bibliotēku un admin paneli.
+
+## 🚀 Uzstādīšana
 
 ```bash
-# 1. Ienāc mapē
-cd greenman-ai-v2
-
-# 2. Uzstādi pakotnes
+# 1. Instalē dependencies
 npm install
 
-# 3. Palaid!
-npm start
+# 2. Pieliec bg.jpg (fona bilde) projekta mapē (jau iekļauta)
+
+# 3. Startē serveri
+node server.js
+
+# Vai ar auto-restart (dev mode):
+npm run dev
 ```
 
-Atver pārlūkā: **http://localhost:3000**
+Atver: **http://localhost:3000**
 
 ---
 
-## 🔑 ADMIN PIEKĻUVE
+## 👤 Noklusējuma Admin
 
-| Lietotājvārds | Parole     |
-|---------------|------------|
-| `admin`       | `admin1234` |
+| Lietotājvārds | Parole    |
+|--------------|-----------|
+| `admin`      | `admin123` |
 
-> ⚠️ **NOMAINĪT PAROLI** failā `server.js` rindā `const ADMIN_PASS = 'admin1234';` pirms publicēšanas!
+> ⚠️ **Nomainī paroli pēc pirmās ieiešanas!**
 
 ---
 
-## 📁 PROJEKTA STRUKTŪRA
+## ✨ Funkcijas
+
+### 🔐 Autorizācija
+- Reģistrācija ar lietotājvārdu + paroli
+- Sesijas saglabāšana (7 dienas)
+- Lomas: `user` un `admin`
+
+### 🎵 Mūzika (visi redz!)
+- Augšupielādē MP3, WAV, OGG, FLAC (max 100MB)
+- Drag & Drop upload
+- Katra dziesma redzama **visiem lietotājiem**
+- Lejupielādēt jebkuru dziesmu
+
+### 📁 Mapes
+- Izveidot, pārvaldīt mapes
+- Krāsainas mapes sānjoslā
+
+### 🔍 Meklēšana
+- Meklē pēc nosaukuma, izpildītāja, augšupielādētāja
+
+### 🛡 Admin Panelis
+- Redz visus lietotājus
+- Dzēš lietotājus
+- Paaugstina uz admin
+- Redz un dzēš jebkuru failu
+
+---
+
+## 📁 Projekta struktūra
 
 ```
-greenman-ai-v2/
-├── server.js          ← Node.js backend
+musicbox/
+├── server.js      # Node.js backend
+├── index.html     # Frontend (SPA)
 ├── package.json
-├── uploads/           ← Tiek izveidots automātiski
-└── public/
-    └── index.html     ← Visa frontend
+├── bg.jpg         # Fona bilde
+├── data.json      # DB (auto izveidojas)
+└── uploads/       # Audio faili (auto izveidojas)
 ```
 
 ---
 
-## 🎯 FUNKCIJAS
+## 🌐 Izvietošana serverī (VPS)
 
-### Publiskais lietotājs (bez konta)
-- ✅ Klausīties publiskās dziesmas
-- ✅ Redzēt mapes un to saturu
+```bash
+# Instalē PM2
+npm install -g pm2
 
-### Reģistrēts lietotājs
-- ✅ Viss iepriekšējais +
-- ✅ Klausīties privātās dziesmas
-- ✅ Veidot personīgās playlistes
-- ✅ Pievienot/noņemt dziesmas no playlistes
+# Startē
+pm2 start server.js --name musicbox
 
-### Admin (🔒 poga augšējā stūrī)
-- ✅ Augšupielādēt mūziku (publisko vai privāto)
-- ✅ Izveidot/dzēst mapes (Metal, Hip-Hop, utt.)
-- ✅ Dzēst jebkuru dziesmu
-- ✅ Skatīt statistiku (lietotāji, atskaņojumi)
-- ✅ Pārvaldīt lietotājus
+# Auto-start pēc restart
+pm2 startup
+pm2 save
+```
+
+Ar Nginx proxy uz portu 3000 vari izmantot domēnu.
 
 ---
 
-## 🎵 PLAYER FUNKCIJAS
+## 🔒 Drošība (Production)
 
-- ▶ / ⏸ Atskaņot / Pauzēt
-- ⏮ ⏭ Iepriekšējā / Nākamā
-- ⇄ Shuffle (jaukt secību)
-- ↻ Repeat (atkārtot dziesmu)
-- Progress bar (klikšķināms)
-- Skaļuma regulēšana
-
----
-
-## 🌐 API
-
-| Metode | URL | Apraksts | Tiesības |
-|--------|-----|---------|---------|
-| POST | /api/register | Reģistrācija | — |
-| POST | /api/login | Ielogoties | — |
-| POST | /api/logout | Izlogoties | User |
-| GET  | /api/me | Pašreizējais user | User |
-| GET  | /api/tracks | Dziesmu saraksts | — |
-| POST | /api/upload | Augšupielādēt | Admin |
-| PATCH | /api/tracks/:id | Rediģēt meta | Admin |
-| DELETE | /api/tracks/:id | Dzēst dziesmu | Admin |
-| POST | /api/tracks/:id/play | +1 atskaņojums | — |
-| GET  | /api/folders | Mapes | — |
-| POST | /api/folders | Izveidot mapi | Admin |
-| DELETE | /api/folders/:id | Dzēst mapi | Admin |
-| GET  | /api/playlists | Playlistes | User |
-| POST | /api/playlists | Izveidot | User |
-| DELETE | /api/playlists/:id | Dzēst | User/Admin |
-| POST | /api/playlists/:id/tracks | Pievienot dziesmu | User |
-| DELETE | /api/playlists/:id/tracks/:tid | Noņemt dziesmu | User |
-| GET  | /api/admin/stats | Statistika | Admin |
-| GET  | /api/admin/users | Lietotāju saraksts | Admin |
-| DELETE | /api/admin/users/:u | Dzēst lietotāju | Admin |
-
----
-
-## ⚠️ PIEZĪME
-
-Dati glabājas **atmiņā** — pazūd pēc `npm restart`.
-Nākamajā versijā var pievienot **SQLite** vai **MongoDB** pastāvīgai uzglabāšanai.
+Pirms publicēšanas nomainī `server.js` failā:
+```js
+secret: 'NOMAINĪ-ŠO-UZ-UNIKĀLU-VIRKNI'
+```
