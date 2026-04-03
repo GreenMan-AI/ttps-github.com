@@ -1,3 +1,5 @@
+[README.md](https://github.com/user-attachments/files/26469566/README.md)
+[README.md](https://github.com/user-attachments/files/26469566/README.md)
 # 🎵 MusicBox — Shared Music Platform
 
 Pilna mūzikas platforma ar lietotāju reģistrāciju, kopīgu bibliotēku un admin paneli.
