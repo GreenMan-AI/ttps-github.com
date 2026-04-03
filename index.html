@@ -1088,9 +1088,6 @@ function renderAdmin() {
     return;
   }
   list.innerHTML = db.tracks.map((t, i) => `
-    <div class="nav-item" onclick="loginAdmin(prompt('Ievadi admin paroli'))">
-  <span class="icon">🔐</span> Admin Login
- </div>
     <div class="track-row">
       <span class="track-num">${i+1}</span>
       <div class="track-info">
@@ -1140,23 +1137,13 @@ function setupAudio() {
 async function playTrack(id) {
   const idx = db.tracks.findIndex(t => t.id === id);
   if (idx < 0) return;
-
   currentTrackIdx = idx;
   const t = db.tracks[idx];
-
-  let blob = await idb.get(id);
-
-  // 🔥 FIX: ja nav lokālais fails → mēģina URL
-  if (!blob && t.url) {
-    audio.src = t.url;
-  } else if (blob) {
-    const url = URL.createObjectURL(blob);
-    audio.src = url;
-  } else {
-    toast('⚠ Audio nav pieejams šajā ierīcē', 'error');
-    return;
-  }
-
+  // Load from IDB
+  const blob = await idb.get(id);
+  if (!blob) { toast('⚠ Audio fails nav atrasts. Pārlādē un augšupielādē vēlreiz.', 'error'); return; }
+  const url = URL.createObjectURL(blob);
+  audio.src = url;
   audio.play().then(() => {
     isPlaying = true;
     updatePlayBtn();
@@ -1164,7 +1151,6 @@ async function playTrack(id) {
     renderLibrary();
     renderAdmin();
   }).catch(err => toast('⚠ Nevar atskaņot: ' + err.message, 'error'));
-}
 }
 
 function togglePlay() {
