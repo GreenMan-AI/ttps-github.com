@@ -76,11 +76,11 @@ greenman-ai-v2/
 
 | Metode | URL | Apraksts | Tiesības |
 |--------|-----|---------|---------|
-| POST | /api/register | Reģistrācija | User |
-| POST | /api/login | Ielogoties | User/Admin |
-| POST | /api/logout | Izlogoties | User/Admin |
+| POST | /api/register | Reģistrācija | — |
+| POST | /api/login | Ielogoties | — |
+| POST | /api/logout | Izlogoties | User |
 | GET  | /api/me | Pašreizējais user | User |
-| GET  | /api/tracks | Dziesmu saraksts | User/Admin |
+| GET  | /api/tracks | Dziesmu saraksts | — |
 | POST | /api/upload | Augšupielādēt | Admin |
 | PATCH | /api/tracks/:id | Rediģēt meta | Admin |
 | DELETE | /api/tracks/:id | Dzēst dziesmu | Admin |
@@ -88,11 +88,11 @@ greenman-ai-v2/
 | GET  | /api/folders | Mapes | — |
 | POST | /api/folders | Izveidot mapi | Admin |
 | DELETE | /api/folders/:id | Dzēst mapi | Admin |
-| GET  | /api/playlists | Playlistes | User/Admin |
-| POST | /api/playlists | Izveidot | User/Admin |
-| DELETE | /api/playlists/:id | Dzēst | Admin |
-| POST | /api/playlists/:id/tracks | Pievienot dziesmu | User/Admin |
-| DELETE | /api/playlists/:id/tracks/:tid | Noņemt dziesmu | UserUser/Admin |
+| GET  | /api/playlists | Playlistes | User |
+| POST | /api/playlists | Izveidot | User |
+| DELETE | /api/playlists/:id | Dzēst | User/Admin |
+| POST | /api/playlists/:id/tracks | Pievienot dziesmu | User |
+| DELETE | /api/playlists/:id/tracks/:tid | Noņemt dziesmu | User |
 | GET  | /api/admin/stats | Statistika | Admin |
 | GET  | /api/admin/users | Lietotāju saraksts | Admin |
 | DELETE | /api/admin/users/:u | Dzēst lietotāju | Admin |
