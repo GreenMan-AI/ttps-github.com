@@ -1,283 +1,273 @@
 const express = require('express');
+const session = require('express-session');
 const multer  = require('multer');
+const bcrypt  = require('bcryptjs');
+const { v4: uuidv4 } = require('uuid');
 const path    = require('path');
 const fs      = require('fs');
-const crypto  = require('crypto');
 
 const app  = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// ── ensure dirs ──────────────────────────────────────────────
-['uploads', 'public'].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d); });
+// ── Dirs ──────────────────────────────────────────────
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const DATA_FILE   = path.join(__dirname, 'data.json');
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
 
-// ── middleware ───────────────────────────────────────────────
-app.use(express.json());
-app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));
-
-// ══════════════════════════════════════════════════════════════
-//  IN-MEMORY STORE  (replace with SQLite/Mongo in production)
-// ══════════════════════════════════════════════════════════════
-const db = {
-  users:     {},   // { username: { passwordHash, salt, role:'user'|'admin', createdAt } }
-  sessions:  {},   // { token: username }
-  tracks:    [],   // [{ id, title, artist, filename, size, uploader, folderId, isPublic, plays, uploadedAt }]
-  folders:   [],   // [{ id, name, description, createdBy, createdAt }]
-  playlists: [],   // [{ id, name, ownerId, trackIds[], isPublic, createdAt }]
+// ── In-memory DB (persisted to data.json) ─────────────
+let db = {
+  users: [],   // { id, username, password(hashed), role:'user'|'admin', createdAt }
+  tracks: [],  // { id, title, artist, folderId, filename, uploadedBy, addedAt }
+  folders: [
+    { id: 'default', name: 'Bez mapes',   color: '#555555' },
+    { id: 'f1',      name: 'Pop',         color: '#ff6b9d' },
+    { id: 'f2',      name: 'Rap',         color: '#ffa502' },
+    { id: 'f3',      name: 'Chill',       color: '#5352ed' },
+    { id: 'f4',      name: 'Mans Upload', color: '#1db954' },
+  ]
 };
 
-// ── seed admin account ───────────────────────────────────────
-(function seedAdmin() {
-  const ADMIN_USER = 'admin';
-  const ADMIN_PASS = 'admin1234';   // ← NOMAINĪT pirms produkcijas!
-  const salt = crypto.randomBytes(16).toString('hex');
-  db.users[ADMIN_USER] = {
-    passwordHash: hashPwd(ADMIN_PASS, salt),
-    salt, role: 'admin',
-    createdAt: new Date().toISOString()
-  };
-  console.log(`  Admin: ${ADMIN_USER} / ${ADMIN_PASS}`);
-})();
-
-// ── helpers ──────────────────────────────────────────────────
-function hashPwd(pwd, salt) {
-  return crypto.pbkdf2Sync(pwd, salt, 100000, 64, 'sha512').toString('hex');
-}
-function makeToken() { return crypto.randomBytes(32).toString('hex'); }
-function makeId()    { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
-
-function authMiddleware(req, res, next) {
-  const token = (req.headers['authorization'] || '').replace('Bearer ', '');
-  const user  = token && db.sessions[token];
-  if (!user) return res.status(401).json({ error: 'Nav autorizācijas' });
-  req.username = user;
-  req.role     = db.users[user]?.role || 'user';
-  next();
-}
-function optionalAuth(req, res, next) {
-  const token = (req.headers['authorization'] || '').replace('Bearer ', '');
-  const user  = token && db.sessions[token];
-  if (user) { req.username = user; req.role = db.users[user]?.role || 'user'; }
-  next();
-}
-function adminOnly(req, res, next) {
-  if (req.role !== 'admin') return res.status(403).json({ error: 'Tikai adminam' });
-  next();
+function loadDB() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const raw = fs.readFileSync(DATA_FILE, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed.users)   db.users   = parsed.users;
+      if (parsed.tracks)  db.tracks  = parsed.tracks;
+      if (parsed.folders) db.folders = parsed.folders;
+      console.log(`✅ DB loaded: ${db.users.length} users, ${db.tracks.length} tracks`);
+    }
+  } catch (e) { console.error('DB load error:', e.message); }
 }
 
-// ── multer ───────────────────────────────────────────────────
+function saveDB() {
+  try { fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2)); }
+  catch (e) { console.error('DB save error:', e.message); }
+}
+
+loadDB();
+
+// Create default admin if no users exist
+if (!db.users.length) {
+  const hashed = bcrypt.hashSync('admin123', 10);
+  db.users.push({ id: uuidv4(), username: 'admin', password: hashed, role: 'admin', createdAt: Date.now() });
+  saveDB();
+  console.log('👤 Default admin created: admin / admin123');
+}
+
+// ── Middleware ─────────────────────────────────────────
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(session({
+  secret: 'musicbox-secret-2025',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 } // 7 days
+}));
+app.use('/uploads', express.static(UPLOADS_DIR));
+app.use(express.static(__dirname));
+
+// ── Auth helpers ───────────────────────────────────────
+function requireAuth(req, res, next) {
+  if (!req.session.userId) return res.status(401).json({ error: 'Nav autorizēts' });
+  next();
+}
+function requireAdmin(req, res, next) {
+  const user = db.users.find(u => u.id === req.session.userId);
+  if (!user || user.role !== 'admin') return res.status(403).json({ error: 'Nav admin tiesību' });
+  next();
+}
+function getUser(req) { return db.users.find(u => u.id === req.session.userId) || null; }
+
+// ── Multer ─────────────────────────────────────────────
 const storage = multer.diskStorage({
-  destination: (_, __, cb) => cb(null, 'uploads/'),
-  filename:    (_, file, cb) => cb(null, makeId() + path.extname(file.originalname))
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+  filename:    (req, file, cb) => {
+    const ext  = path.extname(file.originalname);
+    const base = path.basename(file.originalname, ext).replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    cb(null, `${Date.now()}_${base}${ext}`);
+  }
 });
 const upload = multer({
   storage,
-  fileFilter: (_, file, cb) => {
-    const ok = ['.mp3','.wav','.ogg','.flac','.m4a','.aac'];
-    if (ok.includes(path.extname(file.originalname).toLowerCase())) cb(null, true);
-    else cb(new Error('Atļauts tikai audio'));
+  fileFilter: (req, file, cb) => {
+    const ok = /audio\//i.test(file.mimetype) || /\.(mp3|wav|ogg|flac|m4a|aac)$/i.test(file.originalname);
+    cb(null, ok);
   },
-  limits: { fileSize: 100 * 1024 * 1024 }   // 100 MB
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB
 });
 
-// ══════════════════════════════════════════════════════════════
-//  AUTH
-// ══════════════════════════════════════════════════════════════
-app.post('/api/register', (req, res) => {
+// ══════════════════════════════════════════════════════
+//  AUTH ROUTES
+// ══════════════════════════════════════════════════════
+
+// Register
+app.post('/api/auth/register', (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password)         return res.status(400).json({ error: 'Nepieciešams lietotājvārds un parole' });
-  if (username.length < 3)            return res.status(400).json({ error: 'Min. 3 rakstzīmes' });
-  if (password.length < 6)            return res.status(400).json({ error: 'Parole min. 6 rakstzīmes' });
-  if (db.users[username])             return res.status(409).json({ error: 'Lietotājvārds aizņemts' });
-  const salt = crypto.randomBytes(16).toString('hex');
-  db.users[username] = { passwordHash: hashPwd(password, salt), salt, role: 'user', createdAt: new Date().toISOString() };
-  const token = makeToken();
-  db.sessions[token] = username;
-  res.json({ token, username, role: 'user' });
+  if (!username || !password) return res.status(400).json({ error: 'Trūkst dati' });
+  if (username.length < 3)    return res.status(400).json({ error: 'Vārds pārāk īss (min 3)' });
+  if (password.length < 4)    return res.status(400).json({ error: 'Parole pārāk īsa (min 4)' });
+  if (db.users.find(u => u.username.toLowerCase() === username.toLowerCase()))
+    return res.status(400).json({ error: 'Lietotājvārds jau aizņemts' });
+  const hashed = bcrypt.hashSync(password, 10);
+  const user   = { id: uuidv4(), username, password: hashed, role: 'user', createdAt: Date.now() };
+  db.users.push(user);
+  saveDB();
+  req.session.userId = user.id;
+  res.json({ ok: true, user: { id: user.id, username: user.username, role: user.role } });
 });
 
-app.post('/api/login', (req, res) => {
+// Login
+app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
-  const user = db.users[username];
-  if (!user || hashPwd(password, user.salt) !== user.passwordHash)
-    return res.status(401).json({ error: 'Nepareizi dati' });
-  const token = makeToken();
-  db.sessions[token] = username;
-  res.json({ token, username, role: user.role });
+  const user = db.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+  if (!user || !bcrypt.compareSync(password, user.password))
+    return res.status(401).json({ error: 'Nepareizs lietotājvārds vai parole' });
+  req.session.userId = user.id;
+  res.json({ ok: true, user: { id: user.id, username: user.username, role: user.role } });
 });
 
-app.post('/api/logout', authMiddleware, (req, res) => {
-  const token = req.headers['authorization'].replace('Bearer ', '');
-  delete db.sessions[token];
+// Logout
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy();
   res.json({ ok: true });
 });
 
-app.get('/api/me', authMiddleware, (req, res) => {
-  res.json({ username: req.username, role: req.role });
+// Me
+app.get('/api/auth/me', (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.json({ loggedIn: false });
+  res.json({ loggedIn: true, user: { id: user.id, username: user.username, role: user.role } });
 });
 
-// ══════════════════════════════════════════════════════════════
-//  FOLDERS  (admin only: create/delete)
-// ══════════════════════════════════════════════════════════════
-app.get('/api/folders', (req, res) => res.json({ folders: db.folders }));
+// ══════════════════════════════════════════════════════
+//  FOLDERS
+// ══════════════════════════════════════════════════════
+app.get('/api/folders', requireAuth, (req, res) => {
+  const folders = db.folders.map(f => ({
+    ...f,
+    count: db.tracks.filter(t => t.folderId === f.id).length
+  }));
+  res.json({ folders });
+});
 
-app.post('/api/folders', authMiddleware, adminOnly, (req, res) => {
-  const { name, description = '' } = req.body;
+app.post('/api/folders', requireAuth, (req, res) => {
+  const { name, color } = req.body;
   if (!name) return res.status(400).json({ error: 'Nosaukums obligāts' });
-  const folder = { id: makeId(), name, description, createdBy: req.username, createdAt: new Date().toISOString() };
+  const folder = { id: 'f_' + uuidv4().slice(0,8), name, color: color || '#1db954' };
   db.folders.push(folder);
+  saveDB();
   res.json({ folder });
 });
 
-app.delete('/api/folders/:id', authMiddleware, adminOnly, (req, res) => {
-  const idx = db.folders.findIndex(f => f.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Nav atrasta' });
-  db.folders.splice(idx, 1);
-  // unlink tracks from this folder
-  db.tracks.forEach(t => { if (t.folderId === req.params.id) t.folderId = null; });
+app.delete('/api/folders/:id', requireAuth, requireAdmin, (req, res) => {
+  const { id } = req.params;
+  if (id === 'default') return res.status(400).json({ error: 'Nevar dzēst noklusējuma mapi' });
+  db.folders = db.folders.filter(f => f.id !== id);
+  db.tracks.forEach(t => { if (t.folderId === id) t.folderId = 'default'; });
+  saveDB();
   res.json({ ok: true });
 });
 
-// ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 //  TRACKS
-// ══════════════════════════════════════════════════════════════
-// GET /api/tracks  — public tracks always visible; private only to logged-in
-app.get('/api/tracks', optionalAuth, (req, res) => {
-  const list = db.tracks.filter(t => t.isPublic || req.username);
-  res.json({ tracks: list });
+// ══════════════════════════════════════════════════════
+app.get('/api/tracks', requireAuth, (req, res) => {
+  const { folder } = req.query;
+  let tracks = folder ? db.tracks.filter(t => t.folderId === folder) : db.tracks;
+  res.json({ tracks });
 });
 
-// POST /api/upload  — admin only
-app.post('/api/upload', authMiddleware, adminOnly, upload.single('audio'), (req, res) => {
+app.post('/api/upload', requireAuth, upload.single('audio'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Nav faila' });
-  const { title, artist, folderId, isPublic } = req.body;
+  const user = getUser(req);
+  const { title, artist, folderId } = req.body;
   const track = {
-    id:         makeId(),
-    title:      title  || req.file.originalname.replace(/\.[^/.]+$/, ''),
-    artist:     artist || 'Nezināms',
-    filename:   req.file.filename,
-    size:       req.file.size,
-    uploader:   req.username,
-    folderId:   folderId || null,
-    isPublic:   isPublic !== 'false',
-    plays:      0,
-    uploadedAt: new Date().toISOString()
+    id:          uuidv4(),
+    title:       title || req.file.originalname.replace(/\.[^.]+$/, ''),
+    artist:      artist || '',
+    folderId:    folderId || 'default',
+    filename:    req.file.filename,
+    uploadedBy:  user.username,
+    uploaderId:  user.id,
+    addedAt:     Date.now(),
+    size:        req.file.size
   };
-  db.tracks.unshift(track);
+  db.tracks.push(track);
+  saveDB();
   res.json({ track });
 });
 
-// PATCH /api/tracks/:id  — admin can edit meta
-app.patch('/api/tracks/:id', authMiddleware, adminOnly, (req, res) => {
-  const t = db.tracks.find(t => t.id === req.params.id);
-  if (!t) return res.status(404).json({ error: 'Nav atrasts' });
-  const { title, artist, folderId, isPublic } = req.body;
-  if (title    !== undefined) t.title    = title;
-  if (artist   !== undefined) t.artist   = artist;
-  if (folderId !== undefined) t.folderId = folderId;
-  if (isPublic !== undefined) t.isPublic = isPublic;
-  res.json({ track: t });
-});
-
-// DELETE /api/tracks/:id  — admin only
-app.delete('/api/tracks/:id', authMiddleware, adminOnly, (req, res) => {
-  const idx = db.tracks.findIndex(t => t.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Nav atrasts' });
-  const [removed] = db.tracks.splice(idx, 1);
-  const fp = path.join('uploads', removed.filename);
-  if (fs.existsSync(fp)) fs.unlinkSync(fp);
-  // remove from playlists
-  db.playlists.forEach(pl => { pl.trackIds = pl.trackIds.filter(id => id !== removed.id); });
-  res.json({ ok: true });
-});
-
-// POST /api/tracks/:id/play  — increment counter
-app.post('/api/tracks/:id/play', optionalAuth, (req, res) => {
-  const t = db.tracks.find(t => t.id === req.params.id);
-  if (t) t.plays++;
-  res.json({ ok: true });
-});
-
-// ══════════════════════════════════════════════════════════════
-//  PLAYLISTS
-// ══════════════════════════════════════════════════════════════
-app.get('/api/playlists', optionalAuth, (req, res) => {
-  const list = db.playlists.filter(pl => pl.isPublic || pl.ownerId === req.username || req.role === 'admin');
-  res.json({ playlists: list });
-});
-
-app.post('/api/playlists', authMiddleware, (req, res) => {
-  const { name, isPublic = false } = req.body;
-  if (!name) return res.status(400).json({ error: 'Nosaukums obligāts' });
-  const pl = { id: makeId(), name, ownerId: req.username, trackIds: [], isPublic, createdAt: new Date().toISOString() };
-  db.playlists.push(pl);
-  res.json({ playlist: pl });
-});
-
-app.delete('/api/playlists/:id', authMiddleware, (req, res) => {
-  const idx = db.playlists.findIndex(p => p.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Nav atrasta' });
-  if (db.playlists[idx].ownerId !== req.username && req.role !== 'admin')
+app.put('/api/tracks/:id', requireAuth, (req, res) => {
+  const track = db.tracks.find(t => t.id === req.params.id);
+  if (!track) return res.status(404).json({ error: 'Nav atrasts' });
+  const user = getUser(req);
+  if (user.role !== 'admin' && track.uploaderId !== user.id)
     return res.status(403).json({ error: 'Nav tiesību' });
-  db.playlists.splice(idx, 1);
+  const { title, artist, folderId } = req.body;
+  if (title)    track.title    = title;
+  if (artist !== undefined) track.artist   = artist;
+  if (folderId) track.folderId = folderId;
+  saveDB();
+  res.json({ track });
+});
+
+app.delete('/api/tracks/:id', requireAuth, (req, res) => {
+  const track = db.tracks.find(t => t.id === req.params.id);
+  if (!track) return res.status(404).json({ error: 'Nav atrasts' });
+  const user = getUser(req);
+  if (user.role !== 'admin' && track.uploaderId !== user.id)
+    return res.status(403).json({ error: 'Nav tiesību' });
+  const filePath = path.join(UPLOADS_DIR, track.filename);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  db.tracks = db.tracks.filter(t => t.id !== track.id);
+  saveDB();
   res.json({ ok: true });
 });
 
-// Add/remove track from playlist
-app.post('/api/playlists/:id/tracks', authMiddleware, (req, res) => {
-  const pl = db.playlists.find(p => p.id === req.params.id);
-  if (!pl) return res.status(404).json({ error: 'Nav atrasta' });
-  if (pl.ownerId !== req.username && req.role !== 'admin') return res.status(403).json({ error: 'Nav tiesību' });
-  const { trackId } = req.body;
-  if (!pl.trackIds.includes(trackId)) pl.trackIds.push(trackId);
-  res.json({ playlist: pl });
+app.get('/api/search', requireAuth, (req, res) => {
+  const q = (req.query.q || '').toLowerCase().trim();
+  if (!q) return res.json({ results: [] });
+  const results = db.tracks.filter(t =>
+    t.title.toLowerCase().includes(q) ||
+    (t.artist || '').toLowerCase().includes(q) ||
+    (t.uploadedBy || '').toLowerCase().includes(q)
+  );
+  res.json({ results });
 });
 
-app.delete('/api/playlists/:id/tracks/:trackId', authMiddleware, (req, res) => {
-  const pl = db.playlists.find(p => p.id === req.params.id);
-  if (!pl) return res.status(404).json({ error: 'Nav atrasta' });
-  if (pl.ownerId !== req.username && req.role !== 'admin') return res.status(403).json({ error: 'Nav tiesību' });
-  pl.trackIds = pl.trackIds.filter(id => id !== req.params.trackId);
-  res.json({ playlist: pl });
+// ══════════════════════════════════════════════════════
+//  ADMIN ROUTES
+// ══════════════════════════════════════════════════════
+app.get('/api/admin/users', requireAuth, requireAdmin, (req, res) => {
+  res.json({ users: db.users.map(u => ({ ...u, password: undefined })) });
 });
 
-// ══════════════════════════════════════════════════════════════
-//  ADMIN: stats + user management
-// ══════════════════════════════════════════════════════════════
-app.get('/api/admin/stats', authMiddleware, adminOnly, (req, res) => {
-  res.json({
-    users:     Object.keys(db.users).length,
-    tracks:    db.tracks.length,
-    folders:   db.folders.length,
-    playlists: db.playlists.length,
-    totalPlays: db.tracks.reduce((s, t) => s + t.plays, 0),
-    totalSize:  db.tracks.reduce((s, t) => s + (t.size || 0), 0),
-  });
-});
-
-app.get('/api/admin/users', authMiddleware, adminOnly, (req, res) => {
-  const list = Object.entries(db.users).map(([u, d]) => ({
-    username: u, role: d.role, createdAt: d.createdAt
-  }));
-  res.json({ users: list });
-});
-
-app.delete('/api/admin/users/:username', authMiddleware, adminOnly, (req, res) => {
-  const u = req.params.username;
-  if (u === req.username) return res.status(400).json({ error: 'Nevar dzēst sevi' });
-  if (!db.users[u])       return res.status(404).json({ error: 'Nav atrasts' });
-  delete db.users[u];
-  // remove their sessions
-  Object.keys(db.sessions).forEach(t => { if (db.sessions[t] === u) delete db.sessions[t]; });
+app.delete('/api/admin/users/:id', requireAuth, requireAdmin, (req, res) => {
+  const user = db.users.find(u => u.id === req.params.id);
+  if (!user) return res.status(404).json({ error: 'Nav atrasts' });
+  if (user.role === 'admin') return res.status(400).json({ error: 'Nevar dzēst admin' });
+  db.users = db.users.filter(u => u.id !== user.id);
+  saveDB();
   res.json({ ok: true });
 });
 
-// ── start ────────────────────────────────────────────────────
+app.put('/api/admin/users/:id/role', requireAuth, requireAdmin, (req, res) => {
+  const user = db.users.find(u => u.id === req.params.id);
+  if (!user) return res.status(404).json({ error: 'Nav atrasts' });
+  user.role = req.body.role === 'admin' ? 'admin' : 'user';
+  saveDB();
+  res.json({ ok: true });
+});
+
+// ══════════════════════════════════════════════════════
+//  SERVE FRONTEND
+// ══════════════════════════════════════════════════════
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 app.listen(PORT, () => {
-  console.log(`
-╔═══════════════════════════════════════════╗
-║   GREENMAN-AI  Music Platform  v2.0       ║
-║   http://localhost:${PORT}                    ║
-║   Admin: admin / admin1234                ║
-╚═══════════════════════════════════════════╝`);
+  console.log(`\n🎵 MusicBox running on http://localhost:${PORT}`);
+  console.log(`👤 Admin: admin / admin123\n`);
 });
