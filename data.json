@@ -1,0 +1,39 @@
+{
+  "users": [
+    {
+      "id": "8d7ccbc4-2460-49f6-acf6-c057d9c50435",
+      "username": "admin",
+      "password": "$2a$10$NtSLJJpowyjcbayDj3NcX.16YePRhFVZWPQaVzrPuRi3BMoKm5g62",
+      "role": "admin",
+      "createdAt": 1775242433148
+    }
+  ],
+  "tracks": [],
+  "folders": [
+    {
+      "id": "default",
+      "name": "Bez mapes",
+      "color": "#555555"
+    },
+    {
+      "id": "f1",
+      "name": "Pop",
+      "color": "#ff6b9d"
+    },
+    {
+      "id": "f2",
+      "name": "Rap",
+      "color": "#ffa502"
+    },
+    {
+      "id": "f3",
+      "name": "Chill",
+      "color": "#5352ed"
+    },
+    {
+      "id": "f4",
+      "name": "Mans Upload",
+      "color": "#1db954"
+    }
+  ]
+}
