@@ -47,14 +47,14 @@ body{
 .logo{font-family:var(--mono);font-size:18px;color:var(--a);letter-spacing:4px;text-shadow:0 0 18px rgba(21,101,160,.35);user-select:none;cursor:pointer}
 .logo b{color:var(--g)}
 .top-mid{display:flex;align-items:center;gap:6px;flex:1;max-width:360px;margin:0 16px}
-.top-search{width:100%;background:var(--card);border:1px solid var(--border);color:var(--txt);padding:6px 12px 6px 32px;font-family:var(--font);font-size:13px;border-radius:20px;outline:none;transition:border-color .15s}
+.top-search{width:100%;background:rgba(255,255,255,.9);border:1px solid rgba(21,101,160,.35);color:#0d1f35;padding:6px 12px 6px 32px;font-family:var(--font);font-size:13px;border-radius:20px;outline:none;transition:border-color .15s;font-weight:500}
 .top-search:focus{border-color:var(--a)}
 .search-wrap{position:relative;flex:1}
 .search-wrap::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none}
 .top-r{display:flex;align-items:center;gap:6px}
 
 /* chips & buttons */
-.chip{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.chip{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.85);border:1px solid rgba(21,101,160,.3);border-radius:20px;padding:4px 12px 4px 8px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;color:#0d1f35}
 .chip:hover{border-color:var(--a)}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--g);box-shadow:0 0 6px var(--g);flex-shrink:0}
 .dot.a{background:var(--y);box-shadow:0 0 6px var(--y)}
@@ -91,8 +91,8 @@ body{
 #sb::-webkit-scrollbar{width:3px}
 #sb::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 .sb-s{padding:0 10px;margin-bottom:16px}
-.sb-l{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--mut);padding:0 6px 5px;border-bottom:1px solid var(--border);margin-bottom:5px}
-.sb-i{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:var(--r6);cursor:pointer;transition:all .15s;font-size:13px;font-weight:500;color:var(--txt);border:1px solid transparent;margin-bottom:1px;white-space:nowrap;overflow:hidden}
+.sb-l{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:#0d2a45;font-weight:800;padding:0 6px 5px;border-bottom:1px solid rgba(21,101,160,.3);margin-bottom:5px}
+.sb-i{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:var(--r6);cursor:pointer;transition:all .15s;font-size:13px;font-weight:600;color:#0d1f35;border:1px solid transparent;margin-bottom:1px;white-space:nowrap;overflow:hidden}
 .sb-i:hover{background:rgba(21,101,160,.05);color:var(--a)}
 .sb-i.on{background:rgba(21,101,160,.09);border-color:rgba(21,101,160,.2);color:var(--a);font-weight:700}
 .sb-ic{font-size:14px;width:18px;text-align:center;flex-shrink:0}
@@ -108,7 +108,7 @@ body{
 
 .vhd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap}
 .vtit{font-family:var(--mono);font-size:20px;letter-spacing:3px;color:#5bb8f5}
-.vsub{font-size:11px;color:var(--mut);margin-top:3px;font-weight:500}
+.vsub{font-size:11px;color:#1a3a5a;margin-top:3px;font-weight:600}
 .vbtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 
 /* ══ TRACK LIST ══ */
@@ -133,10 +133,10 @@ body{
 .teq i:nth-child(3){animation-delay:.26s}
 @keyframes eq{from{height:3px}to{height:13px}}
 .tinfo{flex:1;min-width:0}
-.tname{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#0d1f35}
-.tart{font-size:11px;color:var(--mut);font-weight:500;margin-top:1px}
-.tup{font-size:10px;color:var(--mut);font-weight:400}
-.tpl{font-size:11px;color:var(--mut);flex-shrink:0;font-family:var(--mono)}
+.tname{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#0a1525;text-shadow:0 1px 3px rgba(255,255,255,.6)}
+.tart{font-size:11px;color:#1a3a5a;font-weight:600;margin-top:1px}
+.tup{font-size:10px;color:#2a4a6a;font-weight:500}
+.tpl{font-size:11px;color:#1a3a5a;flex-shrink:0;font-family:var(--mono);font-weight:600}
 .tbts{display:flex;gap:1px;align-items:center;flex-shrink:0}
 
 .empty{text-align:center;padding:48px 0;color:var(--mut);font-size:13px}
@@ -186,8 +186,8 @@ body{
 /* upload */
 .ug{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .fg{display:flex;flex-direction:column;gap:4px}
-.fl{font-size:10px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:1px}
-.fi{background:rgba(240,248,255,.9);border:1px solid var(--border);color:var(--txt);padding:7px 11px;font-family:var(--font);font-size:13px;font-weight:500;border-radius:var(--r6);outline:none;transition:border-color .15s;width:100%}
+.fl{font-size:11px;color:#0d2a45;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
+.fi{background:rgba(255,255,255,.97);border:1px solid rgba(21,101,160,.4);color:#0d1f35;padding:7px 11px;font-family:var(--font);font-size:13px;font-weight:600;border-radius:var(--r6);outline:none;transition:border-color .15s;width:100%;-webkit-text-fill-color:#0d1f35}
 .fi:focus{border-color:var(--a)}
 select.fi option{background:var(--bg)}
 
@@ -196,7 +196,7 @@ select.fi option{background:var(--bg)}
 .dz:hover,.dz.drag{border-color:var(--a);background:rgba(21,101,160,.04)}
 .dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .dz-i{font-size:24px;margin-bottom:5px}
-.dz-t{color:var(--mut);font-size:12px;font-weight:500}
+.dz-t{color:#1a3a5a;font-size:12px;font-weight:600}
 .dz-n{color:var(--g);font-size:11px;font-weight:700;margin-top:3px}
 .dz.multi{grid-column:1/-1}
 
@@ -228,9 +228,9 @@ select.fi option{background:var(--bg)}
 .modal{background:rgba(225,238,250,.97);border:1px solid rgba(21,101,160,.3);border-radius:10px;padding:28px;width:360px;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.6)}
 .modal-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--mut);font-size:20px;cursor:pointer;line-height:1;transition:color .15s}
 .modal-close:hover{color:var(--r)}
-.modal-title{font-family:var(--mono);font-size:16px;letter-spacing:2px;color:#5bb8f5;margin-bottom:20px}
+.modal-title{font-family:var(--mono);font-size:16px;letter-spacing:2px;color:#0d47a1;margin-bottom:20px;font-weight:700}
 .mf{display:flex;flex-direction:column;gap:10px}
-.mf input{background:rgba(240,248,255,.9);border:1px solid var(--border);color:var(--txt);padding:9px 12px;font-family:var(--font);font-size:13px;font-weight:500;border-radius:var(--r6);outline:none;transition:border-color .15s}
+.mf input{background:rgba(255,255,255,.97);border:1px solid rgba(21,101,160,.4);color:#0d1f35;padding:9px 12px;font-family:var(--font);font-size:13px;font-weight:600;border-radius:var(--r6);outline:none;transition:border-color .15s;-webkit-text-fill-color:#0d1f35}
 .mf input:focus{border-color:var(--a)}
 .m-err{color:var(--r);font-size:11px;font-weight:600;min-height:14px}
 .m-ok{color:var(--g);font-size:11px;font-weight:600;min-height:14px}
@@ -303,25 +303,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 #toast.warn{border-color:var(--y);color:var(--y)}
 
 /* ══ SPLASH ══ */
-@keyframes walkrev{
-  0%{transform:translateX(calc(100vw + 120px)) scaleX(-1)}
-  49.9%{transform:translateX(-120px) scaleX(-1)}
-  50%{transform:translateX(-120px)}
-  99.9%{transform:translateX(calc(100vw + 120px))}
-  100%{transform:translateX(calc(100vw + 120px)) scaleX(-1)}
-}
-@keyframes walkdown{from{transform:translateY(-100px)}to{transform:translateY(calc(100vh + 100px))}}
-@keyframes walkup{from{transform:translateY(calc(100vh + 100px))}to{transform:translateY(-100px)}}
-@keyframes spinbody{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-@keyframes floatnote2{0%{transform:translateY(0) rotate(-10deg);opacity:1}100%{transform:translateY(-22px) rotate(12deg);opacity:0}}
-.char.rev{animation-name:walkrev}
-.char.bop.rev{animation:walkrev linear infinite,bop .45s ease-in-out infinite}
-.char.bang .head{animation:headbang .28s ease-in-out infinite}
-.char.bang .legs{animation:legmove .2s ease-in-out infinite alternate}
-.char.spin .body{animation:spinbody .7s linear infinite;display:inline-block}
-.char.vert{animation:walkdown linear infinite}
-.char.vert2{animation:walkup linear infinite}
-.char.vert .legs,.char.vert2 .legs{animation:none}
+/* cleaned up duplicates */
 
 #splash{
   position:fixed;inset:0;z-index:900;
@@ -357,15 +339,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 @keyframes sw{from{height:8px;opacity:.4}to{height:36px;opacity:1}}
 
 /* ══ SPLASH CHARS ══ */
-.chars{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-.char{position:absolute;display:flex;flex-direction:column;align-items:center;gap:0;user-select:none;animation:walk linear infinite}
+.chars{position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none}
+.char{position:absolute;display:flex;flex-direction:column;align-items:center;gap:0;user-select:none;animation:walk linear infinite;z-index:2}
 .char.rev{animation:walkR linear infinite}
 .char.dn{animation:walkD linear infinite}
 .char.up{animation:walkU linear infinite}
-.char .head{font-size:22px;line-height:1}
-.char .body{font-size:14px;line-height:1;margin-top:-2px}
-.char .legs{font-size:12px;line-height:1;margin-top:-2px;animation:legmove .38s ease-in-out infinite alternate}
-.char .note{font-size:10px;position:absolute;top:-15px;animation:floatnote 1.3s ease-in-out infinite}
+.char .head{font-size:28px;line-height:1}
+.char .body{font-size:18px;line-height:1;margin-top:-2px}
+.char .legs{font-size:16px;line-height:1;margin-top:-2px;animation:legmove .38s ease-in-out infinite alternate}
+.char .note{font-size:13px;position:absolute;top:-18px;animation:floatnote 1.3s ease-in-out infinite}
 .char.bop .head{animation:bop .45s ease-in-out infinite}
 .char.bang .head{animation:headbang .28s ease-in-out infinite}
 .char.spin .body{animation:spin .7s linear infinite}
@@ -379,25 +361,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 @keyframes headbang{0%,100%{transform:rotate(0deg)}50%{transform:rotate(28deg)}}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
-@keyframes walkrev{
-  0%{transform:translateX(calc(100vw + 120px)) scaleX(-1)}
-  49.9%{transform:translateX(-120px) scaleX(-1)}
-  50%{transform:translateX(-120px)}
-  99.9%{transform:translateX(calc(100vw + 120px))}
-  100%{transform:translateX(calc(100vw + 120px)) scaleX(-1)}
-}
-@keyframes walkdown{from{transform:translateY(-100px)}to{transform:translateY(calc(100vh + 100px))}}
-@keyframes walkup{from{transform:translateY(calc(100vh + 100px))}to{transform:translateY(-100px)}}
-@keyframes spinbody{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-@keyframes floatnote2{0%{transform:translateY(0) rotate(-10deg);opacity:1}100%{transform:translateY(-22px) rotate(12deg);opacity:0}}
-.char.rev{animation-name:walkrev}
-.char.bop.rev{animation:walkrev linear infinite,bop .45s ease-in-out infinite}
-.char.bang .head{animation:headbang .28s ease-in-out infinite}
-.char.bang .legs{animation:legmove .2s ease-in-out infinite alternate}
-.char.spin .body{animation:spinbody .7s linear infinite;display:inline-block}
-.char.vert{animation:walkdown linear infinite}
-.char.vert2{animation:walkup linear infinite}
-.char.vert .legs,.char.vert2 .legs{animation:none}
+/* cleaned up duplicates */
 
 #splash{
   background:linear-gradient(135deg,rgba(180,215,245,.92) 0%,rgba(200,228,250,.95) 100%) !important;
@@ -414,7 +378,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
   background-size:400% 400%;
   animation:hc 6s ease infinite;
 }
-#splash>*{position:relative;z-index:1}
+#splash>*:not(.chars){position:relative;z-index:2}
 @keyframes hc{
   0%{background-position:0% 50%}
   50%{background-position:100% 50%}
@@ -760,9 +724,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
     <!-- PW tab -->
     <div id="mt-pw" style="display:none">
       <div class="mf">
-        <input id="pw-cur" type="password" placeholder="Pašreizējā parole"/>
-        <input id="pw-new" type="password" placeholder="Jaunā parole (min. 6)"/>
-        <input id="pw-rep" type="password" placeholder="Atkārtot jauno paroli"/>
+        <div style="position:relative"><input id="pw-cur" type="password" placeholder="Pašreizējā parole" style="padding-right:40px"/><button type="button" onclick="togglePw('pw-cur',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#1565a0">👁</button></div>
+        <div style="position:relative"><input id="pw-new" type="password" placeholder="Jaunā parole (min. 6)" style="padding-right:40px"/><button type="button" onclick="togglePw('pw-new',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#1565a0">👁</button></div>
+        <div style="position:relative"><input id="pw-rep" type="password" placeholder="Atkārtot jauno paroli" style="padding-right:40px"/><button type="button" onclick="togglePw('pw-rep',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#1565a0">👁</button></div>
         <div class="m-err" id="pw-err"></div>
         <div class="m-ok" id="pw-ok"></div>
         <button class="btn g" id="btn-chpw">MAINĪT PAROLI</button>
@@ -797,13 +761,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
     </div>
     <div id="af-l" class="auth-f">
       <input id="l-u" type="text" placeholder="Lietotājvārds" autocomplete="username"/>
-      <input id="l-p" type="password" placeholder="Parole" autocomplete="current-password"/>
+      <div style="position:relative">
+        <input id="l-p" type="password" placeholder="Parole" autocomplete="current-password" style="width:100%;padding-right:40px"/>
+        <button type="button" onclick="togglePw('l-p',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#1565a0">👁</button>
+      </div>
       <div class="aerr" id="l-err"></div>
       <button class="auth-submit" id="btn-login">IEIET</button>
     </div>
     <div id="af-r" class="auth-f" style="display:none">
       <input id="r-u" type="text" placeholder="Lietotājvārds (min. 3)" autocomplete="username"/>
-      <input id="r-p" type="password" placeholder="Parole (min. 6)" autocomplete="new-password"/>
+      <div style="position:relative">
+        <input id="r-p" type="password" placeholder="Parole (min. 6)" autocomplete="new-password" style="width:100%;padding-right:40px"/>
+        <button type="button" onclick="togglePw('r-p',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#1565a0">👁</button>
+      </div>
       <div class="aerr" id="r-err"></div>
       <button class="auth-submit" id="btn-reg">REĢISTRĒTIES</button>
     </div>
@@ -1872,6 +1842,18 @@ function toast(msg,type=''){
     container.appendChild(el);
   });
 })();
+
+// ── Toggle password visibility ──
+function togglePw(inputId, btn){
+  const inp = document.getElementById(inputId);
+  if(inp.type==='password'){
+    inp.type='text';
+    btn.textContent='🔒';
+  } else {
+    inp.type='password';
+    btn.textContent='👁';
+  }
+}
 
 init().then(()=>{ populateFolderSels(); loadSavedTheme(); });
 </script>
