@@ -1,19 +1,21 @@
 {
   "name": "musicbox",
-  "version": "3.0.0",
-  "description": "MusicBox - Shared Music Platform",
+  "version": "5.0.0",
+  "description": "MusicBox v5 — Playlist + Multi-Upload + BG + Password Change",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev":   "nodemon server.js"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  },
+  "engines": { "node": ">=18.0.0" },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "express": "^4.22.1",
-    "mongoose": "^9.4.1",
-    "multer": "^1.4.5-lts.1",
-    "uuid": "^9.0.0"
+    "cloudinary":                "^1.41.3",
+    "express":                   "^4.18.2",
+    "mongoose":                  "^8.0.3",
+    "multer":                    "^1.4.5-lts.1",
+    "multer-storage-cloudinary": "^4.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
