@@ -252,7 +252,7 @@ select.fi option{background:var(--bg)}
 .bg-dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 
 /* ══ AUTH OVERLAY ══ */
-#auth-ov{position:fixed;inset:0;background:rgba(180,210,235,.95);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(14px)}
+#auth-ov{position:fixed;inset:0;background:rgba(180,210,235,.95);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(14px)}
 #auth-ov.on{display:flex}
 .auth-box{background:rgba(225,238,250,.97);border:1px solid rgba(21,101,160,.3);border-radius:10px;padding:28px;width:320px;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.6)}
 .auth-logo{font-family:var(--mono);font-size:18px;color:var(--a);text-align:center;margin-bottom:20px;letter-spacing:4px;text-shadow:0 0 14px rgba(21,101,160,.3)}
@@ -1498,6 +1498,12 @@ document.getElementById('btn-reg').addEventListener('click',async()=>{
     closeAuth(); hideSplash(); updateTopbar(); await loadAll(); renderSidebar(); renderAllTracks();
     toast('Konts izveidots!','ok');
   }catch(e){document.getElementById('r-err').textContent=e.message;}
+});
+['l-u','l-p'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-login').click();});
+});
+['r-u','r-p'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-reg').click();});
 });
 
 // ════════════════════════════════════════
