@@ -301,13 +301,102 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 #toast.err{border-color:var(--r);color:var(--r)}
 #toast.warn{border-color:var(--y);color:var(--y)}
 
+/* ══ SPLASH ══ */
+#splash{
+  position:fixed;inset:0;z-index:900;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,rgba(180,215,245,.97) 0%,rgba(200,228,250,.98) 100%);
+  backdrop-filter:blur(20px);
+}
+#splash.off{display:none}
+.splash-logo{
+  font-family:var(--mono);font-size:52px;color:var(--a);
+  letter-spacing:8px;text-shadow:0 0 40px rgba(21,101,160,.3);
+  margin-bottom:10px;user-select:none;
+}
+.splash-logo b{color:var(--g);text-shadow:0 0 30px rgba(0,255,136,.4)}
+.splash-sub{font-size:13px;color:var(--mut);letter-spacing:3px;font-weight:600;margin-bottom:50px;font-family:var(--mono)}
+.splash-btn{
+  background:linear-gradient(135deg,#1565a0,#1a8fc7);
+  color:#fff;border:none;padding:14px 48px;
+  font-family:var(--font);font-size:16px;font-weight:800;
+  cursor:pointer;border-radius:30px;letter-spacing:1px;
+  box-shadow:0 8px 30px rgba(21,101,160,.35);
+  transition:all .2s;
+}
+.splash-btn:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(21,101,160,.5)}
+.splash-note{font-size:11px;color:var(--mut);margin-top:18px;font-weight:500}
+.splash-wave{display:flex;align-items:flex-end;gap:5px;height:40px;margin-bottom:40px}
+.splash-wave span{width:6px;border-radius:3px;background:linear-gradient(180deg,#1a8fc7,#1565a0);animation:sw .9s ease-in-out infinite alternate}
+.splash-wave span:nth-child(1){animation-delay:0s}
+.splash-wave span:nth-child(2){animation-delay:.15s}
+.splash-wave span:nth-child(3){animation-delay:.3s}
+.splash-wave span:nth-child(4){animation-delay:.15s}
+.splash-wave span:nth-child(5){animation-delay:0s}
+@keyframes sw{from{height:8px;opacity:.4}to{height:36px;opacity:1}}
+
+/* ══ SPLASH CHARS ══ */
+.chars{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.char{position:absolute;display:flex;flex-direction:column;align-items:center;gap:0;user-select:none;animation:walk linear infinite}
+.char .head{font-size:22px;line-height:1}
+.char .body{font-size:14px;line-height:1;margin-top:-2px}
+.char .legs{font-size:12px;line-height:1;margin-top:-2px;animation:legmove .4s ease-in-out infinite alternate}
+.char .note{font-size:10px;position:absolute;top:-14px;animation:floatnote 1.2s ease-in-out infinite}
+@keyframes walk{
+  0%{transform:translateX(-120px)}
+  49.9%{transform:translateX(calc(100vw + 120px))}
+  50%{transform:translateX(calc(100vw + 120px)) scaleX(-1)}
+  99.9%{transform:translateX(-120px) scaleX(-1)}
+  100%{transform:translateX(-120px)}
+}
+@keyframes legmove{from{letter-spacing:-1px}to{letter-spacing:2px}}
+@keyframes floatnote{0%{transform:translateY(0) rotate(-10deg);opacity:1}100%{transform:translateY(-18px) rotate(10deg);opacity:0}}
+@keyframes bop{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.char.bop{animation:walk linear infinite, bop .5s ease-in-out infinite}
+
+#splash{
+  background:linear-gradient(135deg,rgba(180,215,245,.92) 0%,rgba(200,228,250,.95) 100%) !important;
+}
+#splash::before{
+  content:'';position:absolute;inset:0;z-index:0;
+  background:linear-gradient(45deg,
+    rgba(0,255,136,.18) 0%,
+    rgba(0,204,255,.22) 20%,
+    rgba(192,132,252,.2) 40%,
+    rgba(255,196,0,.15) 60%,
+    rgba(255,45,85,.15) 80%,
+    rgba(0,255,136,.18) 100%);
+  background-size:400% 400%;
+  animation:hc 6s ease infinite;
+}
+#splash>*{position:relative;z-index:1}
+@keyframes hc{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-@media(max-width:650px){#sb{display:none}#body{flex-direction:column}.astats{grid-template-columns:repeat(2,1fr)}.ug{grid-template-columns:1fr}.pi{width:110px}.top-mid{display:none}}
+@media(max-width:650px){#sb{display:none}#body{flex-direction:column}.astats{grid-template-columns:repeat(2,1fr)}.ug{grid-column:1fr}.pi{width:110px}.top-mid{display:none}}
 </style>
 </head>
 <body>
 <div id="bg-layer"></div>
+
+<!-- ══ SPLASH ══ -->
+<div id="splash">
+  <!-- Animētie personāži -->
+  <div class="chars" id="chars"></div>
+
+  <div class="splash-wave">
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <div class="splash-logo">Music<b>Box</b></div>
+  <div class="splash-sub">TAVA MŪZIKAS BIBLIOTĒKA</div>
+  <button class="splash-btn" onclick="openAuthFromSplash()">IEIET / REĢISTRĒTIES</button>
+  <div class="splash-note">Nepieciešams konts, lai piekļūtu mūzikai</div>
+</div>
+
 <div id="app">
 
 <!-- ══ TOP ══ -->
@@ -325,7 +414,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
       <span class="rb" id="urole"></span>
     </div>
     <button class="btn red" id="btn-logout" style="display:none" onclick="doLogout()">IZIET</button>
-    <button class="btn" id="btn-openauth" style="display:none" onclick="openAuth()">IEIET</button>
     <button class="btn" id="btn-user-panel" style="display:none" onclick="toggleUserPanel()" title="Mans panelis">＋ PIEVIENOT</button>
     <button class="btn lock" id="btn-lock" onclick="toggleAdmin()" title="Admin panelis">🔒</button>
   </div>
@@ -739,6 +827,8 @@ async function init() {
       localStorage.setItem('mb_r',m.role);
       localStorage.setItem('mb_bg',m.bgUrl||'');
       applyBg(S.bgUrl);
+      // Personāži redzami īsumā arī pie pieslēgšanās
+      setTimeout(()=>hideSplash(), 1800);
     } catch(e) { clearSess(); }
   }
   updateTopbar();
@@ -772,6 +862,15 @@ async function init() {
     }
   }catch(e){}
 }
+function openAuthFromSplash(){
+  document.getElementById('auth-ov').classList.add('on');
+}
+function hideSplash(){
+  const s=document.getElementById('splash');
+  s.style.transition='opacity .6s ease';
+  s.style.opacity='0';
+  setTimeout(()=>s.classList.add('off'),600);
+}
 function clearSess(){
   S.token=S.username=S.role=null; S.favorites=[]; S.myFolders=[];
   ['mb_t','mb_u','mb_r','mb_bg'].forEach(k=>localStorage.removeItem(k));
@@ -799,21 +898,22 @@ function goHome(){ showView('all'); setSbActive('[data-v="all"]'); renderAllTrac
 // ════════════════════════════════════════
 function updateTopbar(){
   const chip=document.getElementById('uchip');
-  const btnA=document.getElementById('btn-openauth');
   const btnL=document.getElementById('btn-logout');
   const lock=document.getElementById('btn-lock');
   if (S.username){
-    chip.style.display='flex'; btnA.style.display='none'; btnL.style.display='block';
+    chip.style.display='flex'; btnL.style.display='block';
     document.getElementById('uname').textContent=S.username;
     const rb=document.getElementById('urole');
     rb.textContent=S.role==='admin'?'ADMIN':'USER';
     rb.className='rb '+(S.role||'user');
     document.getElementById('udot').className='dot'+(S.role==='admin'?' a':'');
     document.getElementById('nav-fav').style.display='flex';
-    lock.classList.toggle('on', S.role==='admin');
+    lock.style.display=S.role==='admin'?'block':'none';
     document.getElementById('btn-user-panel').style.display='block';
+    if(!S.token) hideSplash();
   } else {
-    chip.style.display='none'; btnA.style.display='block'; btnL.style.display='none';
+    chip.style.display='none'; btnL.style.display='none';
+    lock.style.display='block';
     lock.classList.remove('on');
     document.getElementById('nav-fav').style.display='none';
     document.getElementById('btn-user-panel').style.display='none';
@@ -829,6 +929,8 @@ async function doLogout(){
   document.getElementById('az').classList.remove('on');
   document.getElementById('btn-lock').classList.remove('on');
   applyBg('');
+  // Rāda splash atkal
+  document.getElementById('splash').classList.remove('off');
   updateTopbar(); await loadAll(); renderSidebar(); renderAllTracks();
   toast('Izlogojies','');
 }
@@ -1380,7 +1482,7 @@ document.getElementById('btn-login').addEventListener('click',async()=>{
     localStorage.setItem('mb_t',d.token); localStorage.setItem('mb_u',d.username); localStorage.setItem('mb_r',d.role); localStorage.setItem('mb_bg',d.bgUrl||'');
     applyBg(S.bgUrl);
     const me=await api('/api/me'); S.favorites=me.favorites||[];
-    closeAuth(); updateTopbar(); await loadAll(); renderSidebar(); renderAllTracks();
+    closeAuth(); hideSplash(); updateTopbar(); await loadAll(); renderSidebar(); renderAllTracks();
     toast('Sveicināts, '+d.username+'!','ok');
   }catch(e){document.getElementById('l-err').textContent=e.message;}
 });
@@ -1393,7 +1495,7 @@ document.getElementById('btn-reg').addEventListener('click',async()=>{
     S.token=d.token; S.username=d.username; S.role=d.role; S.bgUrl='';
     localStorage.setItem('mb_t',d.token); localStorage.setItem('mb_u',d.username); localStorage.setItem('mb_r',d.role);
     S.favorites=[];
-    closeAuth(); updateTopbar(); await loadAll(); renderSidebar(); renderAllTracks();
+    closeAuth(); hideSplash(); updateTopbar(); await loadAll(); renderSidebar(); renderAllTracks();
     toast('Konts izveidots!','ok');
   }catch(e){document.getElementById('r-err').textContent=e.message;}
 });
@@ -1665,6 +1767,34 @@ function toast(msg,type=''){
   el.textContent=msg;el.className='on '+type;
   clearTimeout(_tt);_tt=setTimeout(()=>el.className='',3000);
 }
+
+// ════════════════════════════════════════
+//  SPLASH CHARACTERS
+// ════════════════════════════════════════
+(function spawnChars(){
+  const chars=[
+    // Hip-hop
+    {head:'🧢',body:'🕶',legs:'👟',note:'🎤',color:'#ffc400',speed:18,y:75,size:1.1},
+    {head:'🧢',body:'🦺',legs:'👟',note:'🎧',color:'#ff8c00',speed:22,y:60,size:0.9},
+    // Metal
+    {head:'🤘',body:'🖤',legs:'👢',note:'🎸',color:'#c084fc',speed:15,y:82,size:1.2},
+    {head:'💀',body:'⛓',legs:'👢',note:'🎸',color:'#ff2d55',speed:20,y:55,size:0.85},
+    // Electronic
+    {head:'🎧',body:'🦾',legs:'👾',note:'🎛',color:'#00ccff',speed:25,y:70,size:1.0},
+    {head:'🤖',body:'💡',legs:'🔌',note:'🎚',color:'#00ff88',speed:19,y:88,size:0.8},
+    // Bonus
+    {head:'🎩',body:'🎻',legs:'🩰',note:'🎶',color:'#f9a8d4',speed:16,y:65,size:0.95},
+    {head:'😎',body:'🎺',legs:'👞',note:'🎵',color:'#fbbf24',speed:23,y:78,size:1.05},
+  ];
+  const container=document.getElementById('chars');
+  chars.forEach((c,i)=>{
+    const el=document.createElement('div');
+    el.className='char'+(i%3===0?' bop':'');
+    el.style.cssText=`bottom:${c.y*0.01*100}%;left:-80px;font-size:${c.size}em;animation-duration:${c.speed}s;animation-delay:-${Math.random()*c.speed}s;filter:drop-shadow(0 0 6px ${c.color})`;
+    el.innerHTML=`<div class="note" style="color:${c.color};animation-delay:${Math.random()*1.2}s">${c.note}</div><div class="head">${c.head}</div><div class="body">${c.body}</div><div class="legs">${c.legs}</div>`;
+    container.appendChild(el);
+  });
+})();
 
 init().then(()=>{ populateFolderSels(); loadSavedTheme(); });
 </script>
