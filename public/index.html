@@ -312,6 +312,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
     </div>
     <button class="btn red" id="btn-logout" style="display:none" onclick="doLogout()">IZIET</button>
     <button class="btn" id="btn-openauth" style="display:none" onclick="openAuth()">IEIET</button>
+    <button class="btn" id="btn-user-panel" style="display:none" onclick="toggleUserPanel()" title="Mans panelis">＋ PIEVIENOT</button>
     <button class="btn lock" id="btn-lock" onclick="toggleAdmin()" title="Admin panelis">🔒</button>
   </div>
 </div>
@@ -406,7 +407,83 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
   </div>
 </div>
 
-<!-- ══ MAIN ══ -->
+<!-- ══ USER PANEL ══ -->
+<div id="up-panel" style="display:none;background:rgba(210,228,245,.7);border-bottom:1px solid rgba(21,101,160,.25);padding:0 18px;">
+  <div class="az-in">
+    <div class="az-hd">＋ PIEVIENOT MŪZIKU</div>
+    <div class="atabs" id="up-tabs">
+      <button class="atab on" data-up="single">VIENA DZIESMA</button>
+      <button class="atab" data-up="umulti">VAIRĀKAS DZIESMAS</button>
+      <button class="atab" data-up="myfolders">MANAS MAPES</button>
+    </div>
+
+    <!-- User single upload -->
+    <div class="apanel on" id="uap-single">
+      <div class="ug">
+        <div class="fg"><div class="fl">Nosaukums</div><input class="fi" id="uup-title" placeholder="Dziesmas nosaukums"/></div>
+        <div class="fg"><div class="fl">Izpildītājs</div><input class="fi" id="uup-artist" placeholder="Mākslinieks"/></div>
+        <div class="fg"><div class="fl">Mape</div><select class="fi" id="uup-folder"><option value="">— Bez mapes —</option></select></div>
+        <div class="fg" style="justify-content:flex-end;align-items:flex-end">
+          <span style="font-size:11px;color:var(--mut)">MP3 WAV OGG FLAC M4A · līdz 100MB</span>
+        </div>
+        <div class="dz" id="udz1" style="grid-column:1/-1">
+          <input type="file" id="uup-file" accept="audio/*"/>
+          <div class="dz-i">🎵</div>
+          <div class="dz-t">Noklikšķini vai iemet audio failu</div>
+          <div class="dz-n" id="udz1-n"></div>
+        </div>
+      </div>
+      <div class="urow">
+        <button class="btn-up" id="ubtn-up1">AUGŠUPIELĀDĒT</button>
+        <div class="pw" id="upw1"><div class="pf" id="upf1"></div></div>
+        <div class="ust" id="uust1"></div>
+      </div>
+    </div>
+
+    <!-- User multi upload -->
+    <div class="apanel" id="uap-umulti">
+      <div class="ug">
+        <div class="fg"><div class="fl">Mape visiem failiem</div><select class="fi" id="umu-folder"><option value="">— Bez mapes —</option></select></div>
+        <div class="fg" style="justify-content:flex-end;align-items:flex-end">
+          <span style="font-size:11px;color:var(--mut)">Nosaukumi no failu nosaukumiem</span>
+        </div>
+        <div class="dz multi" id="udz-multi">
+          <input type="file" id="umu-files" accept="audio/*" multiple/>
+          <div class="dz-i">📦</div>
+          <div class="dz-t">Izvēlies vai iemet <strong style="color:var(--a)">vairākus</strong> audio failus uzreiz</div>
+          <div class="dz-t">Līdz 20 failiem · Katrs līdz 100MB</div>
+          <div class="dz-n" id="udz-multi-n"></div>
+        </div>
+      </div>
+      <div class="urow">
+        <button class="btn-up" id="ubtn-multi">AUGŠUPIELĀDĒT VISUS</button>
+        <div class="pw" id="upw-m"><div class="pf" id="upf-m"></div></div>
+        <div class="ust" id="uust-m"></div>
+      </div>
+      <div id="umulti-results" style="margin-top:10px;display:none"></div>
+    </div>
+
+    <!-- User private folders -->
+    <div class="apanel" id="uap-myfolders">
+      <div style="font-size:11px;color:var(--mut);margin-bottom:10px;font-weight:600">🔒 Privātās mapes redzamas tikai tev</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <input class="fi" id="ufn" placeholder="Mapes nosaukums" style="flex:1;min-width:120px"/>
+        <div class="cpick-row" id="ucprow">
+          <div class="cp on" style="background:#00ccff" data-c="#00ccff"></div>
+          <div class="cp" style="background:#00ff88" data-c="#00ff88"></div>
+          <div class="cp" style="background:#ffc400" data-c="#ffc400"></div>
+          <div class="cp" style="background:#ff2d55" data-c="#ff2d55"></div>
+          <div class="cp" style="background:#c084fc" data-c="#c084fc"></div>
+          <div class="cp" style="background:#ff8c00" data-c="#ff8c00"></div>
+        </div>
+        <button class="btn g" id="ubtn-mkf">+ IZVEIDOT</button>
+      </div>
+      <div id="ufmgmt"></div>
+    </div>
+  </div>
+</div>
+
+
 <div id="body">
 
   <!-- SIDEBAR -->
@@ -421,6 +498,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
     <div class="sb-s" id="sb-fs" style="display:none">
       <div class="sb-l">MAPES</div>
       <div id="sb-fl"></div>
+    </div>
+    <div class="sb-s" id="sb-myfs" style="display:none">
+      <div class="sb-l">MANAS MAPES 🔒</div>
+      <div id="sb-myfl"></div>
     </div>
   </div>
 
@@ -612,7 +693,7 @@ const S = {
   username: localStorage.getItem('mb_u')||null,
   role:     localStorage.getItem('mb_r')||null,
   bgUrl:    localStorage.getItem('mb_bg')||'',
-  tracks:[], folders:[], playlist:[], favorites:[],
+  tracks:[], folders:[], myFolders:[], playlist:[], favorites:[],
   queue:[], qi:-1, shuf:false, rep:false, playing:false,
   activeFid:null, searchQ:'',
 };
@@ -652,8 +733,9 @@ async function init() {
   renderAllTracks();
 }
 function clearSess(){
-  S.token=S.username=S.role=null; S.favorites=[];
+  S.token=S.username=S.role=null; S.favorites=[]; S.myFolders=[];
   ['mb_t','mb_u','mb_r','mb_bg'].forEach(k=>localStorage.removeItem(k));
+  document.getElementById('up-panel').style.display='none';
 }
 async function loadAll(){
   await Promise.all([
@@ -661,6 +743,15 @@ async function loadAll(){
     api('/api/folders').then(d=>S.folders=d.folders).catch(()=>{}),
     api('/api/playlist').then(d=>S.playlist=d.trackIds||[]).catch(()=>{}),
   ]);
+  // Load private folders if logged in
+  if (S.token) {
+    try {
+      const d = await api('/api/my-folders');
+      S.myFolders = d.folders || [];
+    } catch(e) { S.myFolders = []; }
+  } else {
+    S.myFolders = [];
+  }
 }
 function applyBg(url){
   const el = document.getElementById('bg-layer');
@@ -686,10 +777,13 @@ function updateTopbar(){
     document.getElementById('udot').className='dot'+(S.role==='admin'?' a':'');
     document.getElementById('nav-fav').style.display='flex';
     lock.classList.toggle('on', S.role==='admin');
+    document.getElementById('btn-user-panel').style.display='block';
   } else {
     chip.style.display='none'; btnA.style.display='block'; btnL.style.display='none';
     lock.classList.remove('on');
     document.getElementById('nav-fav').style.display='none';
+    document.getElementById('btn-user-panel').style.display='none';
+    document.getElementById('up-panel').style.display='none';
   }
   document.getElementById('cnt-fav').textContent = S.favorites.length;
   document.getElementById('btn-clear-pl').style.display = S.role==='admin'&&S.playlist.length?'block':'none';
@@ -721,6 +815,137 @@ function toggleAdmin(){
   az.classList.toggle('on');
   if (az.classList.contains('on')){ loadStats(); renderFMgmt(); loadUsers(); populateFolderSels(); }
 }
+
+// ════════════════════════════════════════
+//  USER PANEL
+// ════════════════════════════════════════
+function toggleUserPanel(){
+  if (!S.username){openAuth();return;}
+  const panel=document.getElementById('up-panel');
+  const isOpen = panel.style.display==='block';
+  panel.style.display=isOpen?'none':'block';
+  if (!isOpen){ populateUserFolderSels(); renderUserFMgmt(); }
+}
+document.querySelectorAll('[data-up]').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('[data-up]').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('#up-panel .apanel').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('uap-'+t.dataset.up).classList.add('on');
+  });
+});
+
+// User folder selects
+function populateUserFolderSels(){
+  const allFolders = [...S.folders, ...(S.myFolders||[])];
+  const opts='<option value="">— Bez mapes —</option>'+allFolders.map(f=>`<option value="${f._id}">${esc(f.name)}${f.isPrivate?' 🔒':''}</option>`).join('');
+  document.getElementById('uup-folder').innerHTML=opts;
+  document.getElementById('umu-folder').innerHTML=opts;
+}
+
+// User private folder mgmt
+let uSelColor='#00ccff';
+document.querySelectorAll('#ucprow .cp').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('#ucprow .cp').forEach(x=>x.classList.remove('on'));
+    el.classList.add('on'); uSelColor=el.dataset.c;
+  });
+});
+document.getElementById('ubtn-mkf').addEventListener('click',async()=>{
+  const name=document.getElementById('ufn').value.trim();
+  if (!name){toast('Ievadi nosaukumu!','err');return;}
+  try{
+    await api('/api/my-folders',{method:'POST',body:JSON.stringify({name,color:uSelColor})});
+    document.getElementById('ufn').value='';
+    const d=await api('/api/my-folders'); S.myFolders=d.folders||[];
+    renderSidebar(); renderUserFMgmt(); populateUserFolderSels();
+    toast('Privātā mape izveidota! 🔒','ok');
+  }catch(e){toast(e.message,'err');}
+});
+function renderUserFMgmt(){
+  const c=document.getElementById('ufmgmt');
+  const mf=S.myFolders||[];
+  if (!mf.length){c.innerHTML='<div style="color:var(--mut);font-size:11px;padding:8px 0">Nav privātu mapju</div>';return;}
+  c.innerHTML=mf.map(f=>{
+    const cnt=S.tracks.filter(t=>String(t.folderId)===String(f._id)).length;
+    return `<div class="frow"><span style="color:${f.color}">🔒</span><span class="frow-n">${esc(f.name)}</span><span style="font-size:10px;color:var(--mut)">${cnt} dziesmas</span><button class="ibtn del" onclick="delMyFolder('${f._id}')">🗑</button></div>`;
+  }).join('');
+}
+async function delMyFolder(id){
+  if (!confirm('Dzēst privāto mapi?'))return;
+  try{
+    await api('/api/my-folders/'+id,{method:'DELETE'});
+    const d=await api('/api/my-folders'); S.myFolders=d.folders||[];
+    renderSidebar(); renderUserFMgmt(); populateUserFolderSels();
+    toast('Mape dzēsta','ok');
+  }catch(e){toast(e.message,'err');}
+}
+
+// User single upload
+const uUpFile=document.getElementById('uup-file');
+uUpFile.addEventListener('change',()=>{ document.getElementById('udz1-n').textContent=uUpFile.files[0]?'✓ '+uUpFile.files[0].name:''; });
+setupDz('udz1','udz1-n',uUpFile);
+
+document.getElementById('ubtn-up1').addEventListener('click',async()=>{
+  if (!S.username){openAuth();return;}
+  const file=uUpFile.files[0];
+  if (!file){toast('Izvēlies failu!','err');return;}
+  const btn=document.getElementById('ubtn-up1');
+  const pw=document.getElementById('upw1');
+  const pf=document.getElementById('upf1');
+  const ust=document.getElementById('uust1');
+  btn.disabled=true; pw.style.display='block'; pf.style.width='0%'; ust.textContent='Augšupielādē...';
+  const fd=new FormData();
+  fd.append('audio',file);
+  fd.append('title',document.getElementById('uup-title').value.trim());
+  fd.append('artist',document.getElementById('uup-artist').value.trim());
+  fd.append('folderId',document.getElementById('uup-folder').value);
+  try{
+    await xhrUpload('/api/upload',fd,p=>{pf.style.width=p+'%';});
+    ust.textContent='✓ Augšupielādēts!';
+    document.getElementById('uup-title').value=''; document.getElementById('uup-artist').value='';
+    uUpFile.value=''; document.getElementById('udz1-n').textContent='';
+    await loadAll(); renderSidebar(); renderAllTracks();
+    toast('Dziesma pievienota!','ok');
+  }catch(e){ust.textContent='✗ '+e.message;toast(e.message,'err');}
+  finally{btn.disabled=false;setTimeout(()=>{pw.style.display='none';ust.textContent='';},4000);}
+});
+
+// User multi upload
+const uMuFiles=document.getElementById('umu-files');
+uMuFiles.addEventListener('change',()=>{
+  const n=uMuFiles.files.length;
+  document.getElementById('udz-multi-n').textContent=n?`✓ ${n} fails${n>1?'i':''}  izvēlēts`:'';
+});
+setupDz('udz-multi','udz-multi-n',uMuFiles,true);
+
+document.getElementById('ubtn-multi').addEventListener('click',async()=>{
+  if (!S.username){openAuth();return;}
+  const files=uMuFiles.files;
+  if (!files.length){toast('Izvēlies failus!','err');return;}
+  if (files.length>20){toast('Maksimums 20 faili uzreiz!','warn');return;}
+  const btn=document.getElementById('ubtn-multi');
+  const pw=document.getElementById('upw-m');
+  const pf=document.getElementById('upf-m');
+  const ust=document.getElementById('uust-m');
+  const res=document.getElementById('umulti-results');
+  btn.disabled=true; pw.style.display='block'; pf.style.width='0%';
+  ust.textContent=`Augšupielādē ${files.length} failus...`; res.style.display='none';
+  const fd=new FormData();
+  for (const f of files) fd.append('audio',f);
+  fd.append('folderId',document.getElementById('umu-folder').value);
+  try{
+    const d=await xhrUpload('/api/upload-multi',fd,p=>{pf.style.width=p+'%';});
+    const data=JSON.parse(d);
+    ust.textContent=`✓ ${data.count} dziesmas augšupielādētas!`;
+    uMuFiles.value=''; document.getElementById('udz-multi-n').textContent='';
+    res.style.display='block';
+    res.innerHTML=`<div style="font-size:11px;color:var(--g);margin-top:4px">✓ Augšupielādētas: ${data.tracks.map(t=>`<strong>${esc(t.title)}</strong>`).join(', ')}</div>`;
+    await loadAll(); renderSidebar(); renderAllTracks();
+    toast(`${data.count} dziesmas pievienotas!`,'ok');
+  }catch(e){ust.textContent='✗ '+e.message;toast(e.message,'err');}
+  finally{btn.disabled=false;setTimeout(()=>{pw.style.display='none';ust.textContent='';},5000);}
+});
 document.querySelectorAll('.atab').forEach(t=>{
   t.addEventListener('click',()=>{
     document.querySelectorAll('.atab').forEach(x=>x.classList.remove('on'));
@@ -1150,6 +1375,15 @@ function renderSidebar(){
       <span style="overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</span>
       <span class="sb-n">${S.tracks.filter(t=>String(t.folderId)===String(f._id)).length}</span>
     </div>`).join('');
+  // Private folders
+  const myf=S.myFolders||[];
+  document.getElementById('sb-myfs').style.display=(myf.length>0&&S.username)?'block':'none';
+  document.getElementById('sb-myfl').innerHTML=myf.map(f=>
+    `<div class="sb-i" data-v="fsingle" data-fid="${f._id}" style="padding-left:20px">
+      <span class="sb-ic" style="color:${f.color}">🔒</span>
+      <span style="overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</span>
+      <span class="sb-n">${S.tracks.filter(t=>String(t.folderId)===String(f._id)).length}</span>
+    </div>`).join('');
   bindSb();
 }
 function bindSb(){
@@ -1203,13 +1437,14 @@ function renderFavs(){
 
 function renderFolderGrid(){
   const c=document.getElementById('fgrid');
-  if (!S.folders.length){c.innerHTML='<div class="empty"><div class="empty-i">📂</div>Nav nevienas mapes</div>';return;}
-  c.innerHTML=S.folders.map(f=>{
+  const allFolders=[...S.folders,...(S.myFolders||[])];
+  if (!allFolders.length){c.innerHTML='<div class="empty"><div class="empty-i">📂</div>Nav nevienas mapes</div>';return;}
+  c.innerHTML=allFolders.map(f=>{
     const cnt=S.tracks.filter(t=>String(t.folderId)===String(f._id)).length;
     return `<div class="fcard" onclick="openFolder('${f._id}')" style="border-left:3px solid ${f.color}">
-      <div class="fcard-i">📁</div>
+      <div class="fcard-i">${f.isPrivate?'🔒':'📁'}</div>
       <div class="fcard-n" style="color:${f.color}">${esc(f.name)}</div>
-      <div class="fcard-c">${cnt} dziesmas</div>
+      <div class="fcard-c">${cnt} dziesmas${f.isPrivate?' · privāta':''}</div>
     </div>`;
   }).join('');
 }
@@ -1219,7 +1454,8 @@ function openFolder(fid){
   showView('fsingle'); renderFolderSingle(fid);
 }
 function renderFolderSingle(fid){
-  const f=S.folders.find(x=>String(x._id)===String(fid));
+  const allFolders=[...S.folders,...(S.myFolders||[])];
+  const f=allFolders.find(x=>String(x._id)===String(fid));
   const title=document.getElementById('fv-t');
   title.textContent=f?f.name.toUpperCase():'MAPE';
   if (f) title.style.color=f.color;
