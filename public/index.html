@@ -2,7 +2,7 @@
 <html lang="lv">
 <head>
 <meta charset="UTF-8">
-<title>Auth Test OK</title>
+<title>Auth Test BUG</title>
 </head>
 <body>
 
@@ -26,29 +26,22 @@ async function api(url, opts={}) {
   return { token:"123", username:"test", role:"user" };
 }
 
-// ✅ VIENS BLOKS
+// ❌ BLOKS 1
 document.getElementById('btn-login').addEventListener('click',async()=>{
-  const u=document.getElementById('l-u').value.trim();
-  const p=document.getElementById('l-p').value;
-  document.getElementById('l-err').textContent='';
-  try{
-    const d=await api('/api/login',{method:'POST',body:JSON.stringify({username:u,password:p})});
-    console.log("LOGIN OK", d);
-  }catch(e){
-    document.getElementById('l-err').textContent=e.message;
-  }
+  console.log("LOGIN 1");
 });
 
 document.getElementById('btn-reg').addEventListener('click',async()=>{
-  const u=document.getElementById('r-u').value.trim();
-  const p=document.getElementById('r-p').value;
-  document.getElementById('r-err').textContent='';
-  try{
-    const d=await api('/api/register',{method:'POST',body:JSON.stringify({username:u,password:p})});
-    console.log("REGISTER OK", d);
-  }catch(e){
-    document.getElementById('r-err').textContent=e.message;
-  }
+  console.log("REGISTER 1");
+});
+
+// ❌ BLOKS 2 (DUPLIKĀTS)
+document.getElementById('btn-login').addEventListener('click',async()=>{
+  console.log("LOGIN 2");
+});
+
+document.getElementById('btn-reg').addEventListener('click',async()=>{
+  console.log("REGISTER 2");
 });
 </script>
 
