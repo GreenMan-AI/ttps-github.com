@@ -157,15 +157,29 @@ body{
   padding:0 18px;display:none;
 }
 #az.on{display:block}
+#up-panel{color:#0d1f35 !important}
+#az{color:#0d1f35 !important}
+#az .az-in, #up-panel .az-in{color:#0d1f35}
+#az .fl, #up-panel .fl{color:#1a3a58 !important}
+#az .fi, #up-panel .fi{background:rgba(255,255,255,.95) !important;color:#0d1f35 !important;border-color:rgba(21,101,160,.3) !important}
+#az .fi::placeholder, #up-panel .fi::placeholder{color:#5a7a9a !important}
+#az select.fi option, #up-panel select.fi option{background:#e8f0f8;color:#0d1f35}
+#az .dz-t, #up-panel .dz-t{color:#1a3a58 !important}
+#az .ust, #up-panel .ust{color:#1a3a58 !important}
+#az .frow-n, #up-panel .frow-n{color:#0d1f35 !important}
+#az .frow, #up-panel .frow{background:rgba(230,242,255,.9) !important;border-color:rgba(21,101,160,.2) !important}
+#az .utbl th{color:#1a3a58 !important}
+#az .utbl td{color:#0d1f35 !important}
+#az .ast-l, #up-panel .ast-l{color:#1a3a58 !important}
 .az-in{padding:14px 0}
-.az-hd{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:#5bb8f5;margin-bottom:12px}
+.az-hd{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:#1565a0;margin-bottom:12px}
 .astats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
-.ast{background:var(--card);border:1px solid var(--border);border-radius:var(--r6);padding:9px;text-align:center}
-.ast-n{font-family:var(--mono);font-size:20px;color:var(--a);line-height:1}
-.ast-l{font-size:9px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
-.atabs{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px;flex-wrap:wrap}
-.atab{background:none;border:1px solid var(--border);color:var(--mut);padding:4px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;border-radius:var(--r6);transition:all .15s;letter-spacing:.2px}
-.atab.on{background:rgba(21,101,160,.2);border-color:rgba(21,101,160,.5);color:#5bb8f5}
+.ast{background:rgba(220,235,250,.95);border:1px solid rgba(21,101,160,.25);border-radius:var(--r6);padding:9px;text-align:center}
+.ast-n{font-family:var(--mono);font-size:20px;color:#1565a0;line-height:1}
+.ast-l{font-size:9px;color:#1a3a58;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.atabs{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid rgba(21,101,160,.2);padding-bottom:8px;flex-wrap:wrap}
+.atab{background:none;border:1px solid rgba(21,101,160,.2);color:#1a3a58;padding:4px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;border-radius:var(--r6);transition:all .15s;letter-spacing:.2px}
+.atab.on{background:rgba(21,101,160,.2);border-color:rgba(21,101,160,.5);color:#1565a0}
 .apanel{display:none}
 .apanel.on{display:block}
 
@@ -740,18 +754,12 @@ function clearSess(){
 async function loadAll(){
   await Promise.all([
     api('/api/tracks').then(d=>S.tracks=d.tracks).catch(()=>{}),
-    api('/api/folders').then(d=>S.folders=d.folders).catch(()=>{}),
+    api('/api/folders').then(d=>{
+      S.folders=d.folders;
+      S.myFolders=S.username?d.folders.filter(f=>f.isPrivate&&String(f.ownerId)===String(S.username)):[];
+    }).catch(()=>{}),
     api('/api/playlist').then(d=>S.playlist=d.trackIds||[]).catch(()=>{}),
   ]);
-  // Load private folders if logged in
-  if (S.token) {
-    try {
-      const d = await api('/api/my-folders');
-      S.myFolders = d.folders || [];
-    } catch(e) { S.myFolders = []; }
-  } else {
-    S.myFolders = [];
-  }
 }
 function applyBg(url){
   const el = document.getElementById('bg-layer');
@@ -851,38 +859,37 @@ function populateUserFolderSels(){
 
 // User private folder mgmt
 let uSelColor='#00ccff';
-document.querySelectorAll('#ucprow .cp').forEach(el=>{
-  el.addEventListener('click',()=>{
-    document.querySelectorAll('#ucprow .cp').forEach(x=>x.classList.remove('on'));
-    el.classList.add('on'); uSelColor=el.dataset.c;
-  });
+document.getElementById('ucprow').addEventListener('click',e=>{
+  const cp=e.target.closest('.cp');
+  if(!cp)return;
+  document.querySelectorAll('#ucprow .cp').forEach(x=>x.classList.remove('on'));
+  cp.classList.add('on'); uSelColor=cp.dataset.c;
 });
 document.getElementById('ubtn-mkf').addEventListener('click',async()=>{
+  if(!S.username){openAuth();return;}
   const name=document.getElementById('ufn').value.trim();
-  if (!name){toast('Ievadi nosaukumu!','err');return;}
+  if(!name){toast('Ievadi nosaukumu!','err');return;}
   try{
-    await api('/api/my-folders',{method:'POST',body:JSON.stringify({name,color:uSelColor})});
+    await api('/api/folders',{method:'POST',body:JSON.stringify({name,color:uSelColor,isPrivate:true})});
     document.getElementById('ufn').value='';
-    const d=await api('/api/my-folders'); S.myFolders=d.folders||[];
-    renderSidebar(); renderUserFMgmt(); populateUserFolderSels();
-    toast('Privātā mape izveidota! 🔒','ok');
+    await loadAll(); renderSidebar(); renderUserFMgmt(); populateUserFolderSels();
+    toast('Mape izveidota! 🔒','ok');
   }catch(e){toast(e.message,'err');}
 });
 function renderUserFMgmt(){
   const c=document.getElementById('ufmgmt');
-  const mf=S.myFolders||[];
-  if (!mf.length){c.innerHTML='<div style="color:var(--mut);font-size:11px;padding:8px 0">Nav privātu mapju</div>';return;}
+  const mf=(S.myFolders&&S.myFolders.length)?S.myFolders:S.folders.filter(f=>f.isPrivate&&String(f.ownerId)===String(S.username));
+  if(!mf.length){c.innerHTML='<div style="color:var(--mut);font-size:11px;padding:8px 0">Nav privātu mapju. Izveido pirmo!</div>';return;}
   c.innerHTML=mf.map(f=>{
     const cnt=S.tracks.filter(t=>String(t.folderId)===String(f._id)).length;
-    return `<div class="frow"><span style="color:${f.color}">🔒</span><span class="frow-n">${esc(f.name)}</span><span style="font-size:10px;color:var(--mut)">${cnt} dziesmas</span><button class="ibtn del" onclick="delMyFolder('${f._id}')">🗑</button></div>`;
+    return `<div class="frow"><span style="color:${f.color};font-size:16px">📁</span><span class="frow-n" style="color:${f.color}">${esc(f.name)}</span><span style="font-size:10px;color:var(--mut)">${cnt} dziesmas</span><button class="ibtn del" onclick="delMyFolder('${f._id}')">🗑</button></div>`;
   }).join('');
 }
 async function delMyFolder(id){
-  if (!confirm('Dzēst privāto mapi?'))return;
+  if(!confirm('Dzēst mapi?'))return;
   try{
-    await api('/api/my-folders/'+id,{method:'DELETE'});
-    const d=await api('/api/my-folders'); S.myFolders=d.folders||[];
-    renderSidebar(); renderUserFMgmt(); populateUserFolderSels();
+    await api('/api/folders/'+id,{method:'DELETE'});
+    await loadAll(); renderSidebar(); renderUserFMgmt(); populateUserFolderSels();
     toast('Mape dzēsta','ok');
   }catch(e){toast(e.message,'err');}
 }
