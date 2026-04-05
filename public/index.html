@@ -411,14 +411,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 <div id="up-panel" style="display:none;background:rgba(210,228,245,.7);border-bottom:1px solid rgba(21,101,160,.25);padding:0 18px;">
   <div class="az-in">
     <div class="az-hd">＋ PIEVIENOT MŪZIKU</div>
-    <div class="atabs" id="up-tabs">
-      <button class="atab on" data-up="single">VIENA DZIESMA</button>
-      <button class="atab" data-up="umulti">VAIRĀKAS DZIESMAS</button>
-      <button class="atab" data-up="myfolders">MANAS MAPES</button>
+    <div style="display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px;flex-wrap:wrap">
+      <button class="up-tab-btn" data-utab="single" style="background:rgba(21,101,160,.2);border:1px solid rgba(21,101,160,.5);color:#5bb8f5;padding:4px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;border-radius:var(--r6)">VIENA DZIESMA</button>
+      <button class="up-tab-btn" data-utab="umulti" style="background:none;border:1px solid var(--border);color:var(--mut);padding:4px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;border-radius:var(--r6)">VAIRĀKAS DZIESMAS</button>
+      <button class="up-tab-btn" data-utab="myfolders" style="background:none;border:1px solid var(--border);color:var(--mut);padding:4px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;border-radius:var(--r6)">MANAS MAPES</button>
     </div>
 
     <!-- User single upload -->
-    <div class="apanel on" id="uap-single">
+    <div class="up-tab-panel" id="uap-single" style="display:block">
       <div class="ug">
         <div class="fg"><div class="fl">Nosaukums</div><input class="fi" id="uup-title" placeholder="Dziesmas nosaukums"/></div>
         <div class="fg"><div class="fl">Izpildītājs</div><input class="fi" id="uup-artist" placeholder="Mākslinieks"/></div>
@@ -441,7 +441,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
     </div>
 
     <!-- User multi upload -->
-    <div class="apanel" id="uap-umulti">
+    <div class="up-tab-panel" id="uap-umulti" style="display:none">
       <div class="ug">
         <div class="fg"><div class="fl">Mape visiem failiem</div><select class="fi" id="umu-folder"><option value="">— Bez mapes —</option></select></div>
         <div class="fg" style="justify-content:flex-end;align-items:flex-end">
@@ -464,7 +464,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
     </div>
 
     <!-- User private folders -->
-    <div class="apanel" id="uap-myfolders">
+    <div class="up-tab-panel" id="uap-myfolders" style="display:none">
       <div style="font-size:11px;color:var(--mut);margin-bottom:10px;font-weight:600">🔒 Privātās mapes redzamas tikai tev</div>
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
         <input class="fi" id="ufn" placeholder="Mapes nosaukums" style="flex:1;min-width:120px"/>
@@ -826,12 +826,18 @@ function toggleUserPanel(){
   panel.style.display=isOpen?'none':'block';
   if (!isOpen){ populateUserFolderSels(); renderUserFMgmt(); }
 }
-document.querySelectorAll('#up-tabs .atab').forEach(t=>{
+document.querySelectorAll('.up-tab-btn').forEach(t=>{
   t.addEventListener('click',()=>{
-    document.querySelectorAll('#up-tabs .atab').forEach(x=>x.classList.remove('on'));
-    document.querySelectorAll('#up-panel .apanel').forEach(x=>x.classList.remove('on'));
-    t.classList.add('on');
-    document.getElementById('uap-'+t.dataset.up).classList.add('on');
+    document.querySelectorAll('.up-tab-btn').forEach(x=>{
+      x.style.background='none';
+      x.style.borderColor='var(--border)';
+      x.style.color='var(--mut)';
+    });
+    t.style.background='rgba(21,101,160,.2)';
+    t.style.borderColor='rgba(21,101,160,.5)';
+    t.style.color='#5bb8f5';
+    document.querySelectorAll('.up-tab-panel').forEach(x=>x.style.display='none');
+    document.getElementById('uap-'+t.dataset.utab).style.display='block';
   });
 });
 
