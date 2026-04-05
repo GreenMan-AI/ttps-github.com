@@ -826,9 +826,9 @@ function toggleUserPanel(){
   panel.style.display=isOpen?'none':'block';
   if (!isOpen){ populateUserFolderSels(); renderUserFMgmt(); }
 }
-document.querySelectorAll('[data-up]').forEach(t=>{
+document.querySelectorAll('#up-tabs .atab').forEach(t=>{
   t.addEventListener('click',()=>{
-    document.querySelectorAll('[data-up]').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('#up-tabs .atab').forEach(x=>x.classList.remove('on'));
     document.querySelectorAll('#up-panel .apanel').forEach(x=>x.classList.remove('on'));
     t.classList.add('on');
     document.getElementById('uap-'+t.dataset.up).classList.add('on');
