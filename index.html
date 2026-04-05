@@ -1,632 +1,1292 @@
 <!DOCTYPE html>
 <html lang="lv">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MusicBox 🎵</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MusicBox</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#060608;--bg5:rgba(255,255,255,0.04);
-  --accent:#1db954;--accent2:#14ff72;--red:#ff4757;
-  --text:#fff;--text2:#a8b0c0;--text3:#454d60;
-  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
-  --glow:rgba(29,185,84,0.12);--r:12px;--ph:88px;
+  --bg:#06080f;--bg2:#0a0d18;--card:#0e1220;--card2:#121828;
+  --border:#18243a;--border2:#1e2e48;
+  --a:#00ccff;--g:#00ff88;--y:#ffc400;--r:#ff2d55;--p:#c084fc;
+  --txt:#b4d0e8;--mut:#2e4a68;
+  --font:'Syne',sans-serif;--mono:'JetBrains Mono',monospace;
+  --r6:6px;--ph:74px;
 }
-html,body{height:100%;overflow:hidden}
-body{font-family:'Syne',sans-serif;color:var(--text);background:var(--bg)}
-.bg{position:fixed;inset:0;z-index:0;background-image:url('/bg.jpg');background-size:cover;background-position:center 20%;filter:brightness(0.15) saturate(0.5)}
-.bg-ov{position:fixed;inset:0;z-index:1;background:linear-gradient(135deg,rgba(4,4,10,0.88)0%,rgba(6,6,12,0.62)50%,rgba(8,6,18,0.92)100%)}
-.app{position:relative;z-index:2;display:grid;grid-template-columns:228px 1fr;grid-template-rows:1fr var(--ph);height:100vh}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
 
-/* AUTH */
-#auth{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);backdrop-filter:blur(16px)}
-.abox{background:rgba(7,7,12,0.99);border:1px solid var(--border2);border-radius:20px;padding:38px 36px;width:350px;box-shadow:0 24px 80px rgba(0,0,0,0.75),0 0 80px var(--glow)}
-.alogo{text-align:center;font-size:1.75rem;font-weight:900;letter-spacing:-1px;margin-bottom:5px}.alogo span{color:var(--accent)}
-.asub{text-align:center;color:var(--text3);font-size:0.78rem;margin-bottom:22px}
-.atabs{display:flex;gap:3px;background:rgba(255,255,255,0.04);border-radius:9px;padding:3px;margin-bottom:18px}
-.atab{flex:1;padding:7px;text-align:center;font-size:0.82rem;font-weight:700;border-radius:7px;cursor:pointer;color:var(--text3);transition:all .15s}
-.atab.on{background:var(--accent);color:#000}
-.ainp{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:9px;padding:10px 14px;font-size:0.86rem;color:var(--text);font-family:'Syne',sans-serif;outline:none;margin-bottom:9px;transition:border-color .2s}
-.ainp:focus{border-color:var(--accent)}.ainp::placeholder{color:var(--text3)}
-.abtn{width:100%;background:var(--accent);color:#000;border:none;border-radius:30px;padding:12px;font-size:0.88rem;font-weight:800;cursor:pointer;font-family:'Syne',sans-serif;transition:all .15s;margin-top:3px}
-.abtn:hover{background:var(--accent2);transform:scale(1.02)}
-.aerr{color:var(--red);font-size:0.76rem;text-align:center;margin-top:9px;min-height:16px}
+/* ── BG LAYER (user custom background) ── */
+#bg-layer{
+  position:fixed;inset:0;z-index:0;
+  background-image:url('/bg.jpg');
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+  transition:all .6s ease;
+}
+#bg-layer::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(6,8,15,.78) 0%,rgba(6,8,15,.93) 100%);
+}
 
-/* SIDEBAR */
-.sb{background:rgba(4,4,8,0.93);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;backdrop-filter:blur(20px)}
-.logo{padding:18px 15px 13px;display:flex;align-items:center;gap:8px;font-size:1.2rem;font-weight:900;letter-spacing:-.5px;border-bottom:1px solid var(--border)}
-.logo span{color:var(--accent)}
-.uchip{margin:9px 10px;background:var(--bg5);border:1px solid var(--border);border-radius:9px;padding:7px 11px;display:flex;align-items:center;justify-content:space-between}
-.ucname{font-size:0.78rem;font-weight:700}
-.ucrole{font-size:0.62rem;padding:2px 7px;border-radius:20px;font-weight:700}
-.ra{background:rgba(255,71,87,.18);color:var(--red)}.ru{background:rgba(29,185,84,.14);color:var(--accent)}
-.slbl{font-size:.58rem;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;padding:10px 14px 4px}
-.ni{display:flex;align-items:center;gap:8px;padding:7px 11px;margin:1px 7px;border-radius:8px;cursor:pointer;font-size:.83rem;font-weight:600;color:var(--text2);transition:all .15s}
-.ni:hover{background:var(--bg5);color:var(--text)}.ni.on{background:rgba(29,185,84,.1);color:var(--accent)}
-.ni .ic{font-size:.9rem;width:17px;text-align:center}
-.fl{flex:1;overflow-y:auto;padding:0 7px 7px}.fl::-webkit-scrollbar{width:2px}.fl::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
-.fi{display:flex;align-items:center;justify-content:space-between;padding:5px 9px;border-radius:7px;cursor:pointer;font-size:.78rem;color:var(--text2);transition:all .15s;margin-bottom:1px}
-.fi:hover{background:var(--bg5);color:var(--text)}.fi.on{background:rgba(29,185,84,.08);color:var(--accent)}
-.fil{display:flex;align-items:center;gap:6px}
-.fd{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.fc{font-size:.66rem;background:rgba(255,255,255,.05);padding:1px 6px;border-radius:20px;color:var(--text3)}
-.afb{margin:3px 10px 8px;background:transparent;border:1px dashed var(--border2);border-radius:8px;padding:6px;text-align:center;font-size:.76rem;color:var(--text3);cursor:pointer;font-family:'Syne',sans-serif;transition:all .15s}
-.afb:hover{border-color:var(--accent);color:var(--accent)}
-.lgb{margin:0 10px 10px;background:rgba(255,71,87,.07);border:1px solid rgba(255,71,87,.2);border-radius:8px;padding:6px;text-align:center;font-size:.76rem;color:var(--red);cursor:pointer;font-family:'Syne',sans-serif;transition:all .15s}
-.lgb:hover{background:rgba(255,71,87,.14)}
+body{
+  background:var(--bg);color:var(--txt);
+  font-family:var(--font);font-size:14px;
+  min-height:100vh;overflow-x:hidden;
+}
+#app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh}
 
-/* MAIN */
-.main{display:flex;flex-direction:column;overflow:hidden}
-.tabs{display:flex;gap:1px;padding:13px 20px 0;border-bottom:1px solid var(--border)}
-.tab{padding:7px 15px;font-size:.82rem;font-weight:700;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
-.tab:hover{color:var(--text2)}.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
-.cnt{flex:1;overflow-y:auto;padding:20px}.cnt::-webkit-scrollbar{width:3px}.cnt::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
-.view{display:none}.view.on{display:block}
-.stitle{font-size:1.3rem;font-weight:900;margin-bottom:13px;letter-spacing:-.5px}.stitle span{color:var(--accent)}
-.gh{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+/* ══ TOPBAR ══ */
+#top{
+  height:54px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;
+  background:rgba(6,8,15,.88);border-bottom:1px solid var(--border);
+  backdrop-filter:blur(18px);
+  position:sticky;top:0;z-index:300;flex-shrink:0;
+}
+.logo{font-family:var(--mono);font-size:18px;color:var(--a);letter-spacing:4px;text-shadow:0 0 18px rgba(0,204,255,.35);user-select:none;cursor:pointer}
+.logo b{color:var(--g)}
+.top-mid{display:flex;align-items:center;gap:6px;flex:1;max-width:360px;margin:0 16px}
+.top-search{width:100%;background:var(--card);border:1px solid var(--border);color:var(--txt);padding:6px 12px 6px 32px;font-family:var(--font);font-size:13px;border-radius:20px;outline:none;transition:border-color .15s}
+.top-search:focus{border-color:var(--a)}
+.search-wrap{position:relative;flex:1}
+.search-wrap::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none}
+.top-r{display:flex;align-items:center;gap:6px}
 
-/* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 16px;border-radius:30px;font-size:.8rem;font-weight:700;cursor:pointer;border:none;font-family:'Syne',sans-serif;transition:all .15s}
-.bg_{background:var(--accent);color:#000}.bg_:hover{background:var(--accent2);transform:scale(1.02)}
-.br_{background:rgba(255,71,87,.1);color:var(--red);border:1px solid rgba(255,71,87,.22)}.br_:hover{background:rgba(255,71,87,.2)}
-.bgh{background:rgba(255,255,255,.04);color:var(--text2);border:1px solid var(--border2)}.bgh:hover{border-color:rgba(255,255,255,.18);color:var(--text)}
-.sm{padding:4px 11px;font-size:.72rem}
-.bic{padding:5px 8px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text2);cursor:pointer;font-size:.82rem;transition:all .15s;font-family:'Syne',sans-serif}
-.bic:hover{color:var(--text);border-color:var(--border2)}
+/* chips & buttons */
+.chip{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.chip:hover{border-color:var(--a)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--g);box-shadow:0 0 6px var(--g);flex-shrink:0}
+.dot.a{background:var(--y);box-shadow:0 0 6px var(--y)}
+.rb{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:700;letter-spacing:.5px}
+.rb.admin{background:rgba(255,196,0,.12);color:var(--y);border:1px solid rgba(255,196,0,.25)}
+.rb.user{background:rgba(0,204,255,.1);color:var(--a);border:1px solid rgba(0,204,255,.2)}
+.btn{background:none;border:1px solid var(--border);color:var(--mut);padding:5px 12px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;border-radius:var(--r6);transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--a);color:var(--a)}
+.btn.g{background:var(--a);color:var(--bg);border-color:var(--a)}
+.btn.g:hover{background:var(--g);border-color:var(--g)}
+.btn.red:hover{border-color:var(--r);color:var(--r)}
+.btn.lock{border-color:var(--border)}
+.btn.lock.on{border-color:var(--y);color:var(--y)}
+.ibtn{background:none;border:none;color:var(--mut);font-size:14px;cursor:pointer;padding:3px 5px;transition:color .15s;border-radius:3px;font-family:var(--font);font-weight:700;flex-shrink:0}
+.ibtn:hover{color:var(--a)}
+.ibtn.del:hover{color:var(--r)}
+.ibtn.fav{font-size:16px}
+.ibtn.fav.on{color:var(--y)}
 
-/* TRACKS */
-.tlh{display:grid;grid-template-columns:32px 1fr auto;gap:9px;padding:4px 9px;font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);margin-bottom:5px}
-.tl{display:flex;flex-direction:column;gap:2px}
-.tr{display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;cursor:pointer;transition:background .1s;border:1px solid transparent}
-.tr:hover{background:rgba(255,255,255,.03)}.tr.pl{background:rgba(29,185,84,.07);border-color:rgba(29,185,84,.15)}
-.tn{font-size:.76rem;color:var(--text3);text-align:center;font-family:'DM Mono',monospace}.tr.pl .tn{color:var(--accent)}
-.ti{min-width:0}
-.tt{font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tr.pl .tt{color:var(--accent)}
-.tm{font-size:.7rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;display:flex;gap:7px}
-.ta{display:flex;gap:4px;align-items:center;opacity:0;transition:opacity .15s}.tr:hover .ta{opacity:1}
-.ftag{font-size:.66rem;padding:2px 6px;border-radius:20px;background:rgba(255,255,255,.05);white-space:nowrap}
-.utag{font-size:.66rem;color:var(--text3)}
-@keyframes pb{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.3)}}
-.pbs{display:flex;align-items:flex-end;gap:2px;height:13px}
-.pbs span{display:block;width:3px;height:100%;background:var(--accent);border-radius:2px;animation:pb .7s ease infinite}
-.pbs span:nth-child(2){animation-delay:.15s;height:70%}.pbs span:nth-child(3){animation-delay:.3s;height:50%}
-.emp{text-align:center;padding:48px 20px;color:var(--text3)}
-.emp-i{font-size:2.6rem;margin-bottom:9px}
-.emp-t{font-size:.92rem;font-weight:700;margin-bottom:4px;color:var(--text2)}
-.emp-s{font-size:.78rem}
+/* ══ LAYOUT ══ */
+#body{display:flex;flex:1;min-height:0}
 
-/* UPLOAD */
-.dz{border:2px dashed var(--border2);border-radius:var(--r);padding:28px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:18px;background:rgba(255,255,255,.02);position:relative}
-.dz:hover,.dz.ov{border-color:var(--accent);background:rgba(29,185,84,.04)}
+/* ══ SIDEBAR ══ */
+#sb{
+  width:196px;flex-shrink:0;
+  border-right:1px solid var(--border);
+  padding:12px 0;
+  position:sticky;top:54px;
+  height:calc(100vh - 54px - var(--ph));
+  overflow-y:auto;
+  background:rgba(6,8,15,.5);
+  backdrop-filter:blur(10px);
+}
+#sb::-webkit-scrollbar{width:3px}
+#sb::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.sb-s{padding:0 10px;margin-bottom:16px}
+.sb-l{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--mut);padding:0 6px 5px;border-bottom:1px solid var(--border);margin-bottom:5px}
+.sb-i{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:var(--r6);cursor:pointer;transition:all .15s;font-size:13px;font-weight:500;color:var(--txt);border:1px solid transparent;margin-bottom:1px;white-space:nowrap;overflow:hidden}
+.sb-i:hover{background:rgba(0,204,255,.05);color:var(--a)}
+.sb-i.on{background:rgba(0,204,255,.09);border-color:rgba(0,204,255,.2);color:var(--a);font-weight:700}
+.sb-ic{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.sb-n{margin-left:auto;font-size:10px;color:var(--mut);background:rgba(0,0,0,.4);padding:1px 5px;border-radius:7px;flex-shrink:0}
+.sb-add{width:100%;background:none;border:1px dashed var(--border);color:var(--mut);padding:5px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;border-radius:var(--r6);transition:all .15s;margin-top:4px}
+.sb-add:hover{border-color:var(--g);color:var(--g)}
+
+/* ══ CONTENT ══ */
+#cnt{flex:1;padding:18px;overflow-y:auto;min-height:0}
+.view{display:none;animation:fi .18s ease}
+.view.on{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.vhd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap}
+.vtit{font-family:var(--mono);font-size:20px;letter-spacing:3px;color:var(--a)}
+.vsub{font-size:11px;color:var(--mut);margin-top:3px;font-weight:500}
+.vbtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+/* ══ TRACK LIST ══ */
+.tlist{display:flex;flex-direction:column;gap:2px}
+.trow{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(14,18,32,.7);border:1px solid var(--border);
+  border-radius:var(--r6);padding:8px 12px;
+  cursor:pointer;transition:all .15s;position:relative;overflow:hidden;
+  backdrop-filter:blur(4px);
+}
+.trow::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--a);transform:scaleY(0);transform-origin:center;transition:transform .15s}
+.trow:hover{border-color:rgba(0,204,255,.2);background:rgba(0,204,255,.05)}
+.trow:hover::before,.trow.now::before{transform:scaleY(1)}
+.trow.now{border-color:rgba(0,204,255,.3);background:rgba(0,204,255,.08)}
+.tnum{color:var(--mut);font-size:11px;width:20px;text-align:right;flex-shrink:0;font-family:var(--mono)}
+.trow.now .tnum{display:none}
+.teq{display:none;align-items:flex-end;gap:2px;width:20px;height:14px;flex-shrink:0}
+.trow.now .teq{display:flex}
+.teq i{width:3px;background:var(--a);border-radius:1px;animation:eq .5s ease-in-out infinite alternate;font-style:normal}
+.teq i:nth-child(2){animation-delay:.13s}
+.teq i:nth-child(3){animation-delay:.26s}
+@keyframes eq{from{height:3px}to{height:13px}}
+.tinfo{flex:1;min-width:0}
+.tname{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tart{font-size:11px;color:var(--mut);font-weight:500;margin-top:1px}
+.tup{font-size:10px;color:var(--mut);font-weight:400}
+.tpl{font-size:11px;color:var(--mut);flex-shrink:0;font-family:var(--mono)}
+.tbts{display:flex;gap:1px;align-items:center;flex-shrink:0}
+
+.empty{text-align:center;padding:48px 0;color:var(--mut);font-size:13px}
+.empty-i{font-size:38px;margin-bottom:12px}
+
+/* ══ FOLDER CARDS ══ */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+.fcard{background:rgba(14,18,32,.7);border:1px solid var(--border);border-radius:var(--r6);padding:14px;cursor:pointer;transition:all .15s;backdrop-filter:blur(4px)}
+.fcard:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.fcard-i{font-size:26px;margin-bottom:8px}
+.fcard-n{font-family:var(--mono);font-size:13px;margin-bottom:4px}
+.fcard-c{font-size:11px;color:var(--mut);font-weight:500}
+
+/* ══ ADMIN ZONE ══ */
+#az{
+  background:rgba(255,196,0,.03);
+  border-bottom:1px solid rgba(255,196,0,.14);
+  padding:0 18px;display:none;
+}
+#az.on{display:block}
+.az-in{padding:14px 0}
+.az-hd{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--y);margin-bottom:12px}
+.astats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.ast{background:var(--card);border:1px solid var(--border);border-radius:var(--r6);padding:9px;text-align:center}
+.ast-n{font-family:var(--mono);font-size:20px;color:var(--a);line-height:1}
+.ast-l{font-size:9px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.atabs{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px;flex-wrap:wrap}
+.atab{background:none;border:1px solid var(--border);color:var(--mut);padding:4px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;border-radius:var(--r6);transition:all .15s;letter-spacing:.2px}
+.atab.on{background:rgba(255,196,0,.1);border-color:rgba(255,196,0,.3);color:var(--y)}
+.apanel{display:none}
+.apanel.on{display:block}
+
+/* upload */
+.ug{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fl{font-size:10px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.fi{background:var(--bg);border:1px solid var(--border);color:var(--txt);padding:7px 11px;font-family:var(--font);font-size:13px;font-weight:500;border-radius:var(--r6);outline:none;transition:border-color .15s;width:100%}
+.fi:focus{border-color:var(--a)}
+select.fi option{background:var(--bg)}
+
+/* dropzones */
+.dz{border:1px dashed var(--border2);border-radius:var(--r6);padding:14px;text-align:center;cursor:pointer;transition:all .15s;position:relative;background:var(--bg)}
+.dz:hover,.dz.drag{border-color:var(--a);background:rgba(0,204,255,.04)}
 .dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.dz-i{font-size:2rem;margin-bottom:6px}.dz-t{font-size:.88rem;font-weight:700;color:var(--text2);margin-bottom:2px}.dz-s{font-size:.74rem;color:var(--text3)}
-.umeta{display:grid;grid-template-columns:1fr 1fr auto;gap:7px;margin-bottom:11px}
-.mi{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.82rem;color:var(--text);font-family:'Syne',sans-serif;outline:none;transition:border-color .2s}
-.mi:focus{border-color:var(--accent)}.mi::placeholder{color:var(--text3)}.mi option{background:#111}
-.si{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:30px;padding:9px 17px;font-size:.86rem;color:var(--text);font-family:'Syne',sans-serif;outline:none;transition:border-color .2s;margin-bottom:18px}
-.si:focus{border-color:var(--accent)}.si::placeholder{color:var(--text3)}
+.dz-i{font-size:24px;margin-bottom:5px}
+.dz-t{color:var(--mut);font-size:12px;font-weight:500}
+.dz-n{color:var(--g);font-size:11px;font-weight:700;margin-top:3px}
+.dz.multi{grid-column:1/-1}
 
-/* ADMIN */
-.sg{display:flex;gap:9px;margin-bottom:20px;flex-wrap:wrap}
-.sc{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:11px;padding:13px 16px;min-width:105px}
-.sc-i{font-size:1.25rem}.sc-v{font-size:1.45rem;font-weight:900;margin-top:3px}.sc-l{font-size:.68rem;color:var(--text3);margin-top:1px}
-.badge{display:inline-flex;align-items:center;gap:4px;font-size:.63rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:20px;margin-bottom:13px}
-.bg-g{color:var(--accent);background:rgba(29,185,84,.1);border:1px solid rgba(29,185,84,.2)}
-.bg-r{color:var(--red);background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.2)}
-.ur{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:9px;padding:7px 11px;border-radius:7px;border:1px solid transparent}
-.ur:hover{background:rgba(255,255,255,.02)}
+/* progress */
+.urow{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.btn-up{background:linear-gradient(135deg,var(--a),var(--g));color:var(--bg);border:none;padding:8px 20px;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;border-radius:var(--r6);transition:all .15s;flex-shrink:0;letter-spacing:.3px}
+.btn-up:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,204,255,.3)}
+.btn-up:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.pw{flex:1;min-width:80px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;display:none}
+.pf{height:100%;background:linear-gradient(90deg,var(--a),var(--g));width:0%;transition:width .3s}
+.ust{font-size:11px;color:var(--mut);font-weight:600}
 
-/* PLAYER */
-.player{grid-column:1/-1;height:var(--ph);background:rgba(3,3,8,0.97);border-top:1px solid var(--border);backdrop-filter:blur(20px);display:grid;grid-template-columns:250px 1fr 190px;align-items:center;padding:0 20px;gap:13px;position:relative;z-index:10}
-.pi{display:flex;align-items:center;gap:9px;min-width:0}
-.pt{width:44px;height:44px;border-radius:7px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;border:1px solid var(--border2)}
-.pn{min-width:0}.ptt{font-size:.83rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pa{font-size:.7rem;color:var(--text2);margin-top:1px}
-.pc{display:flex;flex-direction:column;align-items:center;gap:6px}
-.pctrl{display:flex;align-items:center;gap:13px}
-.cb{background:none;border:none;color:var(--text2);font-size:.95rem;cursor:pointer;padding:3px;transition:color .15s;line-height:1}
-.cb:hover{color:var(--text)}
-.cb.pb{background:var(--accent);color:#000;width:33px;height:33px;border-radius:50%;font-size:.82rem;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.cb.pb:hover{background:var(--accent2);transform:scale(1.06)}
-.pbw{width:100%;display:flex;align-items:center;gap:6px;font-size:.68rem;font-family:'DM Mono',monospace;color:var(--text3)}
-.pbar{flex:1;height:3px;background:rgba(255,255,255,.09);border-radius:2px;cursor:pointer}
-.pfill{height:100%;background:var(--accent);border-radius:2px;width:0%;pointer-events:none}
-.pr{display:flex;align-items:center;gap:7px;justify-content:flex-end}
-.vs{-webkit-appearance:none;width:65px;height:3px;border-radius:2px;background:rgba(255,255,255,.09);outline:none}
-.vs::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:var(--text2);cursor:pointer}
+/* folder mgmt */
+.frow{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--r6);margin-bottom:4px}
+.frow-n{flex:1;font-size:13px;font-weight:600}
+.cpick-row{display:flex;gap:5px;align-items:center}
+.cp{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .15s;flex-shrink:0}
+.cp:hover,.cp.on{border-color:#fff;transform:scale(1.2)}
 
-/* MODALS */
-.mo{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(5px)}
-.mo.op{opacity:1;pointer-events:all}
-.modal{background:rgba(7,7,13,0.99);border:1px solid var(--border2);border-radius:17px;padding:24px;width:340px;transform:translateY(13px);transition:transform .2s}
-.mo.op .modal{transform:translateY(0)}
-.mtit{font-size:1rem;font-weight:800;margin-bottom:13px}
-.mac{display:flex;gap:6px;justify-content:flex-end;margin-top:3px}
+/* users table */
+.utbl{width:100%;border-collapse:collapse}
+.utbl th{text-align:left;font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:1px;padding:6px 10px;border-bottom:1px solid var(--border);font-weight:700}
+.utbl td{padding:7px 10px;font-size:12px;font-weight:500;border-bottom:1px solid rgba(24,36,58,.4)}
+.utbl tr:hover td{background:rgba(0,204,255,.02)}
 
-/* TOAST */
-.tc{position:fixed;bottom:calc(var(--ph) + 13px);right:16px;z-index:200;display:flex;flex-direction:column;gap:6px;pointer-events:none}
-.toast{background:rgba(8,8,14,0.99);border:1px solid var(--border2);border-radius:9px;padding:8px 14px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:6px;animation:tin .22s ease,tout .22s ease 2.7s forwards}
-.toast.ok{border-color:rgba(29,185,84,.28)}.toast.err{border-color:rgba(255,71,87,.32);color:var(--red)}
-@keyframes tin{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
-@keyframes tout{from{opacity:1}to{opacity:0}}
+/* ══ USER SETTINGS MODAL ══ */
+.modal-ov{position:fixed;inset:0;background:rgba(6,8,15,.92);z-index:600;display:none;align-items:center;justify-content:center;backdrop-filter:blur(12px)}
+.modal-ov.on{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:28px;width:360px;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.modal-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--mut);font-size:20px;cursor:pointer;line-height:1;transition:color .15s}
+.modal-close:hover{color:var(--r)}
+.modal-title{font-family:var(--mono);font-size:16px;letter-spacing:2px;color:var(--a);margin-bottom:20px}
+.mf{display:flex;flex-direction:column;gap:10px}
+.mf input{background:var(--bg2);border:1px solid var(--border);color:var(--txt);padding:9px 12px;font-family:var(--font);font-size:13px;font-weight:500;border-radius:var(--r6);outline:none;transition:border-color .15s}
+.mf input:focus{border-color:var(--a)}
+.m-err{color:var(--r);font-size:11px;font-weight:600;min-height:14px}
+.m-ok{color:var(--g);font-size:11px;font-weight:600;min-height:14px}
+.modal-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:18px}
+.modal-tab{flex:1;background:none;border:none;color:var(--mut);font-family:var(--font);font-size:13px;font-weight:700;padding:7px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.modal-tab.on{color:var(--a);border-bottom-color:var(--a)}
+
+/* bg preview */
+.bg-preview{
+  width:100%;height:80px;border-radius:var(--r6);
+  background:var(--bg2);border:1px solid var(--border);
+  background-size:cover;background-position:center;
+  margin-bottom:10px;display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:var(--mut);font-weight:600;
+  transition:all .3s;
+}
+.bg-dz{border:1px dashed var(--border2);border-radius:var(--r6);padding:12px;text-align:center;cursor:pointer;transition:all .15s;position:relative;background:var(--bg)}
+.bg-dz:hover,.bg-dz.drag{border-color:var(--a);background:rgba(0,204,255,.04)}
+.bg-dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+/* ══ AUTH OVERLAY ══ */
+#auth-ov{position:fixed;inset:0;background:rgba(6,8,15,.95);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(14px)}
+#auth-ov.on{display:flex}
+.auth-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:28px;width:320px;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.auth-logo{font-family:var(--mono);font-size:18px;color:var(--a);text-align:center;margin-bottom:20px;letter-spacing:4px;text-shadow:0 0 14px rgba(0,204,255,.3)}
+.auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
+.auth-tab{flex:1;background:none;border:none;color:var(--mut);font-family:var(--font);font-size:13px;font-weight:700;padding:7px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.auth-tab.on{color:var(--a);border-bottom-color:var(--a)}
+.auth-f{display:flex;flex-direction:column;gap:9px}
+.auth-f input{background:var(--bg2);border:1px solid var(--border);color:var(--txt);padding:9px 12px;font-family:var(--font);font-size:13px;font-weight:500;border-radius:var(--r6);outline:none;transition:border-color .15s}
+.auth-f input:focus{border-color:var(--a)}
+.aerr{color:var(--r);font-size:11px;text-align:center;min-height:14px;font-weight:600}
+.auth-submit{background:linear-gradient(135deg,var(--a),#009acc);color:var(--bg);border:none;padding:10px;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;border-radius:var(--r6);transition:all .15s;letter-spacing:.4px}
+.auth-submit:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,204,255,.3)}
+.auth-note{text-align:center;font-size:11px;color:var(--mut);margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-weight:500}
+.auth-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--mut);font-size:20px;cursor:pointer;line-height:1;transition:color .15s}
+.auth-close:hover{color:var(--r)}
+
+/* ══ PLAYER ══ */
+#player{
+  position:fixed;bottom:0;left:0;right:0;height:var(--ph);
+  background:rgba(6,8,15,.96);border-top:1px solid var(--border);
+  backdrop-filter:blur(22px);z-index:200;display:none;align-items:center;padding:0 16px;gap:12px;
+}
+#player.on{display:flex}
+.pi{width:170px;min-width:0;flex-shrink:0}
+.pit{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pia{font-size:10px;color:var(--mut);font-weight:500;margin-top:2px}
+.pctrl{display:flex;align-items:center;gap:3px;flex-shrink:0}
+.pb{background:none;border:none;color:var(--mut);font-size:19px;cursor:pointer;padding:4px 5px;transition:color .15s;line-height:1}
+.pb:hover{color:var(--a)}
+.pb.pp{background:linear-gradient(135deg,var(--a),var(--g));color:var(--bg);width:40px;height:40px;border-radius:50%;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.pb.pp:hover{transform:scale(1.08);box-shadow:0 0 16px rgba(0,204,255,.4)}
+.pb.m.on{color:var(--g)}
+.ppg{flex:1;min-width:60px}
+.pbar{height:4px;background:var(--border);border-radius:2px;cursor:pointer}
+.pbf{height:100%;background:linear-gradient(90deg,var(--a),var(--g));border-radius:2px;width:0%;pointer-events:none;transition:width .1s linear}
+.ptm{display:flex;justify-content:space-between;font-size:9px;color:var(--mut);margin-top:3px;font-family:var(--mono)}
+.pvol{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.pvol-i{font-size:14px;color:var(--mut)}
+input[type=range]{-webkit-appearance:none;width:66px;height:3px;background:var(--border);border-radius:2px;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;background:var(--a);border-radius:50%}
+
+/* ══ TOAST ══ */
+#toast{position:fixed;bottom:calc(var(--ph) + 10px);left:50%;transform:translateX(-50%) translateY(8px);background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:7px 16px;border-radius:var(--r6);font-size:12px;font-weight:600;opacity:0;transition:all .2s;pointer-events:none;z-index:9000;white-space:nowrap}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{border-color:var(--g);color:var(--g)}
+#toast.err{border-color:var(--r);color:var(--r)}
+#toast.warn{border-color:var(--y);color:var(--y)}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+@media(max-width:650px){#sb{display:none}#body{flex-direction:column}.astats{grid-template-columns:repeat(2,1fr)}.ug{grid-template-columns:1fr}.pi{width:110px}.top-mid{display:none}}
 </style>
 </head>
 <body>
-<div class="bg"></div>
-<div class="bg-ov"></div>
+<div id="bg-layer"></div>
+<div id="app">
 
-<!-- AUTH -->
-<div id="auth">
-  <div class="abox">
-    <div class="alogo">🎵 Music<span>Box</span></div>
-    <div class="asub">Kopīga mūzikas platforma</div>
+<!-- ══ TOP ══ -->
+<div id="top">
+  <div class="logo" onclick="goHome()">Music<b>Box</b></div>
+  <div class="top-mid">
+    <div class="search-wrap">
+      <input class="top-search" id="srch" placeholder="Meklēt dziesmas..."/>
+    </div>
+  </div>
+  <div class="top-r">
+    <div id="uchip" style="display:none" class="chip" onclick="openSettings()">
+      <div class="dot" id="udot"></div>
+      <span id="uname"></span>
+      <span class="rb" id="urole"></span>
+    </div>
+    <button class="btn red" id="btn-logout" style="display:none" onclick="doLogout()">IZIET</button>
+    <button class="btn" id="btn-openauth" style="display:none" onclick="openAuth()">IEIET</button>
+    <button class="btn lock" id="btn-lock" onclick="toggleAdmin()" title="Admin panelis">🔒</button>
+  </div>
+</div>
+
+<!-- ══ ADMIN ZONE ══ -->
+<div id="az">
+  <div class="az-in">
+    <div class="az-hd">⚙ ADMIN PANELIS</div>
+    <div class="astats">
+      <div class="ast"><div class="ast-n" id="as-u">—</div><div class="ast-l">Lietotāji</div></div>
+      <div class="ast"><div class="ast-n" id="as-t">—</div><div class="ast-l">Dziesmas</div></div>
+      <div class="ast"><div class="ast-n" id="as-p">—</div><div class="ast-l">Atskaņojumi</div></div>
+      <div class="ast"><div class="ast-n" id="as-f">—</div><div class="ast-l">Mapes</div></div>
+    </div>
     <div class="atabs">
-      <div class="atab on" id="at-l" onclick="aTab('l')">Ieiet</div>
-      <div class="atab" id="at-r" onclick="aTab('r')">Reģistrēties</div>
+      <button class="atab on" data-ap="upload">AUGŠUPIELĀDE</button>
+      <button class="atab" data-ap="multi">MULTI-UPLOAD</button>
+      <button class="atab" data-ap="folders">MAPES</button>
+      <button class="atab" data-ap="users">LIETOTĀJI</button>
     </div>
-    <input class="ainp" type="text" id="au" placeholder="Lietotājvārds" autocomplete="username">
-    <input class="ainp" type="password" id="ap" placeholder="Parole" autocomplete="current-password">
-    <button class="abtn" id="asub" onclick="doAuth()">Ieiet</button>
-    <div class="aerr" id="aerr"></div>
-  </div>
-</div>
 
-<!-- APP -->
-<div class="app" id="app" style="display:none">
-  <aside class="sb">
-    <div class="logo">🎵 Music<span>Box</span></div>
-    <div class="uchip"><span class="ucname" id="ucn">—</span><span class="ucrole ru" id="ucr">user</span></div>
-    <div class="slbl">Navigācija</div>
-    <div class="ni on" id="n-lib" onclick="sw('lib')"><span class="ic">🏠</span> Bibliotēka</div>
-    <div class="ni" id="n-upl" onclick="sw('upl')"><span class="ic">📤</span> Augšupielādēt</div>
-    <div class="ni" id="n-srch" onclick="sw('srch')"><span class="ic">🔍</span> Meklēt</div>
-    <div class="ni" id="n-adm" style="display:none" onclick="sw('adm')"><span class="ic">🛡</span> Admin</div>
-    <div class="slbl">Mapes</div>
-    <div class="fl" id="fl"></div>
-    <button class="afb" onclick="openAddF()">+ Jauna mape</button>
-    <button class="lgb" onclick="doLogout()">🚪 Iziet</button>
-  </aside>
-
-  <main class="main">
-    <div class="tabs">
-      <div class="tab on" id="t-lib" onclick="sw('lib')">🎵 Bibliotēka</div>
-      <div class="tab" id="t-upl" onclick="sw('upl')">📤 Upload</div>
-      <div class="tab" id="t-srch" onclick="sw('srch')">🔍 Meklēt</div>
-      <div class="tab" id="t-adm" style="display:none" onclick="sw('adm')">🛡 Admin</div>
-    </div>
-    <div class="cnt">
-
-      <div class="view on" id="v-lib">
-        <div class="gh">
-          <div class="stitle" id="ltit">Visa <span>Mūzika</span></div>
-          <button class="btn bgh sm" onclick="dlAll()">⬇ Lejupielādēt visu</button>
+    <!-- Single upload -->
+    <div class="apanel on" id="ap-upload">
+      <div class="ug">
+        <div class="fg"><div class="fl">Nosaukums</div><input class="fi" id="up-title" placeholder="Dziesmas nosaukums"/></div>
+        <div class="fg"><div class="fl">Izpildītājs</div><input class="fi" id="up-artist" placeholder="Mākslinieks"/></div>
+        <div class="fg"><div class="fl">Mape</div><select class="fi" id="up-folder"><option value="">— Bez mapes —</option></select></div>
+        <div class="fg" style="justify-content:flex-end;align-items:flex-end">
+          <span style="font-size:11px;color:var(--mut)">Viens fails, precīzi meta</span>
         </div>
-        <div class="tlh"><div>#</div><div>Nosaukums</div><div>Mape</div></div>
-        <div class="tl" id="tl"></div>
-        <div class="emp" id="emp-lib"><div class="emp-i">🎵</div><div class="emp-t">Nav mūzikas</div><div class="emp-s">Augšupielādē pirmo dziesmu!</div></div>
-      </div>
-
-      <div class="view" id="v-upl">
-        <div class="stitle">Augšupielādēt <span>Mūziku</span></div>
-        <div class="dz" id="dz">
-          <input type="file" id="fi" accept="audio/*" multiple>
+        <div class="dz" id="dz1" style="grid-column:1/-1">
+          <input type="file" id="up-file" accept="audio/*"/>
           <div class="dz-i">🎵</div>
-          <div class="dz-t">Velc & Nomet audio failu šeit</div>
-          <div class="dz-s">vai klikšķini • MP3, WAV, OGG, FLAC • max 100MB</div>
+          <div class="dz-t">Noklikšķini vai iemet audio failu · MP3 WAV OGG FLAC M4A · līdz 100MB</div>
+          <div class="dz-n" id="dz1-n"></div>
         </div>
-        <div class="umeta">
-          <input class="mi" type="text" id="ut" placeholder="Nosaukums">
-          <input class="mi" type="text" id="ua" placeholder="Izpildītājs">
-          <select class="mi" id="uf"></select>
+      </div>
+      <div class="urow">
+        <button class="btn-up" id="btn-up1">AUGŠUPIELĀDĒT</button>
+        <div class="pw" id="pw1"><div class="pf" id="pf1"></div></div>
+        <div class="ust" id="ust1"></div>
+      </div>
+    </div>
+
+    <!-- Multi upload -->
+    <div class="apanel" id="ap-multi">
+      <div class="ug">
+        <div class="fg"><div class="fl">Mape visiem failiem</div><select class="fi" id="mu-folder"><option value="">— Bez mapes —</option></select></div>
+        <div class="fg" style="justify-content:flex-end;align-items:flex-end">
+          <span style="font-size:11px;color:var(--mut)">Nosaukumi ņemti no failu nosaukumiem</span>
         </div>
-        <button class="btn bg_" onclick="doUpload()">⬆ Augšupielādēt</button>
-        <div id="uprev" style="margin-top:16px"></div>
+        <div class="dz multi" id="dz-multi">
+          <input type="file" id="mu-files" accept="audio/*" multiple/>
+          <div class="dz-i">📦</div>
+          <div class="dz-t">Izvēlies vai iemet <strong style="color:var(--a)">vairākus</strong> audio failus uzreiz</div>
+          <div class="dz-t">Līdz 20 failiem vienlaicīgi · Katrs līdz 100MB</div>
+          <div class="dz-n" id="dz-multi-n"></div>
+        </div>
       </div>
-
-      <div class="view" id="v-srch">
-        <div class="stitle">Meklēt <span>Mūziku</span></div>
-        <div class="badge bg-g">🤖 Viedā meklēšana</div>
-        <input class="si" type="text" id="si" placeholder="Nosaukums, izpildītājs..." oninput="doSearch()">
-        <div class="tl" id="sr"></div>
-        <div class="emp" id="emp-srch"><div class="emp-i">🔍</div><div class="emp-t">Sāc rakstīt</div><div class="emp-s">Meklē visu kolekcijā</div></div>
+      <div class="urow">
+        <button class="btn-up" id="btn-multi">AUGŠUPIELĀDĒT VISUS</button>
+        <div class="pw" id="pw-m"><div class="pf" id="pf-m"></div></div>
+        <div class="ust" id="ust-m"></div>
       </div>
-
-      <div class="view" id="v-adm">
-        <div class="stitle">Admin <span>Panelis</span></div>
-        <div class="badge bg-r">🛡 Tikai adminiem</div>
-        <div class="sg" id="as"></div>
-        <div style="font-size:.95rem;font-weight:800;margin-bottom:9px">👤 Lietotāji</div>
-        <div id="aul" style="margin-bottom:22px"></div>
-        <div style="font-size:.95rem;font-weight:800;margin-bottom:9px">🎵 Visi faili</div>
-        <div class="tl" id="atl"></div>
-      </div>
-
+      <div id="multi-results" style="margin-top:10px;display:none"></div>
     </div>
-  </main>
 
-  <div class="player">
-    <div class="pi">
-      <div class="pt">🎵</div>
-      <div class="pn">
-        <div class="ptt" id="ptt">Nav izvēlēts</div>
-        <div class="pa" id="pa">— Izvēlies dziesmu —</div>
+    <!-- Folders -->
+    <div class="apanel" id="ap-folders">
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <input class="fi" id="fn" placeholder="Mapes nosaukums" style="flex:1;min-width:120px"/>
+        <div class="cpick-row" id="cprow">
+          <div class="cp on" style="background:#00ccff" data-c="#00ccff"></div>
+          <div class="cp" style="background:#00ff88" data-c="#00ff88"></div>
+          <div class="cp" style="background:#ffc400" data-c="#ffc400"></div>
+          <div class="cp" style="background:#ff2d55" data-c="#ff2d55"></div>
+          <div class="cp" style="background:#c084fc" data-c="#c084fc"></div>
+          <div class="cp" style="background:#ff8c00" data-c="#ff8c00"></div>
+        </div>
+        <button class="btn g" id="btn-mkf">+ IZVEIDOT</button>
       </div>
+      <div id="fmgmt"></div>
     </div>
-    <div class="pc">
-      <div class="pctrl">
-        <button class="cb" onclick="prev()">⏮</button>
-        <button class="cb pb" id="pbtn" onclick="tPlay()">▶</button>
-        <button class="cb" onclick="next()">⏭</button>
-      </div>
-      <div class="pbw">
-        <span id="tc">0:00</span>
-        <div class="pbar" id="pbar" onclick="seek(event)"><div class="pfill" id="pf"></div></div>
-        <span id="td">0:00</span>
-      </div>
-    </div>
-    <div class="pr">
-      <span style="font-size:.82rem;color:var(--text3)">🔊</span>
-      <input class="vs" type="range" min="0" max="1" step="0.01" value="0.8" oninput="aud.volume=this.value">
-      <button class="bic" onclick="dlCur()">⬇</button>
+
+    <!-- Users -->
+    <div class="apanel" id="ap-users">
+      <table class="utbl">
+        <thead><tr><th>Lietotājvārds</th><th>Loma</th><th>Reģistrēts</th><th></th></tr></thead>
+        <tbody id="utbody"></tbody>
+      </table>
     </div>
   </div>
 </div>
 
-<!-- MODAL: Folder -->
-<div class="mo" id="m-f" onclick="if(event.target===this)this.classList.remove('op')">
+<!-- ══ MAIN ══ -->
+<div id="body">
+
+  <!-- SIDEBAR -->
+  <div id="sb">
+    <div class="sb-s">
+      <div class="sb-l">BIBLIOTĒKA</div>
+      <div class="sb-i on" data-v="all"><span class="sb-ic">🎵</span>Visas dziesmas<span class="sb-n" id="cnt-all">0</span></div>
+      <div class="sb-i" data-v="playlist"><span class="sb-ic">📋</span>Playliste<span class="sb-n" id="cnt-pl">0</span></div>
+      <div class="sb-i" id="nav-fav" style="display:none" data-v="favs"><span class="sb-ic">⭐</span>Favorīti<span class="sb-n" id="cnt-fav">0</span></div>
+      <div class="sb-i" data-v="folders"><span class="sb-ic">📂</span>Mapes<span class="sb-n" id="cnt-f">0</span></div>
+    </div>
+    <div class="sb-s" id="sb-fs" style="display:none">
+      <div class="sb-l">MAPES</div>
+      <div id="sb-fl"></div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="cnt">
+
+    <!-- ALL -->
+    <div class="view on" id="v-all">
+      <div class="vhd">
+        <div><div class="vtit">DZIESMAS</div><div class="vsub" id="v-all-sub"></div></div>
+        <div class="vbtns">
+          <button class="btn g" id="btn-play-all">▶ ATSKAŅOT VISU</button>
+        </div>
+      </div>
+      <div class="tlist" id="tl-all"></div>
+    </div>
+
+    <!-- PLAYLIST -->
+    <div class="view" id="v-playlist">
+      <div class="vhd">
+        <div><div class="vtit">KOPĪGĀ PLAYLISTE</div><div class="vsub">Visi var pievienot dziesmas · <span id="pl-upd"></span></div></div>
+        <div class="vbtns">
+          <button class="btn g" id="btn-play-pl">▶ ATSKAŅOT</button>
+          <button class="btn" id="btn-clear-pl" style="display:none">🗑 NOTĪRĪT</button>
+        </div>
+      </div>
+      <div class="tlist" id="tl-pl"></div>
+    </div>
+
+    <!-- FAVORITES -->
+    <div class="view" id="v-favs">
+      <div class="vhd">
+        <div><div class="vtit">FAVORĪTI</div><div class="vsub">Tavas atzīmētās dziesmas</div></div>
+        <div class="vbtns"><button class="btn g" id="btn-play-fav">▶ ATSKAŅOT</button></div>
+      </div>
+      <div class="tlist" id="tl-fav"></div>
+    </div>
+
+    <!-- FOLDERS -->
+    <div class="view" id="v-folders">
+      <div class="vhd"><div class="vtit">MAPES</div></div>
+      <div class="fgrid" id="fgrid"></div>
+    </div>
+
+    <!-- FOLDER SINGLE -->
+    <div class="view" id="v-fsingle">
+      <div class="vhd">
+        <div><div class="vtit" id="fv-t">MAPE</div></div>
+        <div class="vbtns"><button class="btn g" id="btn-play-f">▶ ATSKAŅOT VISU</button></div>
+      </div>
+      <div class="tlist" id="tl-f"></div>
+    </div>
+
+  </div><!-- /cnt -->
+</div><!-- /body -->
+</div><!-- /app -->
+
+<!-- ══ USER SETTINGS MODAL ══ -->
+<div class="modal-ov" id="settings-ov">
   <div class="modal">
-    <div class="mtit">📁 Jauna mape</div>
-    <input class="ainp" type="text" id="fn" placeholder="Nosaukums...">
-    <div class="mac">
-      <button class="btn bgh sm" onclick="document.getElementById('m-f').classList.remove('op')">Atcelt</button>
-      <button class="btn bg_ sm" onclick="createF()">Izveidot</button>
+    <button class="modal-close" onclick="closeSettings()">✕</button>
+    <div class="modal-title" id="settings-title">IESTATĪJUMI</div>
+    <div class="modal-tabs">
+      <button class="modal-tab on" data-mt="bg">FONA BILDE</button>
+      <button class="modal-tab" data-mt="pw">PAROLE</button>
+    </div>
+
+    <!-- BG tab -->
+    <div id="mt-bg">
+      <div class="bg-preview" id="bg-preview" style="background-image:url('/bg.jpg')"></div>
+      <div class="bg-dz" id="bg-dz">
+        <input type="file" id="bg-file" accept="image/*"/>
+        <div style="font-size:22px;margin-bottom:4px">🖼</div>
+        <div class="dz-t">Noklikšķini vai iemet attēlu</div>
+        <div class="dz-t">JPG · PNG · WEBP · līdz 10MB</div>
+        <div class="dz-n" id="bg-fn"></div>
+      </div>
+      <div class="urow" style="margin-top:10px">
+        <button class="btn g" id="btn-set-bg">SAGLABĀT FONU</button>
+        <button class="btn red" id="btn-del-bg" style="display:none">NOŅEMT FONU</button>
+        <div class="ust" id="bg-st"></div>
+      </div>
+      <div class="m-err" id="bg-err" style="margin-top:6px"></div>
+    </div>
+
+    <!-- PW tab -->
+    <div id="mt-pw" style="display:none">
+      <div class="mf">
+        <input id="pw-cur" type="password" placeholder="Pašreizējā parole"/>
+        <input id="pw-new" type="password" placeholder="Jaunā parole (min. 6)"/>
+        <input id="pw-rep" type="password" placeholder="Atkārtot jauno paroli"/>
+        <div class="m-err" id="pw-err"></div>
+        <div class="m-ok" id="pw-ok"></div>
+        <button class="btn g" id="btn-chpw">MAINĪT PAROLI</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- MODAL: Edit -->
-<div class="mo" id="m-e" onclick="if(event.target===this)this.classList.remove('op')">
-  <div class="modal">
-    <div class="mtit">✏️ Rediģēt</div>
-    <input class="ainp" type="text" id="et" placeholder="Nosaukums">
-    <input class="ainp" type="text" id="ea" placeholder="Izpildītājs">
-    <select class="mi ainp" id="ef" style="width:100%;margin-bottom:9px"></select>
-    <div class="mac">
-      <button class="btn bgh sm" onclick="document.getElementById('m-e').classList.remove('op')">Atcelt</button>
-      <button class="btn bg_ sm" onclick="saveE()">Saglabāt</button>
+<!-- ══ ADMIN RESET PW MODAL ══ -->
+<div class="modal-ov" id="reset-pw-ov">
+  <div class="modal" style="width:320px">
+    <button class="modal-close" onclick="document.getElementById('reset-pw-ov').classList.remove('on')">✕</button>
+    <div class="modal-title">ATIESTATĪT PAROLI</div>
+    <div class="mf">
+      <div style="font-size:12px;color:var(--mut);font-weight:600">Lietotājs: <span id="reset-uname" style="color:var(--a)"></span></div>
+      <input id="reset-pw-val" type="text" placeholder="Jaunā parole (min. 6)"/>
+      <div class="m-err" id="reset-err"></div>
+      <div class="m-ok" id="reset-ok"></div>
+      <button class="btn g" id="btn-do-reset">ATIESTATĪT</button>
     </div>
   </div>
 </div>
 
-<div class="tc" id="toasts"></div>
-<audio id="aud" preload="auto"></audio>
+<!-- ══ AUTH ══ -->
+<div id="auth-ov">
+  <div class="auth-box">
+    <button class="auth-close" onclick="closeAuth()">✕</button>
+    <div class="auth-logo">MusicBox</div>
+    <div class="auth-tabs">
+      <button class="auth-tab on" data-af="l">IEIET</button>
+      <button class="auth-tab" data-af="r">REĢISTRĒTIES</button>
+    </div>
+    <div id="af-l" class="auth-f">
+      <input id="l-u" type="text" placeholder="Lietotājvārds" autocomplete="username"/>
+      <input id="l-p" type="password" placeholder="Parole" autocomplete="current-password"/>
+      <div class="aerr" id="l-err"></div>
+      <button class="auth-submit" id="btn-login">IEIET</button>
+    </div>
+    <div id="af-r" class="auth-f" style="display:none">
+      <input id="r-u" type="text" placeholder="Lietotājvārds (min. 3)" autocomplete="username"/>
+      <input id="r-p" type="password" placeholder="Parole (min. 6)" autocomplete="new-password"/>
+      <div class="aerr" id="r-err"></div>
+      <button class="auth-submit" id="btn-reg">REĢISTRĒTIES</button>
+    </div>
+    <div class="auth-note">Mūziku var klausīties bez konta</div>
+  </div>
+</div>
+
+<!-- ══ PLAYER ══ -->
+<div id="player">
+  <div class="pi"><div class="pit" id="pt">—</div><div class="pia" id="pa">—</div></div>
+  <div class="pctrl">
+    <button class="pb m" id="pb-shf" title="Jaukt">⇄</button>
+    <button class="pb" id="pb-prev">⏮</button>
+    <button class="pb pp" id="pb-pp">▶</button>
+    <button class="pb" id="pb-next">⏭</button>
+    <button class="pb m" id="pb-rep" title="Atkārtot">↻</button>
+  </div>
+  <div class="ppg">
+    <div class="pbar" id="pbar"><div class="pbf" id="pbf"></div></div>
+    <div class="ptm"><span id="pc">0:00</span><span id="pd">0:00</span></div>
+  </div>
+  <div class="pvol"><span class="pvol-i">🔊</span><input type="range" id="vol" min="0" max="1" step="0.01" value="0.8"/></div>
+</div>
+
+<div id="toast"></div>
+<audio id="aud"></audio>
 
 <script>
-// ── STATE ──
-let me=null, TOKEN=localStorage.getItem('mb_token')||'';
-let tracks=[],folders=[],cidx=-1,playing=false,afolder=null,eid=null,pf_=null;
-const aud=document.getElementById('aud');
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+const S = {
+  token:    localStorage.getItem('mb_t')||null,
+  username: localStorage.getItem('mb_u')||null,
+  role:     localStorage.getItem('mb_r')||null,
+  bgUrl:    localStorage.getItem('mb_bg')||'',
+  tracks:[], folders:[], playlist:[], favorites:[],
+  queue:[], qi:-1, shuf:false, rep:false, playing:false,
+  activeFid:null, searchQ:'',
+};
+const aud = document.getElementById('aud');
+aud.volume = 0.8;
 
-// ── API (always sends token in header) ──
-async function api(url,method='GET',body=null){
-  const o={method,headers:{'Authorization':'Bearer '+TOKEN}};
-  if(body&&!(body instanceof FormData)){
-    o.headers['Content-Type']='application/json';
-    o.body=JSON.stringify(body);
-  } else if(body instanceof FormData){
-    o.body=body;
+// ════════════════════════════════════════
+//  API
+// ════════════════════════════════════════
+async function api(url, opts={}) {
+  const h = {'Content-Type':'application/json'};
+  if (S.token) h['Authorization'] = 'Bearer '+S.token;
+  const r = await fetch(url, {...opts, headers:{...h,...(opts.headers||{})}});
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error||'Kļūda');
+  return d;
+}
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+async function init() {
+  applyBg(S.bgUrl);
+  if (S.token) {
+    try {
+      const m = await api('/api/me');
+      S.username=m.username; S.role=m.role;
+      S.bgUrl=m.bgUrl||''; S.favorites=m.favorites||[];
+      localStorage.setItem('mb_r',m.role);
+      localStorage.setItem('mb_bg',m.bgUrl||'');
+      applyBg(S.bgUrl);
+    } catch(e) { clearSess(); }
   }
-  try{
-    const r=await fetch(url,o);
-    return r.json();
-  }catch(e){
-    return{error:e.message};
-  }
-}
-
-// ── AUTH ──
-function aTab(t){
-  document.getElementById('at-l').classList.toggle('on',t==='l');
-  document.getElementById('at-r').classList.toggle('on',t==='r');
-  document.getElementById('asub').textContent=t==='l'?'Ieiet':'Reģistrēties';
-  document.getElementById('aerr').textContent='';
-}
-
-async function doAuth(){
-  const mode=document.getElementById('at-l').classList.contains('on')?'login':'register';
-  const username=document.getElementById('au').value.trim();
-  const password=document.getElementById('ap').value;
-  if(!username||!password){setAE('Aizpildi visus laukus');return}
-  document.getElementById('asub').textContent='...';
-  const r=await fetch('/api/auth/'+mode,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username,password})
-  });
-  const d=await r.json();
-  document.getElementById('asub').textContent=mode==='login'?'Ieiet':'Reģistrēties';
-  if(d.error){setAE(d.error);return}
-  TOKEN=d.token;
-  localStorage.setItem('mb_token',TOKEN);
-  me=d.user;
-  afterLogin();
-}
-
-document.getElementById('ap').addEventListener('keydown',e=>{if(e.key==='Enter')doAuth()});
-document.getElementById('au').addEventListener('keydown',e=>{if(e.key==='Enter')doAuth()});
-function setAE(m){document.getElementById('aerr').textContent=m}
-
-async function chkAuth(){
-  if(!TOKEN){return}
-  const r=await api('/api/auth/me');
-  if(r.loggedIn){me=r.user;afterLogin();}
-  else{TOKEN='';localStorage.removeItem('mb_token');}
-}
-
-function afterLogin(){
-  document.getElementById('auth').style.display='none';
-  document.getElementById('app').style.display='grid';
-  document.getElementById('ucn').textContent=me.username;
-  document.getElementById('ucr').textContent=me.role;
-  document.getElementById('ucr').className='ucrole '+(me.role==='admin'?'ra':'ru');
-  if(me.role==='admin'){
-    document.getElementById('n-adm').style.display='flex';
-    document.getElementById('t-adm').style.display='block';
-  }
-  loadAll();
-}
-
-async function doLogout(){
-  await api('/api/auth/logout','POST');
-  TOKEN='';localStorage.removeItem('mb_token');
-  location.reload();
-}
-
-// ── LOAD ──
-async function loadAll(){
-  await Promise.all([loadF(),loadT()]);
-  rFolders();rLib();rFSel();
-}
-async function loadF(){const r=await api('/api/folders');folders=r.folders||[]}
-async function loadT(){
-  const url=afolder?`/api/tracks?folder=${afolder}`:'/api/tracks';
-  const r=await api(url);tracks=r.tracks||[];
-}
-
-// ── TABS ──
-function sw(t){
-  ['lib','upl','srch','adm'].forEach(x=>{
-    const v=document.getElementById('v-'+x);
-    const tb=document.getElementById('t-'+x);
-    const nv=document.getElementById('n-'+x);
-    if(v)v.classList.toggle('on',x===t);
-    if(tb)tb.classList.toggle('on',x===t);
-    if(nv)nv.classList.toggle('on',x===t);
-  });
-  if(t==='adm')lAdm();
-  if(t==='srch')document.getElementById('si').focus();
-}
-
-// ── FOLDERS ──
-const COLS=['#1db954','#ff6b9d','#ffa502','#5352ed','#00d2d3','#ff4757','#7bed9f','#eccc68'];
-function rFolders(){
-  const el=document.getElementById('fl');
-  let h=`<div class="fi${afolder===null?' on':''}" onclick="setF(null)">
-    <div class="fil"><span>🎵</span> Visa mūzika</div><span class="fc">${tracks.length}</span></div>`;
-  folders.forEach(f=>{
-    h+=`<div class="fi${afolder===f.id?' on':''}" onclick="setF('${f.id}')">
-      <div class="fil"><div class="fd" style="background:${f.color}"></div>${esc(f.name)}</div>
-      <span class="fc">${f.count||0}</span></div>`;
-  });
-  el.innerHTML=h;
-}
-async function setF(id){afolder=id;await loadAll()}
-function getFI(id){return folders.find(f=>f.id===id)||{name:'—',color:'#555'}}
-function openAddF(){document.getElementById('fn').value='';document.getElementById('m-f').classList.add('op');setTimeout(()=>document.getElementById('fn').focus(),80)}
-async function createF(){
-  const name=document.getElementById('fn').value.trim();if(!name)return;
-  const color=COLS[Math.floor(Math.random()*COLS.length)];
-  const r=await api('/api/folders','POST',{name,color});
-  if(r.error){toast(r.error,'err');return}
-  document.getElementById('m-f').classList.remove('op');
-  toast('✅ Mape: '+name);await loadAll();
-}
-function rFSel(){
-  const opts=folders.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join('');
-  ['uf','ef'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts});
-}
-
-// ── LIBRARY ──
-function rLib(){
-  const list=document.getElementById('tl'),emp=document.getElementById('emp-lib'),tit=document.getElementById('ltit');
-  if(afolder===null)tit.innerHTML='Visa <span>Mūzika</span>';
-  else{const f=getFI(afolder);tit.innerHTML=`📁 <span>${esc(f.name)}</span>`}
-  if(!tracks.length){list.innerHTML='';emp.style.display='block';return}
-  emp.style.display='none';
-  list.innerHTML=tracks.map((t,i)=>tRow(t,i)).join('');
-}
-
-function tRow(t,i){
-  const pl=i===cidx&&playing;
-  const f=getFI(t.folderId);
-  const canE=me&&(me.role==='admin'||t.uploaderId===me.id);
-  const num=pl?`<div class="pbs"><span></span><span></span><span></span></div>`:`<span class="tn">${i+1}</span>`;
-  return`<div class="tr${pl?' pl':''}" onclick="playAt(${i})">
-    <div style="display:flex;align-items:center;justify-content:center">${num}</div>
-    <div class="ti"><div class="tt">${esc(t.title)}</div>
-    <div class="tm"><span>${esc(t.artist||'Nezināms')}</span><span class="utag">👤 ${esc(t.uploadedBy||'?')}</span></div></div>
-    <div class="ta" onclick="event.stopPropagation()">
-      <span class="ftag" style="color:${f.color}">${esc(f.name)}</span>
-      <button class="bic" onclick="dlT('${t.id}')">⬇</button>
-      ${canE?`<button class="bic" onclick="openE('${t.id}')">✏️</button>
-      <button class="bic" style="color:var(--red)" onclick="delT('${t.id}')">🗑</button>`:''}
-    </div></div>`;
-}
-
-// ── UPLOAD ──
-function setupDrop(){
-  const dz=document.getElementById('dz'),fi=document.getElementById('fi');
-  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('ov')});
-  dz.addEventListener('dragleave',()=>dz.classList.remove('ov'));
-  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('ov');hFile(e.dataTransfer.files[0])});
-  fi.addEventListener('change',()=>hFile(fi.files[0]));
-}
-function hFile(f){
-  if(!f)return;pf_=f;
-  document.getElementById('ut').value=f.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ');
-  document.getElementById('uprev').innerHTML=`<div class="tr" style="background:rgba(255,255,255,.04);cursor:default">
-    <div style="text-align:center;font-size:1.1rem">🎵</div>
-    <div class="ti"><div class="tt">${esc(f.name)}</div>
-    <div class="tm"><span>${(f.size/1024/1024).toFixed(2)} MB</span></div></div>
-    <div style="color:var(--accent);font-size:.76rem;font-weight:700">Gatavs ✓</div></div>`;
-  toast('🎵 '+f.name);
-}
-async function doUpload(){
-  if(!pf_){toast('Izvēlies failu!','err');return}
-  const fd=new FormData();
-  fd.append('audio',pf_);
-  fd.append('title',document.getElementById('ut').value.trim()||pf_.name);
-  fd.append('artist',document.getElementById('ua').value.trim());
-  fd.append('folderId',document.getElementById('uf').value||'default');
-  try{
-    const r=await fetch('/api/upload',{method:'POST',headers:{'Authorization':'Bearer '+TOKEN},body:fd});
-    const d=await r.json();
-    if(d.error){toast(d.error,'err');return}
-    toast('✅ Augšupielādēts: '+d.track.title);
-    pf_=null;
-    ['ut','ua'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('uprev').innerHTML='';
-    document.getElementById('fi').value='';
-    await loadAll();sw('lib');
-  }catch(e){toast('Kļūda: '+e.message,'err')}
-}
-
-// ── SEARCH ──
-let st;
-function doSearch(){
-  clearTimeout(st);
-  st=setTimeout(async()=>{
-    const q=document.getElementById('si').value.trim();
-    const res=document.getElementById('sr'),emp=document.getElementById('emp-srch');
-    if(!q){res.innerHTML='';emp.style.display='block';return}
-    const r=await api('/api/search?q='+encodeURIComponent(q));
-    const hits=r.results||[];
-    emp.style.display='none';
-    if(!hits.length){res.innerHTML='';emp.style.display='block';emp.querySelector('.emp-t').textContent='Nav rezultātu';return}
-    res.innerHTML=hits.map((t,i)=>tRow(t,i)).join('');
-  },220);
-}
-
-// ── PLAYER ──
-aud.addEventListener('timeupdate',()=>{
-  const c=aud.currentTime,d=aud.duration||0;
-  document.getElementById('tc').textContent=fmt(c);
-  document.getElementById('td').textContent=fmt(d);
-  document.getElementById('pf').style.width=d?(c/d*100)+'%':'0%';
-});
-aud.addEventListener('ended',next);
-
-async function playAt(i){
-  cidx=i;const t=tracks[i];
-  aud.src='/uploads/'+t.filename;
-  await aud.play().catch(e=>toast('⚠ '+e.message,'err'));
-  playing=true;upBtn();
-  document.getElementById('ptt').textContent=t.title;
-  document.getElementById('pa').textContent=t.artist||t.uploadedBy||'—';
-  rLib();
-}
-function tPlay(){if(cidx<0)return;if(playing){aud.pause();playing=false}else{aud.play();playing=true}upBtn()}
-function prev(){if(!tracks.length)return;playAt(cidx<=0?tracks.length-1:cidx-1)}
-function next(){if(!tracks.length)return;playAt(cidx>=tracks.length-1?0:cidx+1)}
-function upBtn(){document.getElementById('pbtn').textContent=playing?'⏸':'▶'}
-function seek(e){const b=document.getElementById('pbar');if(aud.duration)aud.currentTime=(e.offsetX/b.clientWidth)*aud.duration}
-function fmt(s){if(!s||isNaN(s))return'0:00';return Math.floor(s/60)+':'+(''+(Math.floor(s%60))).padStart(2,'0')}
-
-// ── DOWNLOAD ──
-function dlT(id){
-  const t=tracks.find(x=>x.id===id);if(!t)return;
-  const a=document.createElement('a');
-  a.href='/uploads/'+t.filename;
-  a.download=t.title+(t.filename.match(/\.[^.]+$/)||['.mp3'])[0];
-  a.click();toast('⬇ '+t.title);
-}
-function dlCur(){if(cidx>=0)dlT(tracks[cidx].id)}
-async function dlAll(){
-  if(!tracks.length){toast('Nav dziesmu','err');return}
-  toast('⬇ Lejupielādē '+tracks.length+'...');
-  for(const t of tracks){await new Promise(r=>setTimeout(r,250));dlT(t.id)}
-}
-
-// ── EDIT / DELETE ──
-function openE(id){
-  eid=id;const t=tracks.find(x=>x.id===id);if(!t)return;
-  document.getElementById('et').value=t.title;
-  document.getElementById('ea').value=t.artist||'';
-  rFSel();document.getElementById('ef').value=t.folderId;
-  document.getElementById('m-e').classList.add('op');
-}
-async function saveE(){
-  const t=tracks.find(x=>x.id===eid);if(!t)return;
-  const r=await api('/api/tracks/'+eid,'PUT',{
-    title:document.getElementById('et').value.trim()||t.title,
-    artist:document.getElementById('ea').value.trim(),
-    folderId:document.getElementById('ef').value
-  });
-  if(r.error){toast(r.error,'err');return}
-  document.getElementById('m-e').classList.remove('op');
-  toast('✅ Saglabāts');
-  if(cidx>=0&&tracks[cidx].id===eid){document.getElementById('ptt').textContent=r.track.title}
+  updateTopbar();
   await loadAll();
+  renderSidebar();
+  renderAllTracks();
 }
-async function delT(id){
-  const t=tracks.find(x=>x.id===id);if(!t)return;
-  if(!confirm('Dzēst "'+t.title+'"?'))return;
-  const r=await api('/api/tracks/'+id,'DELETE');
-  if(r.error){toast(r.error,'err');return}
-  if(cidx>=0&&tracks[cidx].id===id){aud.pause();playing=false;cidx=-1;document.getElementById('ptt').textContent='Nav izvēlēts';document.getElementById('pbtn').textContent='▶'}
-  toast('🗑 Dzēsts');await loadAll();
+function clearSess(){
+  S.token=S.username=S.role=null; S.favorites=[];
+  ['mb_t','mb_u','mb_r','mb_bg'].forEach(k=>localStorage.removeItem(k));
+}
+async function loadAll(){
+  await Promise.all([
+    api('/api/tracks').then(d=>S.tracks=d.tracks).catch(()=>{}),
+    api('/api/folders').then(d=>S.folders=d.folders).catch(()=>{}),
+    api('/api/playlist').then(d=>S.playlist=d.trackIds||[]).catch(()=>{}),
+  ]);
+}
+function applyBg(url){
+  const el = document.getElementById('bg-layer');
+  if (url) { el.style.backgroundImage=`url('${url}')`; }
+  else { el.style.backgroundImage="url('/bg.jpg')"; }
+}
+function goHome(){ showView('all'); setSbActive('[data-v="all"]'); renderAllTracks(); }
+
+// ════════════════════════════════════════
+//  TOPBAR
+// ════════════════════════════════════════
+function updateTopbar(){
+  const chip=document.getElementById('uchip');
+  const btnA=document.getElementById('btn-openauth');
+  const btnL=document.getElementById('btn-logout');
+  const lock=document.getElementById('btn-lock');
+  if (S.username){
+    chip.style.display='flex'; btnA.style.display='none'; btnL.style.display='block';
+    document.getElementById('uname').textContent=S.username;
+    const rb=document.getElementById('urole');
+    rb.textContent=S.role==='admin'?'ADMIN':'USER';
+    rb.className='rb '+(S.role||'user');
+    document.getElementById('udot').className='dot'+(S.role==='admin'?' a':'');
+    document.getElementById('nav-fav').style.display='flex';
+    lock.classList.toggle('on', S.role==='admin');
+  } else {
+    chip.style.display='none'; btnA.style.display='block'; btnL.style.display='none';
+    lock.classList.remove('on');
+    document.getElementById('nav-fav').style.display='none';
+  }
+  document.getElementById('cnt-fav').textContent = S.favorites.length;
+  document.getElementById('btn-clear-pl').style.display = S.role==='admin'&&S.playlist.length?'block':'none';
+}
+async function doLogout(){
+  try { await api('/api/logout',{method:'POST'}); } catch(e){}
+  clearSess(); aud.pause(); S.playing=false;
+  document.getElementById('player').classList.remove('on');
+  document.getElementById('az').classList.remove('on');
+  document.getElementById('btn-lock').classList.remove('on');
+  applyBg('');
+  updateTopbar(); await loadAll(); renderSidebar(); renderAllTracks();
+  toast('Izlogojies','');
 }
 
-// ── ADMIN ──
-async function lAdm(){
-  const [ur,tr]=await Promise.all([api('/api/admin/users'),api('/api/tracks')]);
-  const users=ur.users||[],at=tr.tracks||[];
-  document.getElementById('as').innerHTML=[
-    {icon:'🎵',val:at.length,label:'Kopā dziesmas'},
-    {icon:'👤',val:users.length,label:'Lietotāji'},
-    {icon:'📁',val:folders.length,label:'Mapes'},
-  ].map(s=>`<div class="sc"><div class="sc-i">${s.icon}</div><div class="sc-v">${s.val}</div><div class="sc-l">${s.label}</div></div>`).join('');
-  document.getElementById('aul').innerHTML=users.map(u=>`
-    <div class="ur">
-      <div><strong>${esc(u.username)}</strong> <span style="color:var(--text3);font-size:.7rem">${new Date(u.createdAt).toLocaleDateString('lv')}</span></div>
-      <span class="ucrole ${u.role==='admin'?'ra':'ru'}">${u.role}</span>
-      <div style="display:flex;gap:5px">
-        ${u.role!=='admin'?`<button class="bic sm" onclick="promU('${u.id}')">⬆ Admin</button>
-        <button class="bic sm" style="color:var(--red)" onclick="delU('${u.id}')">🗑</button>`:'<span style="color:var(--text3);font-size:.7rem">—</span>'}
-      </div></div>`).join('');
-  document.getElementById('atl').innerHTML=at.map((t,i)=>`
-    <div class="tr">
-      <span class="tn">${i+1}</span>
-      <div class="ti"><div class="tt">${esc(t.title)}</div>
-      <div class="tm"><span>${esc(t.artist||'—')}</span><span class="utag">👤 ${esc(t.uploadedBy||'?')}</span></div></div>
-      <div class="ta" style="opacity:1;display:flex;gap:4px">
-        <button class="btn bgh sm" onclick="openE('${t.id}')">✏️</button>
-        <button class="btn br_ sm" onclick="delT('${t.id}')">🗑</button>
-      </div></div>`).join('');
-}
-async function promU(id){if(!confirm('Padarīt par admin?'))return;const r=await api('/api/admin/users/'+id+'/role','PUT',{role:'admin'});if(r.error){toast(r.error,'err');return}toast('✅ Tagad admin');lAdm()}
-async function delU(id){if(!confirm('Dzēst?'))return;const r=await api('/api/admin/users/'+id,'DELETE');if(r.error){toast(r.error,'err');return}toast('🗑 Dzēsts');lAdm()}
+// Search
+document.getElementById('srch').addEventListener('input', e=>{
+  S.searchQ=e.target.value.toLowerCase();
+  renderAllTracks();
+});
 
-// ── UTILS ──
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function toast(msg,type='ok'){
-  const c=document.getElementById('toasts'),d=document.createElement('div');
-  d.className='toast '+(type||'ok');d.textContent=msg;
-  c.appendChild(d);setTimeout(()=>d.remove(),3200);
+// ════════════════════════════════════════
+//  ADMIN
+// ════════════════════════════════════════
+function toggleAdmin(){
+  if (!S.username){openAuth();return;}
+  if (S.role!=='admin'){toast('Tikai adminam!','err');return;}
+  const az=document.getElementById('az');
+  az.classList.toggle('on');
+  if (az.classList.contains('on')){ loadStats(); renderFMgmt(); loadUsers(); populateFolderSels(); }
+}
+document.querySelectorAll('.atab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.atab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.apanel').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('ap-'+t.dataset.ap).classList.add('on');
+  });
+});
+async function loadStats(){
+  try{
+    const d=await api('/api/admin/stats');
+    document.getElementById('as-u').textContent=d.users;
+    document.getElementById('as-t').textContent=d.tracks;
+    document.getElementById('as-p').textContent=d.totalPlays;
+    document.getElementById('as-f').textContent=d.folders;
+  }catch(e){}
+}
+async function loadUsers(){
+  try{
+    const d=await api('/api/admin/users');
+    document.getElementById('utbody').innerHTML=d.users.map(u=>`
+      <tr>
+        <td><strong>${esc(u.username)}</strong></td>
+        <td><span class="rb ${u.role}">${u.role.toUpperCase()}</span></td>
+        <td style="color:var(--mut)">${new Date(u.createdAt).toLocaleDateString('lv-LV')}</td>
+        <td style="display:flex;gap:3px">
+          ${u.role!=='admin'?`<button class="ibtn" onclick="promoteUser('${u.username}')" title="Paaugstināt">⬆</button>`:''}
+          <button class="ibtn" onclick="openResetPw('${u.username}')" title="Atiestatīt paroli">🔑</button>
+          ${u.username!==S.username?`<button class="ibtn del" onclick="delUser('${u.username}')" title="Dzēst">🗑</button>`:''}
+        </td>
+      </tr>`).join('');
+  }catch(e){}
+}
+async function promoteUser(u){
+  if (!confirm(`Paaugstināt "${u}" uz admin?`))return;
+  try{await api('/api/admin/users/'+u+'/role',{method:'PATCH',body:JSON.stringify({role:'admin'})});loadUsers();toast('Paaugstināts!','ok');}
+  catch(e){toast(e.message,'err');}
+}
+async function delUser(u){
+  if (!confirm(`Dzēst lietotāju "${u}"?`))return;
+  try{await api('/api/admin/users/'+u,{method:'DELETE'});loadUsers();toast('Dzēsts','ok');}
+  catch(e){toast(e.message,'err');}
+}
+function openResetPw(u){
+  document.getElementById('reset-uname').textContent=u;
+  document.getElementById('reset-pw-val').value='';
+  document.getElementById('reset-err').textContent='';
+  document.getElementById('reset-ok').textContent='';
+  document.getElementById('reset-pw-ov').classList.add('on');
+  document.getElementById('btn-do-reset').onclick=async()=>{
+    const pw=document.getElementById('reset-pw-val').value;
+    if (pw.length<6){document.getElementById('reset-err').textContent='Min. 6 rakstzīmes';return;}
+    try{
+      await api('/api/admin/reset-password',{method:'POST',body:JSON.stringify({username:u,newPassword:pw})});
+      document.getElementById('reset-ok').textContent='✓ Parole atiestatīta!';
+      document.getElementById('reset-err').textContent='';
+      setTimeout(()=>document.getElementById('reset-pw-ov').classList.remove('on'),2000);
+    }catch(e){document.getElementById('reset-err').textContent=e.message;}
+  };
 }
 
-setupDrop();chkAuth();
+// ════════════════════════════════════════
+//  FOLDERS
+// ════════════════════════════════════════
+let selColor='#00ccff';
+document.querySelectorAll('.cp').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.cp').forEach(x=>x.classList.remove('on'));
+    el.classList.add('on'); selColor=el.dataset.c;
+  });
+});
+document.getElementById('btn-mkf').addEventListener('click',async()=>{
+  const name=document.getElementById('fn').value.trim();
+  if (!name){toast('Ievadi nosaukumu!','err');return;}
+  try{
+    await api('/api/folders',{method:'POST',body:JSON.stringify({name,color:selColor})});
+    document.getElementById('fn').value='';
+    await loadAll(); renderSidebar(); renderFMgmt(); populateFolderSels(); renderFolderGrid();
+    toast('Mape izveidota!','ok');
+  }catch(e){toast(e.message,'err');}
+});
+function renderFMgmt(){
+  const c=document.getElementById('fmgmt');
+  if (!S.folders.length){c.innerHTML='<div style="color:var(--mut);font-size:11px;padding:8px 0">Nav nevienas mapes</div>';return;}
+  c.innerHTML=S.folders.map(f=>{
+    const cnt=S.tracks.filter(t=>String(t.folderId)===String(f._id)).length;
+    return `<div class="frow"><span style="color:${f.color}">📁</span><span class="frow-n">${esc(f.name)}</span><span style="font-size:10px;color:var(--mut)">${cnt} dziesmas</span><button class="ibtn del" onclick="delFolder('${f._id}')">🗑</button></div>`;
+  }).join('');
+}
+async function delFolder(id){
+  if (!confirm('Dzēst mapi?'))return;
+  try{
+    await api('/api/folders/'+id,{method:'DELETE'});
+    await loadAll(); renderSidebar(); renderFMgmt(); populateFolderSels(); renderFolderGrid();
+    toast('Mape dzēsta','ok');
+  }catch(e){toast(e.message,'err');}
+}
+function populateFolderSels(){
+  const opts='<option value="">— Bez mapes —</option>'+S.folders.map(f=>`<option value="${f._id}">${esc(f.name)}</option>`).join('');
+  document.getElementById('up-folder').innerHTML=opts;
+  document.getElementById('mu-folder').innerHTML=opts;
+}
+
+// ════════════════════════════════════════
+//  UPLOAD — SINGLE
+// ════════════════════════════════════════
+const upFile=document.getElementById('up-file');
+upFile.addEventListener('change',()=>{ document.getElementById('dz1-n').textContent=upFile.files[0]?'✓ '+upFile.files[0].name:''; });
+setupDz('dz1','dz1-n',upFile);
+
+document.getElementById('btn-up1').addEventListener('click',async()=>{
+  const file=upFile.files[0];
+  if (!file){toast('Izvēlies failu!','err');return;}
+  const btn=document.getElementById('btn-up1');
+  const pw=document.getElementById('pw1');
+  const pf=document.getElementById('pf1');
+  const ust=document.getElementById('ust1');
+  btn.disabled=true; pw.style.display='block'; pf.style.width='0%'; ust.textContent='Augšupielādē...';
+  const fd=new FormData();
+  fd.append('audio',file);
+  fd.append('title',document.getElementById('up-title').value.trim());
+  fd.append('artist',document.getElementById('up-artist').value.trim());
+  fd.append('folderId',document.getElementById('up-folder').value);
+  try{
+    await xhrUpload('/api/upload',fd,p=>{pf.style.width=p+'%';});
+    ust.textContent='✓ Augšupielādēts!';
+    document.getElementById('up-title').value=''; document.getElementById('up-artist').value='';
+    upFile.value=''; document.getElementById('dz1-n').textContent='';
+    await loadAll(); renderSidebar(); renderAllTracks(); loadStats();
+    toast('Dziesma pievienota!','ok');
+  }catch(e){ust.textContent='✗ '+e.message;toast(e.message,'err');}
+  finally{btn.disabled=false;setTimeout(()=>{pw.style.display='none';ust.textContent='';},4000);}
+});
+
+// ════════════════════════════════════════
+//  UPLOAD — MULTI
+// ════════════════════════════════════════
+const muFiles=document.getElementById('mu-files');
+muFiles.addEventListener('change',()=>{
+  const n=muFiles.files.length;
+  document.getElementById('dz-multi-n').textContent=n?`✓ ${n} fails${n>1?'i':''}  izvēlēts`:'';
+});
+setupDz('dz-multi','dz-multi-n',muFiles,true);
+
+document.getElementById('btn-multi').addEventListener('click',async()=>{
+  const files=muFiles.files;
+  if (!files.length){toast('Izvēlies failus!','err');return;}
+  if (files.length>20){toast('Maksimums 20 faili uzreiz!','warn');return;}
+  const btn=document.getElementById('btn-multi');
+  const pw=document.getElementById('pw-m');
+  const pf=document.getElementById('pf-m');
+  const ust=document.getElementById('ust-m');
+  const res=document.getElementById('multi-results');
+  btn.disabled=true; pw.style.display='block'; pf.style.width='0%';
+  ust.textContent=`Augšupielādē ${files.length} failus...`; res.style.display='none';
+  const fd=new FormData();
+  for (const f of files) fd.append('audio',f);
+  fd.append('folderId',document.getElementById('mu-folder').value);
+  try{
+    const d=await xhrUpload('/api/upload-multi',fd,p=>{pf.style.width=p+'%';});
+    const data=JSON.parse(d);
+    ust.textContent=`✓ ${data.count} dziesmas augšupielādētas!`;
+    muFiles.value=''; document.getElementById('dz-multi-n').textContent='';
+    res.style.display='block';
+    res.innerHTML=`<div style="font-size:11px;color:var(--g);margin-top:4px">✓ Augšupielādētas: ${data.tracks.map(t=>`<strong>${esc(t.title)}</strong>`).join(', ')}</div>`;
+    await loadAll(); renderSidebar(); renderAllTracks(); loadStats();
+    toast(`${data.count} dziesmas pievienotas!`,'ok');
+  }catch(e){ust.textContent='✗ '+e.message;toast(e.message,'err');}
+  finally{btn.disabled=false;setTimeout(()=>{pw.style.display='none';ust.textContent='';},5000);}
+});
+
+// XHR upload helper (returns promise with response text)
+function xhrUpload(url, formData, onProgress){
+  return new Promise((res,rej)=>{
+    const xhr=new XMLHttpRequest();
+    xhr.open('POST',url);
+    if (S.token) xhr.setRequestHeader('Authorization','Bearer '+S.token);
+    xhr.upload.onprogress=e=>{if(e.lengthComputable)onProgress(Math.round(e.loaded/e.total*100));};
+    xhr.onload=()=>{
+      if (xhr.status===200||xhr.status===201) res(xhr.responseText);
+      else{try{rej(new Error(JSON.parse(xhr.responseText).error||'Kļūda'));}catch(e){rej(new Error('Augšupielādes kļūda'));}}
+    };
+    xhr.onerror=()=>rej(new Error('Tīkla kļūda'));
+    xhr.send(formData);
+  });
+}
+
+function setupDz(dzId, nameId, fileInput, multi=false){
+  const dz=document.getElementById(dzId);
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+  dz.addEventListener('drop',e=>{
+    e.preventDefault(); dz.classList.remove('drag');
+    const files=e.dataTransfer.files;
+    if (files.length){
+      fileInput.files=files;
+      document.getElementById(nameId).textContent=multi&&files.length>1?`✓ ${files.length} faili`:`✓ ${files[0].name}`;
+    }
+  });
+}
+
+async function delTrack(id){
+  if (!confirm('Dzēst šo dziesmu?'))return;
+  try{
+    await api('/api/tracks/'+id,{method:'DELETE'});
+    if (String(S.queue[S.qi]?._id)===id){aud.pause();S.playing=false;document.getElementById('player').classList.remove('on');}
+    await loadAll(); renderSidebar(); renderCurrent(); loadStats();
+    toast('Dzēsts','ok');
+  }catch(e){toast(e.message,'err');}
+}
+
+// ════════════════════════════════════════
+//  BACKGROUND IMAGE
+// ════════════════════════════════════════
+const bgFile=document.getElementById('bg-file');
+bgFile.addEventListener('change',()=>{
+  const f=bgFile.files[0];
+  document.getElementById('bg-fn').textContent=f?'✓ '+f.name:'';
+  if (f){ const r=new FileReader(); r.onload=e=>document.getElementById('bg-preview').style.backgroundImage=`url('${e.target.result}')`,document.getElementById('bg-preview').textContent=''; r.readAsDataURL(f); }
+});
+const bgDz=document.getElementById('bg-dz');
+bgDz.addEventListener('dragover',e=>{e.preventDefault();bgDz.classList.add('drag');});
+bgDz.addEventListener('dragleave',()=>bgDz.classList.remove('drag'));
+bgDz.addEventListener('drop',e=>{
+  e.preventDefault();bgDz.classList.remove('drag');
+  if (e.dataTransfer.files[0]){bgFile.files=e.dataTransfer.files;const f=e.dataTransfer.files[0];document.getElementById('bg-fn').textContent='✓ '+f.name;const r=new FileReader();r.onload=ev=>{document.getElementById('bg-preview').style.backgroundImage=`url('${ev.target.result}')`;};r.readAsDataURL(f);}
+});
+
+document.getElementById('btn-set-bg').addEventListener('click',async()=>{
+  const file=bgFile.files[0];
+  if (!file){document.getElementById('bg-err').textContent='Izvēlies attēlu!';return;}
+  document.getElementById('bg-err').textContent='';
+  document.getElementById('bg-st').textContent='Saglabā...';
+  const fd=new FormData(); fd.append('bg',file);
+  try{
+    const raw=await xhrUpload('/api/me/background',fd,()=>{});
+    const d=JSON.parse(raw);
+    S.bgUrl=d.bgUrl; localStorage.setItem('mb_bg',d.bgUrl);
+    applyBg(d.bgUrl);
+    document.getElementById('bg-st').textContent='✓ Fons saglabāts!';
+    document.getElementById('btn-del-bg').style.display='block';
+    bgFile.value=''; document.getElementById('bg-fn').textContent='';
+    toast('Fona bilde iestatīta!','ok');
+  }catch(e){document.getElementById('bg-err').textContent=e.message;document.getElementById('bg-st').textContent='';}
+  finally{setTimeout(()=>document.getElementById('bg-st').textContent='',3000);}
+});
+
+document.getElementById('btn-del-bg').addEventListener('click',async()=>{
+  try{
+    await api('/api/me/background',{method:'DELETE'});
+    S.bgUrl=''; localStorage.removeItem('mb_bg'); applyBg('');
+    document.getElementById('bg-preview').style.backgroundImage="url('/bg.jpg')";
+    document.getElementById('bg-preview').textContent='';
+    document.getElementById('btn-del-bg').style.display='none';
+    toast('Fons atiestatīts uz noklusējumu','');
+  }catch(e){toast(e.message,'err');}
+});
+
+// ════════════════════════════════════════
+//  SETTINGS MODAL
+// ════════════════════════════════════════
+function openSettings(){
+  if (!S.username){openAuth();return;}
+  // update bg preview
+  const prev=document.getElementById('bg-preview');
+  if (S.bgUrl){prev.style.backgroundImage=`url('${S.bgUrl}')`;prev.textContent='';}
+  else{prev.style.backgroundImage='';prev.textContent='Nav fona bildes';}
+  document.getElementById('btn-del-bg').style.display=S.bgUrl?'block':'none';
+  document.getElementById('settings-title').textContent=S.username.toUpperCase()+' · IESTATĪJUMI';
+  document.getElementById('settings-ov').classList.add('on');
+}
+function closeSettings(){ document.getElementById('settings-ov').classList.remove('on'); }
+
+document.querySelectorAll('.modal-tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.modal-tab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('mt-bg').style.display=t.dataset.mt==='bg'?'block':'none';
+    document.getElementById('mt-pw').style.display=t.dataset.mt==='pw'?'block':'none';
+  });
+});
+
+// Change password
+document.getElementById('btn-chpw').addEventListener('click',async()=>{
+  const cur=document.getElementById('pw-cur').value;
+  const nw=document.getElementById('pw-new').value;
+  const rep=document.getElementById('pw-rep').value;
+  document.getElementById('pw-err').textContent='';
+  document.getElementById('pw-ok').textContent='';
+  if (!cur||!nw||!rep){document.getElementById('pw-err').textContent='Aizpildi visus laukus';return;}
+  if (nw!==rep){document.getElementById('pw-err').textContent='Jaunās paroles nesakrīt';return;}
+  if (nw.length<6){document.getElementById('pw-err').textContent='Min. 6 rakstzīmes';return;}
+  try{
+    await api('/api/change-password',{method:'POST',body:JSON.stringify({currentPassword:cur,newPassword:nw})});
+    document.getElementById('pw-ok').textContent='✓ Parole mainīta veiksmīgi!';
+    document.getElementById('pw-cur').value=''; document.getElementById('pw-new').value=''; document.getElementById('pw-rep').value='';
+    toast('Parole mainīta!','ok');
+    setTimeout(closeSettings,2000);
+  }catch(e){document.getElementById('pw-err').textContent=e.message;}
+});
+
+// ════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════
+function openAuth(){ document.getElementById('auth-ov').classList.add('on'); }
+function closeAuth(){ document.getElementById('auth-ov').classList.remove('on'); }
+document.querySelectorAll('.auth-tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.auth-tab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('af-l').style.display=t.dataset.af==='l'?'flex':'none';
+    document.getElementById('af-r').style.display=t.dataset.af==='r'?'flex':'none';
+    document.getElementById('l-err').textContent=''; document.getElementById('r-err').textContent='';
+  });
+});
+document.getElementById('btn-login').addEventListener('click',async()=>{
+  const u=document.getElementById('l-u').value.trim();
+  const p=document.getElementById('l-p').value;
+  document.getElementById('l-err').textContent='';
+  try{
+    const d=await api('/api/login',{method:'POST',body:JSON.stringify({username:u,password:p})});
+    S.token=d.token; S.username=d.username; S.role=d.role; S.bgUrl=d.bgUrl||'';
+    localStorage.setItem('mb_t',d.token); localStorage.setItem('mb_u',d.username); localStorage.setItem('mb_r',d.role); localStorage.setItem('mb_bg',d.bgUrl||'');
+    applyBg(S.bgUrl);
+    const me=await api('/api/me'); S.favorites=me.favorites||[];
+    closeAuth(); updateTopbar(); await loadAll(); renderSidebar(); renderAllTracks();
+    toast('Sveicināts, '+d.username+'!','ok');
+  }catch(e){document.getElementById('l-err').textContent=e.message;}
+});
+document.getElementById('btn-reg').addEventListener('click',async()=>{
+  const u=document.getElementById('r-u').value.trim();
+  const p=document.getElementById('r-p').value;
+  document.getElementById('r-err').textContent='';
+  try{
+    const d=await api('/api/register',{method:'POST',body:JSON.stringify({username:u,password:p})});
+    S.token=d.token; S.username=d.username; S.role=d.role; S.bgUrl='';
+    localStorage.setItem('mb_t',d.token); localStorage.setItem('mb_u',d.username); localStorage.setItem('mb_r',d.role);
+    S.favorites=[];
+    closeAuth(); updateTopbar(); await loadAll(); renderSidebar(); renderAllTracks();
+    toast('Konts izveidots!','ok');
+  }catch(e){document.getElementById('r-err').textContent=e.message;}
+});
+
+// ════════════════════════════════════════
+//  SIDEBAR + VIEWS
+// ════════════════════════════════════════
+function renderSidebar(){
+  document.getElementById('cnt-all').textContent=S.tracks.length;
+  document.getElementById('cnt-pl').textContent=S.playlist.length;
+  document.getElementById('cnt-f').textContent=S.folders.length;
+  document.getElementById('cnt-fav').textContent=S.favorites.length;
+  const has=S.folders.length>0;
+  document.getElementById('sb-fs').style.display=has?'block':'none';
+  document.getElementById('sb-fl').innerHTML=S.folders.map(f=>
+    `<div class="sb-i" data-v="fsingle" data-fid="${f._id}" style="padding-left:20px">
+      <span class="sb-ic" style="color:${f.color}">📁</span>
+      <span style="overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</span>
+      <span class="sb-n">${S.tracks.filter(t=>String(t.folderId)===String(f._id)).length}</span>
+    </div>`).join('');
+  bindSb();
+}
+function bindSb(){
+  document.querySelectorAll('.sb-i').forEach(el=>{
+    el.addEventListener('click',()=>{
+      setSbActive(el);
+      const v=el.dataset.v;
+      if (v==='all'){showView('all');renderAllTracks();}
+      else if (v==='playlist'){showView('playlist');renderPlaylist();}
+      else if (v==='favs'){if(!S.username){openAuth();return;}showView('favs');renderFavs();}
+      else if (v==='folders'){showView('folders');renderFolderGrid();}
+      else if (v==='fsingle'){S.activeFid=el.dataset.fid;showView('fsingle');renderFolderSingle(el.dataset.fid);}
+    });
+  });
+}
+function setSbActive(el){ document.querySelectorAll('.sb-i').forEach(x=>x.classList.remove('on')); el.classList.add('on'); }
+function showView(n){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('on')); document.getElementById('v-'+n).classList.add('on'); }
+function renderCurrent(){
+  const active=document.querySelector('.view.on');
+  if (!active) return;
+  const id=active.id.replace('v-','');
+  if (id==='all') renderAllTracks();
+  else if (id==='playlist') renderPlaylist();
+  else if (id==='favs') renderFavs();
+  else if (id==='fsingle'&&S.activeFid) renderFolderSingle(S.activeFid);
+  renderSidebar();
+}
+
+// ════════════════════════════════════════
+//  RENDER TRACKS
+// ════════════════════════════════════════
+function renderAllTracks(){
+  let tracks=S.tracks;
+  if (S.searchQ) tracks=tracks.filter(t=>
+    t.title.toLowerCase().includes(S.searchQ)||(t.artist||'').toLowerCase().includes(S.searchQ)||(t.uploader||'').toLowerCase().includes(S.searchQ)
+  );
+  renderTList(document.getElementById('tl-all'),tracks,'all');
+  document.getElementById('v-all-sub').textContent=S.searchQ?`${tracks.length} rezultāts`:`${S.tracks.length} dziesmas`;
+}
+
+function renderPlaylist(){
+  const tracks=S.playlist.map(id=>S.tracks.find(t=>String(t._id)===String(id))).filter(Boolean);
+  renderTList(document.getElementById('tl-pl'),tracks,'pl');
+  document.getElementById('btn-clear-pl').style.display=S.role==='admin'&&tracks.length?'block':'none';
+}
+
+function renderFavs(){
+  const tracks=S.favorites.map(id=>S.tracks.find(t=>String(t._id)===String(id))).filter(Boolean);
+  renderTList(document.getElementById('tl-fav'),tracks,'fav');
+}
+
+function renderFolderGrid(){
+  const c=document.getElementById('fgrid');
+  if (!S.folders.length){c.innerHTML='<div class="empty"><div class="empty-i">📂</div>Nav nevienas mapes</div>';return;}
+  c.innerHTML=S.folders.map(f=>{
+    const cnt=S.tracks.filter(t=>String(t.folderId)===String(f._id)).length;
+    return `<div class="fcard" onclick="openFolder('${f._id}')" style="border-left:3px solid ${f.color}">
+      <div class="fcard-i">📁</div>
+      <div class="fcard-n" style="color:${f.color}">${esc(f.name)}</div>
+      <div class="fcard-c">${cnt} dziesmas</div>
+    </div>`;
+  }).join('');
+}
+function openFolder(fid){
+  S.activeFid=fid;
+  document.querySelectorAll(`[data-fid="${fid}"]`).forEach(el=>setSbActive(el));
+  showView('fsingle'); renderFolderSingle(fid);
+}
+function renderFolderSingle(fid){
+  const f=S.folders.find(x=>String(x._id)===String(fid));
+  const title=document.getElementById('fv-t');
+  title.textContent=f?f.name.toUpperCase():'MAPE';
+  if (f) title.style.color=f.color;
+  const tracks=S.tracks.filter(t=>String(t.folderId)===String(fid));
+  renderTList(document.getElementById('tl-f'),tracks,'folder');
+}
+
+// Playlist controls
+document.getElementById('btn-play-pl').addEventListener('click',()=>{
+  const tracks=S.playlist.map(id=>S.tracks.find(t=>String(t._id)===String(id))).filter(Boolean);
+  if (tracks.length){S.queue=tracks;S.qi=0;playQ(0);}else toast('Playliste ir tukša','warn');
+});
+document.getElementById('btn-play-fav').addEventListener('click',()=>{
+  const tracks=S.favorites.map(id=>S.tracks.find(t=>String(t._id)===String(id))).filter(Boolean);
+  if (tracks.length){S.queue=tracks;S.qi=0;playQ(0);}else toast('Nav favorītu','warn');
+});
+document.getElementById('btn-play-all').addEventListener('click',()=>{
+  if (S.tracks.length){S.queue=[...S.tracks];S.qi=0;playQ(0);}
+});
+document.getElementById('btn-play-f').addEventListener('click',()=>{
+  const tracks=S.tracks.filter(t=>String(t.folderId)===String(S.activeFid));
+  if (tracks.length){S.queue=tracks;S.qi=0;playQ(0);}
+});
+document.getElementById('btn-clear-pl').addEventListener('click',async()=>{
+  if (!confirm('Notīrīt visu playlisti?'))return;
+  try{
+    await api('/api/playlist',{method:'PUT',body:JSON.stringify({trackIds:[]})});
+    S.playlist=[]; renderSidebar(); renderPlaylist();
+    toast('Playliste notīrīta','');
+  }catch(e){toast(e.message,'err');}
+});
+
+// ════════════════════════════════════════
+//  TRACK ROW RENDERER
+// ════════════════════════════════════════
+function renderTList(container, tracks, ctx){
+  if (!tracks.length){container.innerHTML='<div class="empty"><div class="empty-i">🎵</div>Nav ierakstu</div>';return;}
+  const curId=String(S.queue[S.qi]?._id||'');
+  const fmap={}; S.folders.forEach(f=>fmap[String(f._id)]=f);
+  container.innerHTML=tracks.map((t,i)=>{
+    const tid=String(t._id);
+    const isNow=tid===curId&&S.playing;
+    const fol=t.folderId?fmap[String(t.folderId)]:null;
+    const isFav=S.favorites.map(String).includes(tid);
+    const inPl=S.playlist.map(String).includes(tid);
+    const canDel=S.role==='admin'||t.uploader===S.username;
+    return `<div class="trow ${isNow?'now':''}" data-id="${tid}" data-i="${i}">
+      <div class="tnum">${i+1}</div>
+      <div class="teq"><i style="height:5px"></i><i style="height:9px"></i><i style="height:7px"></i></div>
+      <div class="tinfo">
+        <div class="tname">${esc(t.title)}</div>
+        <div class="tart">${esc(t.artist||'')}${fol?` <span style="color:${fol.color};font-size:10px">· ${esc(fol.name)}</span>`:''}</div>
+        <div class="tup">⬆ ${esc(t.uploader)}</div>
+      </div>
+      <div class="tpl">▶ ${t.plays||0}</div>
+      <div class="tbts">
+        ${S.username?`<button class="ibtn fav ${isFav?'on':''}" onclick="event.stopPropagation();toggleFav('${tid}')" title="Favorīts">${isFav?'⭐':'☆'}</button>`:''}
+        ${S.username?`<button class="ibtn" onclick="event.stopPropagation();togglePl('${tid}',${inPl})" title="${inPl?'Noņemt no playlistes':'Pievienot playliste'}" style="${inPl?'color:var(--a)':''}">${inPl?'📋':'＋'}</button>`:''}
+        <a href="${t.cloudUrl}" download="${esc(t.title)}" target="_blank" onclick="event.stopPropagation()"><button class="ibtn" title="Lejupielādēt">⬇</button></a>
+        ${canDel?`<button class="ibtn del" onclick="event.stopPropagation();delTrack('${tid}')" title="Dzēst">🗑</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  container.querySelectorAll('.trow').forEach(el=>{
+    el.addEventListener('click',e=>{
+      if (e.target.closest('.tbts')||e.target.closest('a'))return;
+      const i=parseInt(el.dataset.i);
+      S.queue=tracks; S.qi=i; playQ(i);
+    });
+  });
+}
+
+// Favorites toggle
+async function toggleFav(tid){
+  if (!S.username){openAuth();return;}
+  try{
+    const d=await api('/api/me/favorites/'+tid,{method:'POST'});
+    S.favorites=d.favorites.map(String);
+    updateTopbar(); renderCurrent();
+    toast(d.added?'Pievienots favorītiem ⭐':'Noņemts no favorītiem','');
+  }catch(e){toast(e.message,'err');}
+}
+
+// Playlist toggle
+async function togglePl(tid,isIn){
+  if (!S.username){openAuth();return;}
+  try{
+    if (isIn){
+      await api('/api/playlist/'+tid,{method:'DELETE'});
+      S.playlist=S.playlist.filter(id=>String(id)!==tid);
+      toast('Noņemts no playlistes','');
+    } else {
+      await api('/api/playlist/'+tid,{method:'POST'});
+      if (!S.playlist.map(String).includes(tid)) S.playlist.push(tid);
+      toast('Pievienots playliste! 📋','ok');
+    }
+    renderSidebar(); renderCurrent();
+  }catch(e){toast(e.message,'err');}
+}
+
+// ════════════════════════════════════════
+//  PLAYER
+// ════════════════════════════════════════
+function playQ(i){
+  if (i<0||i>=S.queue.length)return;
+  S.qi=i;
+  const t=S.queue[i];
+  aud.src=t.cloudUrl;
+  aud.play().catch(()=>{});
+  S.playing=true;
+  document.getElementById('pt').textContent=t.title;
+  document.getElementById('pa').textContent=t.artist||'';
+  document.getElementById('pb-pp').textContent='⏸';
+  document.getElementById('player').classList.add('on');
+  api('/api/tracks/'+t._id+'/play',{method:'POST'}).catch(()=>{});
+  t.plays=(t.plays||0)+1;
+  hlNow();
+}
+function hlNow(){
+  const curId=String(S.queue[S.qi]?._id||'');
+  document.querySelectorAll('.trow').forEach(el=>el.classList.toggle('now',el.dataset.id===curId&&S.playing));
+}
+aud.addEventListener('timeupdate',()=>{
+  if (!aud.duration)return;
+  document.getElementById('pbf').style.width=(aud.currentTime/aud.duration*100)+'%';
+  document.getElementById('pc').textContent=fmt(aud.currentTime);
+  document.getElementById('pd').textContent=fmt(aud.duration);
+});
+aud.addEventListener('ended',()=>{
+  if (S.rep){aud.currentTime=0;aud.play();return;}
+  const next=S.shuf?Math.floor(Math.random()*S.queue.length):S.qi+1;
+  if (next<S.queue.length)playQ(next);
+  else{S.playing=false;document.getElementById('pb-pp').textContent='▶';hlNow();}
+});
+aud.addEventListener('play', ()=>{S.playing=true; document.getElementById('pb-pp').textContent='⏸';hlNow();});
+aud.addEventListener('pause',()=>{S.playing=false;document.getElementById('pb-pp').textContent='▶';hlNow();});
+document.getElementById('pb-pp').addEventListener('click',()=>aud.paused?aud.play():aud.pause());
+document.getElementById('pb-prev').addEventListener('click',()=>playQ(S.qi-1));
+document.getElementById('pb-next').addEventListener('click',()=>playQ(S.shuf?Math.floor(Math.random()*S.queue.length):S.qi+1));
+document.getElementById('pb-shf').addEventListener('click',()=>{S.shuf=!S.shuf;document.getElementById('pb-shf').classList.toggle('on',S.shuf);});
+document.getElementById('pb-rep').addEventListener('click',()=>{S.rep=!S.rep;document.getElementById('pb-rep').classList.toggle('on',S.rep);});
+document.getElementById('pbar').addEventListener('click',e=>{
+  const r=e.currentTarget.getBoundingClientRect();
+  if (aud.duration)aud.currentTime=(e.clientX-r.left)/r.width*aud.duration;
+});
+document.getElementById('vol').addEventListener('input',e=>aud.volume=e.target.value);
+
+// ════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmt(s){if(!s||isNaN(s))return'0:00';return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');}
+let _tt;
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='on '+type;
+  clearTimeout(_tt);_tt=setTimeout(()=>el.className='',3000);
+}
+
+init().then(()=>populateFolderSels());
 </script>
 </body>
 </html>
