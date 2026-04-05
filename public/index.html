@@ -745,6 +745,32 @@ async function init() {
   await loadAll();
   renderSidebar();
   renderAllTracks();
+  // Atjaunot queue pēc pārlades
+  try{
+    const savedIds=JSON.parse(localStorage.getItem('mb_queue')||'[]');
+    const savedQi=parseInt(localStorage.getItem('mb_qi')||'0');
+    const savedTime=parseFloat(localStorage.getItem('mb_qtime')||'0');
+    const savedTid=localStorage.getItem('mb_qtid');
+    if(savedIds.length){
+      const restoredQueue=savedIds.map(id=>S.tracks.find(t=>String(t._id)===id)).filter(Boolean);
+      if(restoredQueue.length){
+        S.queue=restoredQueue;
+        S.qi=Math.min(savedQi,restoredQueue.length-1);
+        const t=S.queue[S.qi];
+        if(t){
+          aud.src=t.cloudUrl;
+          aud.currentTime=savedTime;
+          S.playing=false;
+          document.getElementById('pt').textContent=t.title;
+          document.getElementById('pa').textContent=t.artist||'';
+          document.getElementById('pb-pp').textContent='▶';
+          document.getElementById('player').classList.add('on');
+          hlNow();
+          toast('▶ Turpini no vietas kur apstājies','');
+        }
+      }
+    }
+  }catch(e){}
 }
 function clearSess(){
   S.token=S.username=S.role=null; S.favorites=[]; S.myFolders=[];
@@ -1572,6 +1598,16 @@ async function togglePl(tid,isIn){
 // ════════════════════════════════════════
 //  PLAYER
 // ════════════════════════════════════════
+function saveQueueState(){
+  try{
+    const t=S.queue[S.qi];
+    localStorage.setItem('mb_queue', JSON.stringify(S.queue.map(t=>String(t._id))));
+    localStorage.setItem('mb_qi', String(S.qi));
+    localStorage.setItem('mb_qtime', String(aud.currentTime||0));
+    if(t) localStorage.setItem('mb_qtid', String(t._id));
+  }catch(e){}
+}
+
 function playQ(i){
   if (i<0||i>=S.queue.length)return;
   S.qi=i;
@@ -1586,6 +1622,7 @@ function playQ(i){
   api('/api/tracks/'+t._id+'/play',{method:'POST'}).catch(()=>{});
   t.plays=(t.plays||0)+1;
   hlNow();
+  saveQueueState();
 }
 function hlNow(){
   const curId=String(S.queue[S.qi]?._id||'');
@@ -1596,6 +1633,7 @@ aud.addEventListener('timeupdate',()=>{
   document.getElementById('pbf').style.width=(aud.currentTime/aud.duration*100)+'%';
   document.getElementById('pc').textContent=fmt(aud.currentTime);
   document.getElementById('pd').textContent=fmt(aud.duration);
+  if(Math.floor(aud.currentTime)%5===0) saveQueueState();
 });
 aud.addEventListener('ended',()=>{
   if (S.rep){aud.currentTime=0;aud.play();return;}
