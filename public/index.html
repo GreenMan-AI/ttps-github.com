@@ -669,10 +669,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
     <!-- PLAYLIST -->
     <div class="view" id="v-playlist">
       <div class="vhd">
-        <div><div class="vtit">KOPĪGĀ PLAYLISTE</div><div class="vsub">Visi var pievienot dziesmas · <span id="pl-upd"></span></div></div>
+        <div><div class="vtit">KOPĪGĀ PLAYLISTE</div><div class="vsub">Tavas izvēlētās dziesmas</div></div>
         <div class="vbtns">
           <button class="btn g" id="btn-play-pl">▶ ATSKAŅOT</button>
-          <button class="btn" id="btn-clear-pl" style="display:none">🗑 NOTĪRĪT</button>
+          <button class="btn red" id="btn-clear-pl" style="display:none">🗑 IZTĪRĪT MANU PLAYLISTI</button>
         </div>
       </div>
       <div class="tlist" id="tl-pl"></div>
@@ -840,7 +840,7 @@ const S = {
   username: localStorage.getItem('mb_u')||null,
   role:     localStorage.getItem('mb_r')||null,
   bgUrl:    localStorage.getItem('mb_bg')||'',
-  tracks:[], folders:[], myFolders:[], playlist:[], favorites:[],
+  tracks:[], folders:[], myFolders:[], myPl:[], favorites:[],
   queue:[], qi:-1, shuf:false, rep:false, playing:false,
   activeFid:null, searchQ:'',
 };
@@ -869,6 +869,7 @@ async function init() {
       const m = await api('/api/me');
       S.username=m.username; S.role=m.role;
       S.bgUrl=m.bgUrl||''; S.favorites=m.favorites||[];
+      S.myPl=(m.myPlaylist||[]).map(String);
       localStorage.setItem('mb_r',m.role);
       localStorage.setItem('mb_bg',m.bgUrl||'');
       applyBg(S.bgUrl);
@@ -926,7 +927,7 @@ async function loadAll(){
       S.folders=d.folders;
       S.myFolders=S.username?d.folders.filter(f=>f.isPrivate&&String(f.ownerId)===String(S.username)):[];
     }).catch(()=>{}),
-    api('/api/playlist').then(d=>S.playlist=d.trackIds||[]).catch(()=>{}),
+    S.token ? api('/api/me/playlist').then(d=>S.myPl=d.trackIds||[]).catch(()=>{}) : Promise.resolve(),
   ]);
 }
 function applyBg(url){
@@ -963,11 +964,11 @@ function updateTopbar(){
     document.getElementById('up-panel').style.display='none';
   }
   document.getElementById('cnt-fav').textContent = S.favorites.length;
-  document.getElementById('btn-clear-pl').style.display = S.role==='admin'&&S.playlist.length?'block':'none';
+  document.getElementById('btn-clear-pl').style.display = S.username&&S.myPl.length?'block':'none';
 }
 async function doLogout(){
   try { await api('/api/logout',{method:'POST'}); } catch(e){}
-  clearSess(); aud.pause(); S.playing=false;
+  S.myPl=[]; clearSess(); aud.pause(); S.playing=false;
   document.getElementById('player').classList.remove('on');
   document.getElementById('az').classList.remove('on');
   document.getElementById('btn-lock').classList.remove('on');
@@ -1524,7 +1525,7 @@ document.getElementById('btn-login').addEventListener('click',async()=>{
     S.token=d.token; S.username=d.username; S.role=d.role; S.bgUrl=d.bgUrl||'';
     localStorage.setItem('mb_t',d.token); localStorage.setItem('mb_u',d.username); localStorage.setItem('mb_r',d.role); localStorage.setItem('mb_bg',d.bgUrl||'');
     applyBg(S.bgUrl);
-    const me=await api('/api/me'); S.favorites=me.favorites||[];
+    const me=await api('/api/me'); S.favorites=me.favorites||[]; S.myPl=(me.myPlaylist||[]).map(String);
     closeAuth(); hideSplash(); updateTopbar(); await loadAll(); renderSidebar(); renderAllTracks();
     toast('Sveicināts, '+d.username+'!','ok');
   }catch(e){document.getElementById('l-err').textContent=e.message;}
@@ -1537,7 +1538,7 @@ document.getElementById('btn-reg').addEventListener('click',async()=>{
     const d=await api('/api/register',{method:'POST',body:JSON.stringify({username:u,password:p})});
     S.token=d.token; S.username=d.username; S.role=d.role; S.bgUrl='';
     localStorage.setItem('mb_t',d.token); localStorage.setItem('mb_u',d.username); localStorage.setItem('mb_r',d.role);
-    S.favorites=[];
+    S.favorites=[]; S.myPl=[];
     closeAuth(); hideSplash(); updateTopbar(); await loadAll(); renderSidebar(); renderAllTracks();
     toast('Konts izveidots!','ok');
   }catch(e){document.getElementById('r-err').textContent=e.message;}
@@ -1550,7 +1551,7 @@ document.getElementById('btn-reg').addEventListener('click',async()=>{
 // ════════════════════════════════════════
 function renderSidebar(){
   document.getElementById('cnt-all').textContent=S.tracks.length;
-  document.getElementById('cnt-pl').textContent=S.playlist.length;
+  document.getElementById('cnt-pl').textContent=S.myPl.length;
   document.getElementById('cnt-f').textContent=S.folders.length;
   document.getElementById('cnt-fav').textContent=S.favorites.length;
   const has=S.folders.length>0;
@@ -1611,7 +1612,12 @@ function renderAllTracks(){
 }
 
 function renderPlaylist(){
-  const tracks=S.playlist.map(id=>S.tracks.find(t=>String(t._id)===String(id))).filter(Boolean);
+  const tracks=S.myPl.map(id=>S.tracks.find(t=>String(t._id)===String(id))).filter(Boolean);
+  if(!tracks.length){
+    document.getElementById('tl-pl').innerHTML='<div class="empty"><div class="empty-i">📋</div>Playliste ir tukša!<br><span style="font-size:11px;color:var(--mut)">Nospied ＋ pie jebkuras dziesmas lai pievienotu</span></div>';
+    document.getElementById('btn-clear-pl').style.display='none';
+    return;
+  }
   renderTList(document.getElementById('tl-pl'),tracks,'pl');
   document.getElementById('btn-clear-pl').style.display=S.role==='admin'&&tracks.length?'block':'none';
 }
@@ -1651,7 +1657,7 @@ function renderFolderSingle(fid){
 
 // Playlist controls
 document.getElementById('btn-play-pl').addEventListener('click',()=>{
-  const tracks=S.playlist.map(id=>S.tracks.find(t=>String(t._id)===String(id))).filter(Boolean);
+  const tracks=S.myPl.map(id=>S.tracks.find(t=>String(t._id)===String(id))).filter(Boolean);
   if (tracks.length){S.queue=tracks;S.qi=0;playQ(0);}else toast('Playliste ir tukša','warn');
 });
 document.getElementById('btn-play-fav').addEventListener('click',()=>{
@@ -1668,8 +1674,8 @@ document.getElementById('btn-play-f').addEventListener('click',()=>{
 document.getElementById('btn-clear-pl').addEventListener('click',async()=>{
   if (!confirm('Notīrīt visu playlisti?'))return;
   try{
-    await api('/api/playlist',{method:'PUT',body:JSON.stringify({trackIds:[]})});
-    S.playlist=[]; renderSidebar(); renderPlaylist();
+    await api('/api/me/playlist/clear',{method:'DELETE'});
+    S.myPl=[]; renderSidebar(); renderPlaylist();
     toast('Playliste notīrīta','');
   }catch(e){toast(e.message,'err');}
 });
@@ -1686,8 +1692,8 @@ function renderTList(container, tracks, ctx){
     const isNow=tid===curId&&S.playing;
     const fol=t.folderId?fmap[String(t.folderId)]:null;
     const isFav=S.favorites.map(String).includes(tid);
-    const inPl=S.playlist.map(String).includes(tid);
-    const canDel=S.role==='admin'||t.uploader===S.username;
+    const inPl=S.myPl.map(String).includes(tid);
+    const canDel=S.role==='admin'; // Tikai admins var dzēst dziesmas
     return `<div class="trow ${isNow?'now':''}" data-id="${tid}" data-i="${i}">
       <div class="tnum">${i+1}</div>
       <div class="teq"><i style="height:5px"></i><i style="height:9px"></i><i style="height:7px"></i></div>
@@ -1730,12 +1736,12 @@ async function togglePl(tid,isIn){
   if (!S.username){openAuth();return;}
   try{
     if (isIn){
-      await api('/api/playlist/'+tid,{method:'DELETE'});
-      S.playlist=S.playlist.filter(id=>String(id)!==tid);
+      await api('/api/me/playlist/'+tid,{method:'DELETE'});
+      S.myPl=S.myPl.filter(id=>String(id)!==tid);
       toast('Noņemts no playlistes','');
     } else {
-      await api('/api/playlist/'+tid,{method:'POST'});
-      if (!S.playlist.map(String).includes(tid)) S.playlist.push(tid);
+      await api('/api/me/playlist/'+tid,{method:'POST'});
+      if (!S.myPl.map(String).includes(tid)) S.myPl.push(tid);
       toast('Pievienots playliste! 📋','ok');
     }
     renderSidebar(); renderCurrent();
