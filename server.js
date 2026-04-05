@@ -69,6 +69,7 @@ const UserSchema = new mongoose.Schema({
   bgUrl:        { type: String, default: '' },
   bgPublicId:   { type: String, default: '' },
   favorites:    [{ type: mongoose.Schema.Types.ObjectId, ref: 'Track' }],
+  myPlaylist:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'Track' }],
 }, { timestamps: true });
 
 const TrackSchema = new mongoose.Schema({
@@ -199,7 +200,7 @@ app.post('/api/logout', requireAuth, async (req, res) => {
 
 app.get('/api/me', requireAuth, async (req, res) => {
   const user = await User.findOne({ username: req.user.username });
-  res.json({ username: user.username, role: user.role, bgUrl: user.bgUrl||'', favorites: user.favorites||[] });
+  res.json({ username: user.username, role: user.role, bgUrl: user.bgUrl||'', favorites: user.favorites||[], myPlaylist: user.myPlaylist||[] });
 });
 
 // ── Change password ───────────────────────────────
@@ -387,49 +388,44 @@ app.post('/api/tracks/:id/play', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════
-//  SHARED PLAYLIST
+//  PERSONAL PLAYLIST (katram lietotājam sava)
 // ══════════════════════════════════════════════════
-app.get('/api/playlist', async (req, res) => {
+
+// GET mana playliste
+app.get('/api/me/playlist', requireAuth, async (req, res) => {
   try {
-    const pl = await Playlist.findOne();
-    res.json({ trackIds: pl ? pl.trackIds : [] });
+    const user = await User.findOne({ username: req.user.username });
+    res.json({ trackIds: user.myPlaylist || [] });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Add track to shared playlist (any logged-in user)
-app.post('/api/playlist/:trackId', requireAuth, async (req, res) => {
+// Pievienot dziesmu manai playliste
+app.post('/api/me/playlist/:trackId', requireAuth, async (req, res) => {
   try {
-    let pl = await Playlist.findOne();
-    if (!pl) pl = await Playlist.create({ trackIds: [] });
+    const user = await User.findOne({ username: req.user.username });
     const tid = req.params.trackId;
-    if (!pl.trackIds.map(String).includes(String(tid))) {
-      pl.trackIds.push(tid);
-      pl.updatedBy = req.user.username;
-      await pl.save();
+    if (!user.myPlaylist.map(String).includes(String(tid))) {
+      user.myPlaylist.push(tid);
+      await user.save();
     }
-    res.json({ ok: true, trackIds: pl.trackIds });
+    res.json({ ok: true, trackIds: user.myPlaylist });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Remove from shared playlist
-app.delete('/api/playlist/:trackId', requireAuth, async (req, res) => {
+// Noņemt dziesmu no manas playlistes
+app.delete('/api/me/playlist/:trackId', requireAuth, async (req, res) => {
   try {
-    const pl = await Playlist.findOne();
-    if (pl) {
-      pl.trackIds = pl.trackIds.filter(id => String(id) !== req.params.trackId);
-      pl.updatedBy = req.user.username;
-      await pl.save();
-    }
+    const user = await User.findOne({ username: req.user.username });
+    user.myPlaylist = user.myPlaylist.filter(id => String(id) !== req.params.trackId);
+    await user.save();
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Reorder playlist
-app.put('/api/playlist', requireAuth, async (req, res) => {
+// Notīrīt visu manu playlisti
+app.delete('/api/me/playlist/clear', requireAuth, async (req, res) => {
   try {
-    const { trackIds } = req.body;
-    if (!Array.isArray(trackIds)) return res.status(400).json({ error: 'trackIds obligāts' });
-    await Playlist.findOneAndUpdate({}, { trackIds, updatedBy: req.user.username }, { upsert: true });
+    await User.findOneAndUpdate({ username: req.user.username }, { myPlaylist: [] });
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
