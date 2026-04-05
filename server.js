@@ -49,7 +49,19 @@ const imageFilter = (req, file, cb) => {
   ok.includes(path.extname(file.originalname).toLowerCase()) ? cb(null,true) : cb(new Error('Tikai attēli: JPG, PNG, WEBP'));
 };
 
-const uploadAudio = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: 100*1024*1024 } });
+// Cover image storage (album art)
+const coverStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => ({
+    folder:        'musicbox/covers',
+    resource_type: 'image',
+    public_id:     'cover_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
+    transformation: [{ width: 500, height: 500, crop: 'fill', quality: 'auto' }],
+  }),
+});
+const uploadCover = multer({ storage: coverStorage, fileFilter: imageFilter, limits: { fileSize: 10*1024*1024 } });
+
+
 const uploadImage = multer({ storage: imageStorage, fileFilter: imageFilter, limits: { fileSize: 10*1024*1024  } });
 const uploadMulti = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: 100*1024*1024 } });
 
@@ -70,23 +82,29 @@ const UserSchema = new mongoose.Schema({
   bgPublicId:   { type: String, default: '' },
   favorites:    [{ type: mongoose.Schema.Types.ObjectId, ref: 'Track' }],
   myPlaylist:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'Track' }],
+  notifications:[{ message: String, createdAt: { type: Date, default: Date.now }, read: { type: Boolean, default: false } }],
 }, { timestamps: true });
 
 const TrackSchema = new mongoose.Schema({
-  title:    { type: String, required: true, trim: true },
-  artist:   { type: String, default: '', trim: true },
-  cloudUrl: { type: String, required: true },
-  publicId: { type: String, required: true },
-  size:     { type: Number, default: 0 },
-  uploader: { type: String, required: true },
-  folderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Folder', default: null },
-  plays:    { type: Number, default: 0 },
+  title:        { type: String, required: true, trim: true },
+  artist:       { type: String, default: '', trim: true },
+  lyrics:       { type: String, default: '' },
+  coverUrl:     { type: String, default: '' },
+  coverPublicId:{ type: String, default: '' },
+  cloudUrl:     { type: String, required: true },
+  publicId:     { type: String, required: true },
+  size:         { type: Number, default: 0 },
+  uploader:     { type: String, required: true },
+  folderId:     { type: mongoose.Schema.Types.ObjectId, ref: 'Folder', default: null },
+  plays:        { type: Number, default: 0 },
 }, { timestamps: true });
 
 const FolderSchema = new mongoose.Schema({
   name:      { type: String, required: true, trim: true },
   color:     { type: String, default: '#00d4ff' },
   createdBy: { type: String, required: true },
+  isPrivate: { type: Boolean, default: false },
+  ownerId:   { type: String, default: '' },
 }, { timestamps: true });
 
 // Shared playlist — one global queue that everyone sees
@@ -200,7 +218,8 @@ app.post('/api/logout', requireAuth, async (req, res) => {
 
 app.get('/api/me', requireAuth, async (req, res) => {
   const user = await User.findOne({ username: req.user.username });
-  res.json({ username: user.username, role: user.role, bgUrl: user.bgUrl||'', favorites: user.favorites||[], myPlaylist: user.myPlaylist||[] });
+  const unread = (user.notifications||[]).filter(n=>!n.read).length;
+  res.json({ username: user.username, role: user.role, bgUrl: user.bgUrl||'', favorites: user.favorites||[], myPlaylist: user.myPlaylist||[], unreadNotifications: unread });
 });
 
 // ── Change password ───────────────────────────────
@@ -296,20 +315,50 @@ app.post('/api/me/favorites/:trackId', requireAuth, async (req, res) => {
 //  FOLDERS
 // ══════════════════════════════════════════════════
 app.get('/api/folders', async (req, res) => {
-  try { res.json({ folders: await Folder.find().sort({ createdAt: 1 }) }); }
-  catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post('/api/folders', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { name, color='#00d4ff' } = req.body||{};
-    if (!name?.trim()) return res.status(400).json({ error: 'Nosaukums obligāts' });
-    res.status(201).json({ folder: await Folder.create({ name:name.trim(), color, createdBy:req.user.username }) });
+    const token = (req.headers['authorization']||'').replace('Bearer ','').trim();
+    let username = null;
+    if (token) {
+      const sess = await Session.findOne({ token, expiresAt:{ $gt: new Date() } });
+      if (sess) username = sess.username;
+    }
+    const query = username
+      ? { $or: [{ isPrivate: { $ne: true } }, { isPrivate: true, ownerId: username }] }
+      : { isPrivate: { $ne: true } };
+    res.json({ folders: await Folder.find(query).sort({ createdAt: 1 }) });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/api/folders/:id', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/folders', requireAuth, async (req, res) => {
   try {
+    const { name, color='#00d4ff', isPrivate=false } = req.body||{};
+    if (!name?.trim()) return res.status(400).json({ error: 'Nosaukums obligāts' });
+    // Only admin can create public folders
+    if (!isPrivate && req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Tikai admins var veidot publiskas mapes' });
+    const folder = await Folder.create({
+      name: name.trim(), color,
+      createdBy: req.user.username,
+      isPrivate: !!isPrivate,
+      ownerId: isPrivate ? req.user.username : '',
+    });
+    // Notify all users about new public folder
+    if (!isPrivate) {
+      await User.updateMany(
+        { username: { $ne: req.user.username } },
+        { $push: { notifications: { message: `📁 Jauna mape: "${name.trim()}" pievienoja ${req.user.username}` } } }
+      );
+    }
+    res.status(201).json({ folder });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/folders/:id', requireAuth, async (req, res) => {
+  try {
+    const folder = await Folder.findById(req.params.id);
+    if (!folder) return res.status(404).json({ error: 'Nav atrasta' });
+    if (req.user.role !== 'admin' && folder.ownerId !== req.user.username)
+      return res.status(403).json({ error: 'Nav tiesību' });
     await Folder.findByIdAndDelete(req.params.id);
     await Track.updateMany({ folderId: req.params.id }, { $set: { folderId: null } });
     res.json({ ok: true });
@@ -320,9 +369,53 @@ app.delete('/api/folders/:id', requireAuth, requireAdmin, async (req, res) => {
 //  TRACKS
 // ══════════════════════════════════════════════════
 app.get('/api/tracks', async (req, res) => {
-  try { res.json({ tracks: await Track.find().sort({ createdAt: -1 }) }); }
-  catch(e) { res.status(500).json({ error: e.message }); }
+  try {
+    const { sort='createdAt', order='desc' } = req.query;
+    const allowed = ['createdAt','title','artist','plays'];
+    const sortField = allowed.includes(sort) ? sort : 'createdAt';
+    const sortDir = order === 'asc' ? 1 : -1;
+    res.json({ tracks: await Track.find().sort({ [sortField]: sortDir }) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
+
+// Edit track (title, artist, lyrics, folderId)
+app.patch('/api/tracks/:id', requireAuth, async (req, res) => {
+  try {
+    const t = await Track.findById(req.params.id);
+    if (!t) return res.status(404).json({ error: 'Nav atrasts' });
+    if (t.uploader !== req.user.username && req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Nav tiesību' });
+    const { title, artist, lyrics, folderId } = req.body||{};
+    if (title?.trim()) t.title = title.trim();
+    if (artist !== undefined) t.artist = artist.trim();
+    if (lyrics !== undefined) t.lyrics = lyrics;
+    if (folderId !== undefined) t.folderId = folderId||null;
+    await t.save();
+    res.json({ track: t });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Upload cover for track
+app.post('/api/tracks/:id/cover', requireAuth, (req, res) => {
+  uploadCover.single('cover')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      const t = await Track.findById(req.params.id);
+      if (!t) return res.status(404).json({ error: 'Nav atrasts' });
+      if (t.uploader !== req.user.username && req.user.role !== 'admin')
+        return res.status(403).json({ error: 'Nav tiesību' });
+      if (t.coverPublicId) {
+        try { await cloudinary.uploader.destroy(t.coverPublicId, { resource_type: 'image' }); } catch(e){}
+      }
+      t.coverUrl = req.file.path;
+      t.coverPublicId = req.file.filename;
+      await t.save();
+      res.json({ coverUrl: t.coverUrl });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+});
+
+
 
 // Single upload
 app.post('/api/upload', requireAuth, (req, res) => {
@@ -341,6 +434,11 @@ app.post('/api/upload', requireAuth, (req, res) => {
         folderId: folderId||null,
       });
       res.status(201).json({ track });
+      // Notify all other users
+      await User.updateMany(
+        { username: { $ne: req.user.username } },
+        { $push: { notifications: { message: `🎵 "${track.title}" pievienoja ${req.user.username}` } } }
+      );
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 });
@@ -422,11 +520,62 @@ app.delete('/api/me/playlist/:trackId', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Pārkārtot playlisti (drag & drop)
+app.put('/api/me/playlist', requireAuth, async (req, res) => {
+  try {
+    const { trackIds=[] } = req.body||{};
+    await User.findOneAndUpdate({ username: req.user.username }, { myPlaylist: trackIds });
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // Notīrīt visu manu playlisti
 app.delete('/api/me/playlist/clear', requireAuth, async (req, res) => {
   try {
     await User.findOneAndUpdate({ username: req.user.username }, { myPlaylist: [] });
     res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════
+//  NOTIFICATIONS
+// ══════════════════════════════════════════════════
+app.get('/api/me/notifications', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.user.username });
+    const notifs = (user.notifications||[]).slice(-50).reverse();
+    res.json({ notifications: notifs });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/me/notifications/read', requireAuth, async (req, res) => {
+  try {
+    await User.findOneAndUpdate(
+      { username: req.user.username },
+      { $set: { 'notifications.$[].read': true } }
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════
+//  USER STATS
+// ══════════════════════════════════════════════════
+app.get('/api/me/stats', requireAuth, async (req, res) => {
+  try {
+    const [uploaded, user] = await Promise.all([
+      Track.find({ uploader: req.user.username }),
+      User.findOne({ username: req.user.username }),
+    ]);
+    const totalPlays = uploaded.reduce((s,t)=>s+t.plays,0);
+    const totalSize  = uploaded.reduce((s,t)=>s+t.size,0);
+    res.json({
+      uploaded: uploaded.length,
+      totalPlays,
+      totalSize,
+      favorites: (user.favorites||[]).length,
+      playlist:  (user.myPlaylist||[]).length,
+    });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
