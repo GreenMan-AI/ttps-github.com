@@ -485,6 +485,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
     <div class="modal-title" id="settings-title">IESTATĪJUMI</div>
     <div class="modal-tabs">
       <button class="modal-tab on" data-mt="bg">FONA BILDE</button>
+      <button class="modal-tab" data-mt="theme">KRASA</button>
       <button class="modal-tab" data-mt="pw">PAROLE</button>
     </div>
 
@@ -506,6 +507,28 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
       <div class="m-err" id="bg-err" style="margin-top:6px"></div>
     </div>
 
+    <!-- THEME tab -->
+    <div id="mt-theme" style="display:none">
+      <div style="font-size:12px;color:var(--mut);font-weight:600;margin-bottom:14px">Izveli lapas krasu temu:</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px">
+        <div class="theme-opt" data-theme="white" onclick="applyTheme(this)" style="background:#f5f5f5;border:2px solid #ccc;border-radius:8px;padding:10px 0;text-align:center;cursor:pointer">
+          <div style="font-size:18px">⬜</div><div style="font-size:9px;font-weight:700;color:#333;margin-top:3px">BALTA</div>
+        </div>
+        <div class="theme-opt" data-theme="black" onclick="applyTheme(this)" style="background:#111;border:2px solid #444;border-radius:8px;padding:10px 0;text-align:center;cursor:pointer">
+          <div style="font-size:18px">⬛</div><div style="font-size:9px;font-weight:700;color:#aaa;margin-top:3px">MELNA</div>
+        </div>
+        <div class="theme-opt" data-theme="yellow" onclick="applyTheme(this)" style="background:#fff8dc;border:2px solid #ffd700;border-radius:8px;padding:10px 0;text-align:center;cursor:pointer">
+          <div style="font-size:18px">🟨</div><div style="font-size:9px;font-weight:700;color:#886600;margin-top:3px">DZELTENA</div>
+        </div>
+        <div class="theme-opt" data-theme="neongreen" onclick="applyTheme(this)" style="background:#001500;border:2px solid #00ff44;border-radius:8px;padding:10px 0;text-align:center;cursor:pointer">
+          <div style="font-size:18px">🟩</div><div style="font-size:9px;font-weight:700;color:#00ff44;margin-top:3px">NEON ZALA</div>
+        </div>
+        <div class="theme-opt" data-theme="neonblue" onclick="applyTheme(this)" style="background:#000d1a;border:2px solid #00ccff;border-radius:8px;padding:10px 0;text-align:center;cursor:pointer">
+          <div style="font-size:18px">🟦</div><div style="font-size:9px;font-weight:700;color:#00ccff;margin-top:3px">NEON ZILA</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--mut);text-align:center" id="theme-status"></div>
+    </div>
     <!-- PW tab -->
     <div id="mt-pw" style="display:none">
       <div class="mf">
@@ -976,9 +999,79 @@ document.querySelectorAll('.modal-tab').forEach(t=>{
     document.querySelectorAll('.modal-tab').forEach(x=>x.classList.remove('on'));
     t.classList.add('on');
     document.getElementById('mt-bg').style.display=t.dataset.mt==='bg'?'block':'none';
+    document.getElementById('mt-theme').style.display=t.dataset.mt==='theme'?'block':'none';
     document.getElementById('mt-pw').style.display=t.dataset.mt==='pw'?'block':'none';
+    if(t.dataset.mt==='theme') loadThemeUI();
   });
 });
+
+// ── THEME SYSTEM ──────────────────────────────────
+const THEMES = {
+  white:{
+    txt:'#111',mut:'#555',a:'#1565a0',
+    bg:'rgba(245,245,245,.95)',bg2:'rgba(235,235,235,.97)',card:'rgba(255,255,255,.92)',border:'rgba(0,0,0,.12)',
+    overlay:'rgba(240,240,240,.84)',topbar:'rgba(245,245,245,.95)',player:'rgba(245,245,245,.97)'
+  },
+  black:{
+    txt:'#e0e0e0',mut:'#777',a:'#00ccff',
+    bg:'rgba(10,10,10,.97)',bg2:'rgba(18,18,18,.97)',card:'rgba(28,28,28,.95)',border:'rgba(255,255,255,.1)',
+    overlay:'rgba(5,5,5,.88)',topbar:'rgba(10,10,10,.96)',player:'rgba(10,10,10,.97)'
+  },
+  yellow:{
+    txt:'#3a2800',mut:'#7a5500',a:'#cc8800',
+    bg:'rgba(255,248,210,.95)',bg2:'rgba(255,243,185,.97)',card:'rgba(255,252,225,.92)',border:'rgba(180,130,0,.2)',
+    overlay:'rgba(255,248,200,.84)',topbar:'rgba(255,248,210,.95)',player:'rgba(255,248,210,.97)'
+  },
+  neongreen:{
+    txt:'#00ff44',mut:'#00aa22',a:'#00ff44',
+    bg:'rgba(0,15,0,.97)',bg2:'rgba(0,22,0,.97)',card:'rgba(0,30,5,.95)',border:'rgba(0,255,68,.18)',
+    overlay:'rgba(0,8,0,.86)',topbar:'rgba(0,12,0,.96)',player:'rgba(0,10,0,.97)'
+  },
+  neonblue:{
+    txt:'#00ccff',mut:'#0077aa',a:'#00ccff',
+    bg:'rgba(0,10,25,.97)',bg2:'rgba(0,15,35,.97)',card:'rgba(0,22,48,.95)',border:'rgba(0,204,255,.18)',
+    overlay:'rgba(0,5,18,.86)',topbar:'rgba(0,8,22,.96)',player:'rgba(0,8,22,.97)'
+  }
+};
+
+function loadThemeUI(){
+  const cur=localStorage.getItem('mb_theme')||'white';
+  document.querySelectorAll('.theme-opt').forEach(el=>{
+    el.style.outline=el.dataset.theme===cur?'3px solid #00ccff':'none';
+  });
+}
+
+function applyTheme(el){
+  const name=el.dataset.theme;
+  const t=THEMES[name];
+  if(!t)return;
+  let s=document.getElementById('dyn-theme');
+  if(!s){s=document.createElement('style');s.id='dyn-theme';document.head.appendChild(s);}
+  s.textContent=':root{--txt:'+t.txt+';--mut:'+t.mut+';--a:'+t.a+';--bg:'+t.bg+';--bg2:'+t.bg2+';--card:'+t.card+';--border:'+t.border+'}'
+    +'#bg-layer::after{background:linear-gradient(180deg,'+t.overlay+' 0%,'+t.overlay+' 100%)!important}'
+    +'#top{background:'+t.topbar+'!important}'
+    +'#player{background:'+t.player+'!important}'
+    +'#sb{background:'+t.bg2+'!important}'
+    +'#az{background:'+t.card+'!important}'
+    +'.trow{background:'+t.card+'!important}'
+    +'.tname{color:'+t.txt+'!important}'
+    +'.logo{color:'+t.a+'!important}'
+    +'.vtit{color:'+t.a+'!important}';
+  localStorage.setItem('mb_theme',name);
+  document.querySelectorAll('.theme-opt').forEach(x=>x.style.outline='none');
+  el.style.outline='3px solid '+t.a;
+  const st=document.getElementById('theme-status');
+  st.textContent='Tema pielietota!';
+  setTimeout(()=>st.textContent='',2000);
+  toast('Tema mainita!','ok');
+}
+
+function loadSavedTheme(){
+  const name=localStorage.getItem('mb_theme');
+  if(!name||!THEMES[name])return;
+  const fakeEl={dataset:{theme:name},style:{outline:''},querySelectorAll:()=>[]};
+  applyTheme(fakeEl);
+}
 
 // Change password
 document.getElementById('btn-chpw').addEventListener('click',async()=>{
@@ -1286,7 +1379,7 @@ function toast(msg,type=''){
   clearTimeout(_tt);_tt=setTimeout(()=>el.className='',3000);
 }
 
-init().then(()=>populateFolderSels());
+init().then(()=>{ populateFolderSels(); loadSavedTheme(); });
 </script>
 </body>
 </html>
