@@ -260,8 +260,9 @@ select.fi option{background:var(--bg)}
 .auth-tab{flex:1;background:none;border:none;color:var(--mut);font-family:var(--font);font-size:13px;font-weight:700;padding:7px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
 .auth-tab.on{color:#5bb8f5;border-bottom-color:#1565a0}
 .auth-f{display:flex;flex-direction:column;gap:9px}
-.auth-f input{background:rgba(240,248,255,.9);border:1px solid var(--border);color:var(--txt);padding:9px 12px;font-family:var(--font);font-size:13px;font-weight:500;border-radius:var(--r6);outline:none;transition:border-color .15s}
-.auth-f input:focus{border-color:var(--a)}
+.auth-f input{background:#0d1117;border:1px solid #1e3a5f;color:#000 !important;padding:9px 12px;font-family:var(--font);font-size:13px;font-weight:600;border-radius:var(--r6);outline:none;transition:border-color .2s,box-shadow .2s}
+.auth-f input::placeholder{color:#3a5a7a}
+.auth-f input:focus{border-color:#1565a0;box-shadow:0 0 0 3px rgba(21,101,160,.2);background:#060d18}
 .aerr{color:var(--r);font-size:11px;text-align:center;min-height:14px;font-weight:600}
 .auth-submit{background:linear-gradient(135deg,#1565a0,#0d47a1);color:var(--bg);border:none;padding:10px;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;border-radius:var(--r6);transition:all .15s;letter-spacing:.4px}
 .auth-submit:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(21,101,160,.3)}
@@ -302,6 +303,26 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 #toast.warn{border-color:var(--y);color:var(--y)}
 
 /* ══ SPLASH ══ */
+@keyframes walkrev{
+  0%{transform:translateX(calc(100vw + 120px)) scaleX(-1)}
+  49.9%{transform:translateX(-120px) scaleX(-1)}
+  50%{transform:translateX(-120px)}
+  99.9%{transform:translateX(calc(100vw + 120px))}
+  100%{transform:translateX(calc(100vw + 120px)) scaleX(-1)}
+}
+@keyframes walkdown{from{transform:translateY(-100px)}to{transform:translateY(calc(100vh + 100px))}}
+@keyframes walkup{from{transform:translateY(calc(100vh + 100px))}to{transform:translateY(-100px)}}
+@keyframes spinbody{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes floatnote2{0%{transform:translateY(0) rotate(-10deg);opacity:1}100%{transform:translateY(-22px) rotate(12deg);opacity:0}}
+.char.rev{animation-name:walkrev}
+.char.bop.rev{animation:walkrev linear infinite,bop .45s ease-in-out infinite}
+.char.bang .head{animation:headbang .28s ease-in-out infinite}
+.char.bang .legs{animation:legmove .2s ease-in-out infinite alternate}
+.char.spin .body{animation:spinbody .7s linear infinite;display:inline-block}
+.char.vert{animation:walkdown linear infinite}
+.char.vert2{animation:walkup linear infinite}
+.char.vert .legs,.char.vert2 .legs{animation:none}
+
 #splash{
   position:fixed;inset:0;z-index:900;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -338,21 +359,45 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 /* ══ SPLASH CHARS ══ */
 .chars{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
 .char{position:absolute;display:flex;flex-direction:column;align-items:center;gap:0;user-select:none;animation:walk linear infinite}
+.char.rev{animation:walkR linear infinite}
+.char.dn{animation:walkD linear infinite}
+.char.up{animation:walkU linear infinite}
 .char .head{font-size:22px;line-height:1}
 .char .body{font-size:14px;line-height:1;margin-top:-2px}
-.char .legs{font-size:12px;line-height:1;margin-top:-2px;animation:legmove .4s ease-in-out infinite alternate}
-.char .note{font-size:10px;position:absolute;top:-14px;animation:floatnote 1.2s ease-in-out infinite}
-@keyframes walk{
-  0%{transform:translateX(-120px)}
-  49.9%{transform:translateX(calc(100vw + 120px))}
-  50%{transform:translateX(calc(100vw + 120px)) scaleX(-1)}
-  99.9%{transform:translateX(-120px) scaleX(-1)}
-  100%{transform:translateX(-120px)}
-}
+.char .legs{font-size:12px;line-height:1;margin-top:-2px;animation:legmove .38s ease-in-out infinite alternate}
+.char .note{font-size:10px;position:absolute;top:-15px;animation:floatnote 1.3s ease-in-out infinite}
+.char.bop .head{animation:bop .45s ease-in-out infinite}
+.char.bang .head{animation:headbang .28s ease-in-out infinite}
+.char.spin .body{animation:spin .7s linear infinite}
+@keyframes walk{0%{transform:translateX(-100px)} 49.9%{transform:translateX(calc(100vw+100px))} 50%{transform:translateX(calc(100vw+100px)) scaleX(-1)} 99.9%{transform:translateX(-100px) scaleX(-1)} 100%{transform:translateX(-100px)}}
+@keyframes walkR{0%{transform:translateX(calc(100vw+100px)) scaleX(-1)} 49.9%{transform:translateX(-100px) scaleX(-1)} 50%{transform:translateX(-100px)} 99.9%{transform:translateX(calc(100vw+100px))} 100%{transform:translateX(calc(100vw+100px)) scaleX(-1)}}
+@keyframes walkD{0%{transform:translateY(-100px)} 49.9%{transform:translateY(calc(100vh+100px))} 50%{transform:translateY(calc(100vh+100px)) scaleY(-1)} 99.9%{transform:translateY(-100px) scaleY(-1)} 100%{transform:translateY(-100px)}}
+@keyframes walkU{0%{transform:translateY(calc(100vh+100px))} 100%{transform:translateY(-100px)}}
 @keyframes legmove{from{letter-spacing:-1px}to{letter-spacing:2px}}
-@keyframes floatnote{0%{transform:translateY(0) rotate(-10deg);opacity:1}100%{transform:translateY(-18px) rotate(10deg);opacity:0}}
-@keyframes bop{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-.char.bop{animation:walk linear infinite, bop .5s ease-in-out infinite}
+@keyframes floatnote{0%{transform:translateY(0) rotate(-12deg);opacity:1}100%{transform:translateY(-20px) rotate(12deg);opacity:0}}
+@keyframes bop{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes headbang{0%,100%{transform:rotate(0deg)}50%{transform:rotate(28deg)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+@keyframes walkrev{
+  0%{transform:translateX(calc(100vw + 120px)) scaleX(-1)}
+  49.9%{transform:translateX(-120px) scaleX(-1)}
+  50%{transform:translateX(-120px)}
+  99.9%{transform:translateX(calc(100vw + 120px))}
+  100%{transform:translateX(calc(100vw + 120px)) scaleX(-1)}
+}
+@keyframes walkdown{from{transform:translateY(-100px)}to{transform:translateY(calc(100vh + 100px))}}
+@keyframes walkup{from{transform:translateY(calc(100vh + 100px))}to{transform:translateY(-100px)}}
+@keyframes spinbody{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes floatnote2{0%{transform:translateY(0) rotate(-10deg);opacity:1}100%{transform:translateY(-22px) rotate(12deg);opacity:0}}
+.char.rev{animation-name:walkrev}
+.char.bop.rev{animation:walkrev linear infinite,bop .45s ease-in-out infinite}
+.char.bang .head{animation:headbang .28s ease-in-out infinite}
+.char.bang .legs{animation:legmove .2s ease-in-out infinite alternate}
+.char.spin .body{animation:spinbody .7s linear infinite;display:inline-block}
+.char.vert{animation:walkdown linear infinite}
+.char.vert2{animation:walkup linear infinite}
+.char.vert .legs,.char.vert2 .legs{animation:none}
 
 #splash{
   background:linear-gradient(135deg,rgba(180,215,245,.92) 0%,rgba(200,228,250,.95) 100%) !important;
@@ -862,9 +907,7 @@ async function init() {
     }
   }catch(e){}
 }
-function openAuthFromSplash(){
-  document.getElementById('auth-ov').classList.add('on');
-}
+function openAuthFromSplash(){const o=document.getElementById('auth-ov');o.style.display='flex';o.classList.add('on');}
 function hideSplash(){
   const s=document.getElementById('splash');
   s.style.transition='opacity .6s ease';
@@ -1461,8 +1504,8 @@ document.getElementById('btn-chpw').addEventListener('click',async()=>{
 // ════════════════════════════════════════
 //  AUTH
 // ════════════════════════════════════════
-function openAuth(){ document.getElementById('auth-ov').classList.add('on'); }
-function closeAuth(){ document.getElementById('auth-ov').classList.remove('on'); }
+function openAuth(){const o=document.getElementById('auth-ov');o.style.display='flex';o.classList.add('on');}
+function closeAuth(){const o=document.getElementById('auth-ov');o.style.display='none';o.classList.remove('on');}
 document.querySelectorAll('.auth-tab').forEach(t=>{
   t.addEventListener('click',()=>{
     document.querySelectorAll('.auth-tab').forEach(x=>x.classList.remove('on'));
@@ -1499,12 +1542,8 @@ document.getElementById('btn-reg').addEventListener('click',async()=>{
     toast('Konts izveidots!','ok');
   }catch(e){document.getElementById('r-err').textContent=e.message;}
 });
-['l-u','l-p'].forEach(id=>{
-  document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-login').click();});
-});
-['r-u','r-p'].forEach(id=>{
-  document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-reg').click();});
-});
+['l-u','l-p'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-login').click();}));
+['r-u','r-p'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-reg').click();}));
 
 // ════════════════════════════════════════
 //  SIDEBAR + VIEWS
@@ -1779,25 +1818,51 @@ function toast(msg,type=''){
 // ════════════════════════════════════════
 (function spawnChars(){
   const chars=[
-    // Hip-hop
-    {head:'🧢',body:'🕶',legs:'👟',note:'🎤',color:'#ffc400',speed:18,y:75,size:1.1},
-    {head:'🧢',body:'🦺',legs:'👟',note:'🎧',color:'#ff8c00',speed:22,y:60,size:0.9},
-    // Metal
-    {head:'🤘',body:'🖤',legs:'👢',note:'🎸',color:'#c084fc',speed:15,y:82,size:1.2},
-    {head:'💀',body:'⛓',legs:'👢',note:'🎸',color:'#ff2d55',speed:20,y:55,size:0.85},
-    // Electronic
-    {head:'🎧',body:'🦾',legs:'👾',note:'🎛',color:'#00ccff',speed:25,y:70,size:1.0},
-    {head:'🤖',body:'💡',legs:'🔌',note:'🎚',color:'#00ff88',speed:19,y:88,size:0.8},
-    // Bonus
-    {head:'🎩',body:'🎻',legs:'🩰',note:'🎶',color:'#f9a8d4',speed:16,y:65,size:0.95},
-    {head:'😎',body:'🎺',legs:'👞',note:'🎵',color:'#fbbf24',speed:23,y:78,size:1.05},
+    // ═══ HIP-HOP (dzelteni/oranži, bop kustība) ═══
+    {head:'🧢',body:'🕶️',legs:'👟',note:'🎤',color:'#ffc400',speed:17,y:78,size:1.15,cls:'bop'},
+    {head:'🧢',body:'🦺',legs:'👟',note:'🎧',color:'#ff8c00',speed:23,y:58,size:0.92,cls:'bop rev'},
+    {head:'🧢',body:'🧣',legs:'👟',note:'🎙️',color:'#ffdd44',speed:19,y:86,size:1.0,cls:'bop'},
+    {head:'😤',body:'🧥',legs:'👟',note:'💰',color:'#ffa500',speed:21,y:44,size:0.87,cls:'bop rev'},
+    {head:'🧢',body:'💎',legs:'👟',note:'🎵',color:'#ffd700',speed:26,y:70,size:1.2,cls:'bop'},
+    // ═══ METAL (violeti/sarkani, headbang) ═══
+    {head:'🤘',body:'🖤',legs:'👢',note:'🎸',color:'#c084fc',speed:15,y:82,size:1.2,cls:'bang'},
+    {head:'💀',body:'⛓️',legs:'👢',note:'🎸',color:'#ff2d55',speed:20,y:52,size:0.88,cls:'bang rev'},
+    {head:'🤘',body:'🦂',legs:'👢',note:'🔥',color:'#9333ea',speed:18,y:72,size:1.05,cls:'bang'},
+    {head:'💀',body:'🦴',legs:'👢',note:'⚡',color:'#dc2626',speed:13,y:38,size:1.28,cls:'bang rev'},
+    {head:'😈',body:'🖤',legs:'👢',note:'☠️',color:'#7c3aed',speed:22,y:90,size:0.82,cls:'bang'},
+    {head:'🤘',body:'⚔️',legs:'🥾',note:'🎵',color:'#b91c1c',speed:16,y:34,size:1.1,cls:'bang rev'},
+    // ═══ ELEKTRONIKA (zilgani/zaļi, spinošs ķermenis) ═══
+    {head:'🎧',body:'🦾',legs:'👾',note:'🎛️',color:'#00ccff',speed:25,y:68,size:1.0,cls:'spin'},
+    {head:'🤖',body:'💡',legs:'🔌',note:'🎚️',color:'#00ff88',speed:19,y:86,size:0.8,cls:'spin rev'},
+    {head:'🎧',body:'🌊',legs:'👾',note:'⚡',color:'#06b6d4',speed:22,y:60,size:0.95,cls:'spin'},
+    {head:'🤖',body:'🔮',legs:'🔌',note:'🎵',color:'#10b981',speed:28,y:42,size:0.78,cls:'spin rev'},
+    {head:'😎',body:'🌀',legs:'👾',note:'🎛️',color:'#818cf8',speed:17,y:76,size:1.05,cls:'spin'},
+    // ═══ VERTIKĀLI (iet no augšas uz leju un atpakaļ) ═══
+    {head:'🧢',body:'🦺',legs:'👟',note:'🎤',color:'#fbbf24',speed:20,x:10,size:0.9,cls:'bop',dir:'v'},
+    {head:'💀',body:'⛓️',legs:'👢',note:'🎸',color:'#a855f7',speed:16,x:90,size:1.1,cls:'bang',dir:'v'},
+    {head:'🎧',body:'🦾',legs:'👾',note:'🎛️',color:'#22d3ee',speed:24,x:32,size:0.85,cls:'spin',dir:'v2'},
+    {head:'🤘',body:'🖤',legs:'👢',note:'🔥',color:'#f43f5e',speed:18,x:68,size:1.0,cls:'bang',dir:'v2'},
+    {head:'🤖',body:'💡',legs:'🔌',note:'🎚️',color:'#4ade80',speed:21,x:52,size:0.88,cls:'spin',dir:'v'},
+    // ═══ BONUSS ═══
+    {head:'🎩',body:'🎻',legs:'🩰',note:'🎶',color:'#f9a8d4',speed:16,y:64,size:0.95,cls:'bop rev'},
+    {head:'😎',body:'🎺',legs:'👞',note:'🎵',color:'#fbbf24',speed:23,y:80,size:1.05,cls:'bop'},
   ];
   const container=document.getElementById('chars');
-  chars.forEach((c,i)=>{
+  chars.forEach((c)=>{
     const el=document.createElement('div');
-    el.className='char'+(i%3===0?' bop':'');
-    el.style.cssText=`bottom:${c.y*0.01*100}%;left:-80px;font-size:${c.size}em;animation-duration:${c.speed}s;animation-delay:-${Math.random()*c.speed}s;filter:drop-shadow(0 0 6px ${c.color})`;
-    el.innerHTML=`<div class="note" style="color:${c.color};animation-delay:${Math.random()*1.2}s">${c.note}</div><div class="head">${c.head}</div><div class="body">${c.body}</div><div class="legs">${c.legs}</div>`;
+    const isVert=c.dir==='v'||c.dir==='v2';
+    let cls='char';
+    if(c.cls) cls+=' '+c.cls;
+    if(c.dir==='v') cls+=' dn';
+    else if(c.dir==='v2') cls+=' up';
+    el.className=cls;
+    const delay=-(Math.random()*(c.speed||18));
+    if(isVert){
+      el.style.cssText=`left:${c.x}%;top:-90px;font-size:${c.size||1}em;animation-duration:${c.speed}s;animation-delay:${delay}s;filter:drop-shadow(0 0 8px ${c.color})`;
+    }else{
+      el.style.cssText=`bottom:${c.y}%;left:-90px;font-size:${c.size||1}em;animation-duration:${c.speed}s;animation-delay:${delay}s;filter:drop-shadow(0 0 8px ${c.color})`;
+    }
+    el.innerHTML=`<div class="note" style="color:${c.color};animation-delay:${Math.random()*1.5}s">${c.note}</div><div class="head">${c.head}</div><div class="body">${c.body}</div><div class="legs">${c.legs}</div>`;
     container.appendChild(el);
   });
 })();
