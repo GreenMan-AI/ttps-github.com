@@ -10,6 +10,7 @@ import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { useApp, API } from '../AppContext';
 import { Lang } from '../i18n';
+import MoodScreen from './MoodScreen';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const INACTIVITY_MS = 2 * 60 * 1000;
@@ -1087,8 +1088,8 @@ export default function MainApp() {
   const TABS = [
     { id: 'home',    icon: 'home-outline',               label: t.home },
     { id: 'music',   icon: 'musical-notes-outline',      label: t.music },
+    { id: 'mood',    icon: 'color-palette-outline',      label: 'Mood' },
     { id: 'chat',    icon: 'chatbubbles-outline',        label: t.chat },
-    { id: 'info',    icon: 'information-circle-outline', label: t.info },
     { id: 'profile', icon: 'person-outline',             label: t.profile },
   ];
 
@@ -1096,6 +1097,7 @@ export default function MainApp() {
     switch (activeTab) {
       case 'home':    return <HomeScreen onNavigate={setActiveTab} />;
       case 'music':   return <MusicScreen />;
+      case 'mood':    return <MoodScreen />;
       case 'chat':    return <ChatScreen />;
       case 'info':    return <InfoScreen />;
       case 'profile': return <ProfileScreen />;
