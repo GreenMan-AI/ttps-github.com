@@ -1,112 +1,138 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useApp } from '../../AppContext';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+const GENRES = ['Visi', 'Hip-Hop', 'Metal', 'Pop', 'Electronic', 'Rock', 'Jazz'];
 
-export default function TabTwoScreen() {
+export default function ExploreScreen() {
+  const { tracks, setPlaying, playing, isPlaying, addToPlaylist, t } = useApp();
+  const [search, setSearch] = useState('');
+  const [genre, setGenre] = useState('Visi');
+
+  const filtered = tracks.filter((tr: any) => {
+    const matchSearch =
+      tr.title?.toLowerCase().includes(search.toLowerCase()) ||
+      tr.artist?.toLowerCase().includes(search.toLowerCase());
+    const matchGenre = genre === 'Visi' || tr.folder === genre;
+    return matchSearch && matchGenre;
+  });
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>🔍 {t.search}</Text>
+      </View>
+
+      <View style={styles.searchBox}>
+        <Ionicons name="search" size={18} color="#555" />
+        <TextInput
+          style={styles.input}
+          placeholder={t.searchPlaceholder}
+          placeholderTextColor="#444"
+          value={search}
+          onChangeText={setSearch}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => setSearch('')}>
+            <Ionicons name="close-circle" size={18} color="#555" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <FlatList
+        horizontal
+        data={GENRES}
+        keyExtractor={(i) => i}
+        contentContainerStyle={styles.genres}
+        showsHorizontalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[styles.genreBtn, genre === item && styles.genreBtnActive]}
+            onPress={() => setGenre(item)}
+          >
+            <Text style={[styles.genreTxt, genre === item && styles.genreTxtActive]}>{item}</Text>
+          </TouchableOpacity>
+        )}
+      />
+
+      <FlatList
+        data={filtered}
+        keyExtractor={(tr: any) => tr._id}
+        contentContainerStyle={{ padding: 14, paddingBottom: 130 }}
+        renderItem={({ item }: any) => {
+          const isActive = playing?._id === item._id;
+          return (
+            <View style={[styles.track, isActive && styles.trackActive]}>
+              <TouchableOpacity style={styles.trackLeft} onPress={() => setPlaying(item)}>
+                <View style={styles.trackIcon}>
+                  <Ionicons name="musical-note" size={20} color={isActive ? '#00cfff' : '#555'} />
+                </View>
+                <View style={styles.info}>
+                  <Text style={[styles.trackTitle, isActive && styles.trackTitleActive]} numberOfLines={1}>
+                    {item.title || t.noTitle}
+                  </Text>
+                  <Text style={styles.trackArtist}>{item.artist || t.noArtist}</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => addToPlaylist(item)} style={styles.addBtn}>
+                <Ionicons name="add-circle-outline" size={22} color="#00cfff55" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setPlaying(item)}>
+                <Ionicons
+                  name={isActive && isPlaying ? 'pause-circle' : 'play-circle-outline'}
+                  size={30}
+                  color="#00cfff"
+                />
+              </TouchableOpacity>
+            </View>
+          );
+        }}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Ionicons name="search-outline" size={50} color="#222" />
+            <Text style={styles.emptyText}>{t.noTracks}</Text>
+          </View>
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: { flex: 1, backgroundColor: '#0a0a0f' },
+  header: { paddingHorizontal: 20, paddingTop: 54, paddingBottom: 14, backgroundColor: '#111118' },
+  title: { fontSize: 22, fontWeight: '800', color: '#00cfff' },
+  searchBox: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1a1a25', margin: 14, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderWidth: 1, borderColor: '#2a2a35',
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  input: { flex: 1, color: '#fff', marginLeft: 8, fontSize: 15 },
+  genres: { paddingHorizontal: 14, paddingBottom: 10 },
+  genreBtn: {
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
+    backgroundColor: '#1a1a25', marginRight: 8,
   },
+  genreBtnActive: { backgroundColor: '#00cfff' },
+  genreTxt: { color: '#555', fontWeight: '600' },
+  genreTxtActive: { color: '#000' },
+  track: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#111118', borderRadius: 12, padding: 10, marginBottom: 6,
+  },
+  trackActive: { backgroundColor: '#0d1a2a', borderWidth: 1, borderColor: '#00cfff33' },
+  trackLeft: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  trackIcon: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#1a1a25', justifyContent: 'center', alignItems: 'center', marginRight: 10,
+  },
+  info: { flex: 1 },
+  trackTitle: { color: '#ccc', fontSize: 14, fontWeight: '600' },
+  trackTitleActive: { color: '#00cfff' },
+  trackArtist: { color: '#555', fontSize: 12, marginTop: 2 },
+  addBtn: { padding: 6 },
+  empty: { alignItems: 'center', marginTop: 60, gap: 10 },
+  emptyText: { color: '#333', fontSize: 16 },
 });
