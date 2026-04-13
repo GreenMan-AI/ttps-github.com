@@ -14,7 +14,13 @@ export default function ExploreScreen() {
     const matchSearch =
       tr.title?.toLowerCase().includes(search.toLowerCase()) ||
       tr.artist?.toLowerCase().includes(search.toLowerCase());
-    const matchGenre = genre === 'Visi' || tr.folder === genre;
+    // Atbalsta gan folder, gan tags masīvu, gan title meklēšanu pēc žanra
+    const matchGenre =
+      genre === 'Visi' ||
+      tr.folder === genre ||
+      tr.genre === genre ||
+      (Array.isArray(tr.tags) && tr.tags.includes(genre)) ||
+      tr.title?.toLowerCase().includes(genre.toLowerCase());
     return matchSearch && matchGenre;
   });
 
@@ -91,7 +97,9 @@ export default function ExploreScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="search-outline" size={50} color="#222" />
-            <Text style={styles.emptyText}>{t.noTracks}</Text>
+            <Text style={styles.emptyText}>
+              {genre !== 'Visi' ? `Nav dziesmu žanrā "${genre}"` : t.noTracks}
+            </Text>
           </View>
         }
       />
@@ -134,5 +142,5 @@ const styles = StyleSheet.create({
   trackArtist: { color: '#555', fontSize: 12, marginTop: 2 },
   addBtn: { padding: 6 },
   empty: { alignItems: 'center', marginTop: 60, gap: 10 },
-  emptyText: { color: '#333', fontSize: 16 },
+  emptyText: { color: '#333', fontSize: 16, textAlign: 'center' },
 });

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshControl, Image } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp, API } from '../../AppContext';
@@ -14,7 +14,6 @@ export default function HomeScreen() {
       setLoading(true);
       const r = await fetch(`${API}/api/tracks`);
       const data = await r.json();
-      // Serveris atgriež { tracks: [...] }
       setTracks(Array.isArray(data) ? data : (data.tracks || []));
     } catch {}
     finally { setLoading(false); }
@@ -83,8 +82,17 @@ export default function HomeScreen() {
                   : <Text style={styles.indexNum}>{index + 1}</Text>
                 }
               </View>
+              {/* Cover art vai ikona */}
               <View style={styles.trackIcon}>
-                <Ionicons name="musical-note" size={20} color={isActive ? '#00cfff' : '#555'} />
+                {item.coverUrl ? (
+                  <Image
+                    source={{ uri: item.coverUrl }}
+                    style={styles.coverImg}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Ionicons name="musical-note" size={20} color={isActive ? '#00cfff' : '#555'} />
+                )}
               </View>
               <View style={styles.trackInfo}>
                 <Text style={[styles.trackTitle, isActive && styles.trackTitleActive]} numberOfLines={1}>
@@ -151,10 +159,12 @@ const styles = StyleSheet.create({
   indexBox: { width: 24, alignItems: 'center', marginRight: 6 },
   indexNum: { color: '#333', fontSize: 12 },
   trackIcon: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 40, height: 40, borderRadius: 8,
     backgroundColor: '#1a1a25',
     justifyContent: 'center', alignItems: 'center', marginRight: 10,
+    overflow: 'hidden',
   },
+  coverImg: { width: 40, height: 40, borderRadius: 8 },
   trackInfo: { flex: 1 },
   trackTitle: { color: '#ccc', fontSize: 14, fontWeight: '600' },
   trackTitleActive: { color: '#00cfff' },

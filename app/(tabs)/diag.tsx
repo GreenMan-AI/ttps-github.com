@@ -1,9 +1,11 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { useState } from 'react';
+import { useApp } from '../../AppContext';
 
 const API = 'https://greenman-ai.onrender.com';
 
 export default function DiagScreen() {
+  const { token } = useApp();
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -15,7 +17,7 @@ export default function DiagScreen() {
     setResults([]);
     setLoading(true);
 
-    // 1. Server ping
+    // 1. Server ping + dziesmu skaits
     try {
       const r = await fetch(`${API}/api/tracks`);
       const d = await r.json();
@@ -25,47 +27,33 @@ export default function DiagScreen() {
       add('Serveris', false, `❌ ${e.message}`);
     }
 
-    // 2. Login admin
-    try {
-      const r = await fetch(`${API}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'admin', password: 'Draconball1' }),
-      });
-      const d = await r.json();
-      if (d.token) {
-        add('Admin login', true, `✅ Token saņemts, isAdmin: ${d.isAdmin}`);
-        
-        // 3. Test logout
-        try {
-          const r2 = await fetch(`${API}/api/logout`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${d.token}` },
-          });
-          add('Logout API', r2.ok, r2.ok ? '✅ Strādā' : `❌ Status: ${r2.status}`);
-        } catch (e: any) {
-          add('Logout API', false, `❌ ${e.message}`);
-        }
-
-        // 4. Test /api/me
-        try {
-          const r3 = await fetch(`${API}/api/me`, {
-            headers: { 'Authorization': `Bearer ${d.token}` },
-          });
-          const d3 = await r3.json();
-          add('/api/me', r3.ok, r3.ok ? `✅ ${JSON.stringify(d3).slice(0, 60)}` : `❌ ${JSON.stringify(d3)}`);
-        } catch (e: any) {
-          add('/api/me', false, `❌ ${e.message}`);
-        }
-
-      } else {
-        add('Admin login', false, `❌ ${JSON.stringify(d)}`);
+    // 2. /api/me ar esošo token
+    if (token) {
+      try {
+        const r = await fetch(`${API}/api/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const d = await r.json();
+        add('/api/me', r.ok, r.ok ? `✅ ${JSON.stringify(d).slice(0, 60)}` : `❌ ${JSON.stringify(d)}`);
+      } catch (e: any) {
+        add('/api/me', false, `❌ ${e.message}`);
       }
-    } catch (e: any) {
-      add('Admin login', false, `❌ ${e.message}`);
+
+      // 3. Logout test
+      try {
+        const r2 = await fetch(`${API}/api/logout`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        add('Logout API', r2.ok, r2.ok ? '✅ Strādā' : `❌ Status: ${r2.status}`);
+      } catch (e: any) {
+        add('Logout API', false, `❌ ${e.message}`);
+      }
+    } else {
+      add('/api/me', false, '⚠️ Nav token — ienāc sistēmā');
     }
 
-    // 5. Register test
+    // 4. Register test ar unikālu lietotājvārdu
     try {
       const r = await fetch(`${API}/api/register`, {
         method: 'POST',
@@ -96,7 +84,10 @@ export default function DiagScreen() {
         </View>
       ))}
       {results.length > 0 && !loading && (
-        <TouchableOpacity style={styles.copyBtn} onPress={() => Alert.alert('Rezultāti', results.map(r => `${r.name}: ${r.msg}`).join('\n'))}>
+        <TouchableOpacity
+          style={styles.copyBtn}
+          onPress={() => Alert.alert('Rezultāti', results.map(r => `${r.name}: ${r.msg}`).join('\n'))}
+        >
           <Text style={styles.copyText}>Rādīt visu</Text>
         </TouchableOpacity>
       )}
