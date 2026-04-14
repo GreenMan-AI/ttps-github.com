@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Image, Modal } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -6,6 +6,14 @@ import * as ImagePicker from 'expo-image-picker';
 import { useApp } from '../../AppContext';
 
 const API = 'https://greenman-ai.onrender.com';
+
+const VIOLATION_TYPES = [
+  { key: 'spam',      label: '🗑️ Spam',          color: '#f59e0b' },
+  { key: 'abuse',     label: '🤬 Rupjības',       color: '#ef4444' },
+  { key: 'copyright', label: '©️ Autortiesības',  color: '#a855f7' },
+  { key: 'fake',      label: '🎭 Viltus konts',   color: '#6366f1' },
+  { key: 'other',     label: '⚠️ Cits',           color: '#888'   },
+];
 
 export default function AdminScreen() {
   const { user, token, t } = useApp();
@@ -17,6 +25,11 @@ export default function AdminScreen() {
   const [uploading, setUploading] = useState(false);
   const [tracks, setTracks] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [warnMsg, setWarnMsg] = useState('');
+  const [selectedViolation, setSelectedViolation] = useState('spam');
+  const [violations, setViolations] = useState<Record<string, any[]>>({});
   const [ticker, setTicker] = useState('');
   const [tickerActive, setTickerActive] = useState(false);
 
@@ -54,25 +67,15 @@ export default function AdminScreen() {
   };
 
   const pickFile = async () => {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: 'audio/*',
-      copyToCacheDirectory: true,
-    });
-    if (!result.canceled && result.assets?.[0]) {
-      setFile(result.assets[0]);
-    }
+    const result = await DocumentPicker.getDocumentAsync({ type: 'audio/*', copyToCacheDirectory: true });
+    if (!result.canceled && result.assets?.[0]) setFile(result.assets[0]);
   };
 
   const pickCover = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.8,
     });
-    if (!result.canceled && result.assets?.[0]) {
-      setCoverImage(result.assets[0]);
-    }
+    if (!result.canceled && result.assets?.[0]) setCoverImage(result.assets[0]);
   };
 
   const uploadTrack = async () => {
@@ -82,26 +85,13 @@ export default function AdminScreen() {
       const form = new FormData();
       form.append('title', title || file.name);
       form.append('artist', artist);
-      form.append('audio', {
-        uri: file.uri,
-        name: file.name,
-        type: file.mimeType || 'audio/mpeg',
-      } as any);
-
-      // Pievieno cover bildi ja izvēlēta
+      form.append('audio', { uri: file.uri, name: file.name, type: file.mimeType || 'audio/mpeg' } as any);
       if (coverImage) {
         const filename = coverImage.uri.split('/').pop() || 'cover.jpg';
-        form.append('cover', {
-          uri: coverImage.uri,
-          name: filename,
-          type: 'image/jpeg',
-        } as any);
+        form.append('cover', { uri: coverImage.uri, name: filename, type: 'image/jpeg' } as any);
       }
-
       const r = await fetch(`${API}/api/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form,
       });
       const d = await r.json();
       if (d._id || d.track) {
@@ -110,26 +100,19 @@ export default function AdminScreen() {
       } else {
         Alert.alert(t.error, d.error || 'Neizdevās');
       }
-    } catch (e: any) {
-      Alert.alert(t.error, e.message);
-    }
+    } catch (e: any) { Alert.alert(t.error, e.message); }
     setUploading(false);
   };
 
   const deleteTrack = async (id: string) => {
     Alert.alert('Dzēst?', 'Vai tiešām dzēst šo dziesmu?', [
       { text: 'Nē', style: 'cancel' },
-      {
-        text: 'Dzēst', style: 'destructive', onPress: async () => {
-          try {
-            await fetch(`${API}/api/tracks/${id}`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            loadTracks();
-          } catch {}
-        }
-      }
+      { text: 'Dzēst', style: 'destructive', onPress: async () => {
+        try {
+          await fetch(`${API}/api/tracks/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+          loadTracks();
+        } catch {}
+      }},
     ]);
   };
 
@@ -144,90 +127,139 @@ export default function AdminScreen() {
     } catch {}
   };
 
+  const openUserModal = (u: any) => {
+    setSelectedUser(u);
+    setWarnMsg('');
+    setSelectedViolation('spam');
+    setShowUserModal(true);
+  };
+
+  const sendWarning = async () => {
+    if (!warnMsg.trim()) return Alert.alert('Kļūda', 'Ievadi brīdinājuma ziņojumu!');
+    const violation = VIOLATION_TYPES.find(v => v.key === selectedViolation);
+    const newViolation = {
+      id: Date.now().toString(),
+      type: selectedViolation,
+      label: violation?.label || '⚠️',
+      msg: warnMsg.trim(),
+      date: new Date().toLocaleDateString('lv-LV'),
+    };
+    setViolations(prev => ({
+      ...prev,
+      [selectedUser._id]: [...(prev[selectedUser._id] || []), newViolation],
+    }));
+    try {
+      await fetch(`${API}/api/admin/warn/${selectedUser._id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ message: warnMsg.trim(), type: selectedViolation }),
+      });
+    } catch {}
+    Alert.alert('✅', `Brīdinājums nosūtīts lietotājam "${selectedUser.username}"!`);
+    setWarnMsg('');
+    setShowUserModal(false);
+  };
+
+  const deleteUser = (u: any) => {
+    Alert.alert('🗑️ Dzēst lietotāju?', `Vai tiešām dzēst "${u.username}"?`, [
+      { text: 'Atcelt', style: 'cancel' },
+      { text: 'Dzēst', style: 'destructive', onPress: async () => {
+        try {
+          await fetch(`${API}/api/admin/users/${u._id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+          setShowUserModal(false);
+          loadUsers();
+          Alert.alert('✅', `Lietotājs "${u.username}" dzēsts!`);
+        } catch { Alert.alert('Kļūda', 'Neizdevās dzēst'); }
+      }},
+    ]);
+  };
+
+  const banUser = (u: any) => {
+    Alert.alert('🚫 Bloķēt?', `Bloķēt "${u.username}"?`, [
+      { text: 'Atcelt', style: 'cancel' },
+      { text: 'Bloķēt', style: 'destructive', onPress: async () => {
+        try {
+          await fetch(`${API}/api/admin/ban/${u._id}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+          setShowUserModal(false);
+          loadUsers();
+          Alert.alert('✅', `Lietotājs "${u.username}" bloķēts!`);
+        } catch { Alert.alert('Kļūda', 'Neizdevās bloķēt'); }
+      }},
+    ]);
+  };
+
   if (!user?.isAdmin) {
     return (
-      <View style={styles.noAccess}>
+      <View style={st.noAccess}>
         <Ionicons name="lock-closed" size={60} color="#ff4466" />
-        <Text style={styles.noAccessText}>Tikai adminam!</Text>
+        <Text style={st.noAccessText}>Tikai adminam!</Text>
       </View>
     );
   }
 
   const TABS = [
-    { key: 'upload', icon: 'cloud-upload', label: 'Upload' },
+    { key: 'upload', icon: 'cloud-upload',  label: 'Upload' },
     { key: 'tracks', icon: 'musical-notes', label: 'Dziesmas' },
-    { key: 'users', icon: 'people', label: 'Lietotāji' },
-    { key: 'ticker', icon: 'megaphone', label: 'Ticker' },
+    { key: 'users',  icon: 'people',        label: 'Lietotāji' },
+    { key: 'ticker', icon: 'megaphone',     label: 'Ticker' },
   ];
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={st.container}>
+      <View style={st.header}>
         <Ionicons name="shield-checkmark" size={22} color="#00cfff" />
-        <Text style={styles.title}> Admin Panelis</Text>
+        <Text style={st.title}> Admin Panelis</Text>
       </View>
 
-      <View style={styles.tabBar}>
+      <View style={st.tabBar}>
         {TABS.map(tb => (
           <TouchableOpacity
             key={tb.key}
-            style={[styles.tabBtn, tab === tb.key && styles.tabBtnActive]}
+            style={[st.tabBtn, tab === tb.key && st.tabBtnActive]}
             onPress={() => setTab(tb.key as any)}
           >
             <Ionicons name={tb.icon as any} size={18} color={tab === tb.key ? '#000' : '#888'} />
-            <Text style={[styles.tabLabel, tab === tb.key && styles.tabLabelActive]}>{tb.label}</Text>
+            <Text style={[st.tabLabel, tab === tb.key && st.tabLabelActive]}>{tb.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
 
-        {/* UPLOAD TAB */}
         {tab === 'upload' && (
           <View>
-            <Text style={styles.sectionTitle}>📦 Augšupielādēt dziesmu</Text>
-            <TextInput style={styles.input} placeholder="Nosaukums" placeholderTextColor="#555" value={title} onChangeText={setTitle} />
-            <TextInput style={styles.input} placeholder="Izpildītājs" placeholderTextColor="#555" value={artist} onChangeText={setArtist} />
-
-            {/* Audio fails */}
-            <TouchableOpacity style={styles.pickBtn} onPress={pickFile}>
+            <Text style={st.sectionTitle}>📦 Augšupielādēt dziesmu</Text>
+            <TextInput style={st.input} placeholder="Nosaukums" placeholderTextColor="#555" value={title} onChangeText={setTitle} />
+            <TextInput style={st.input} placeholder="Izpildītājs" placeholderTextColor="#555" value={artist} onChangeText={setArtist} />
+            <TouchableOpacity style={st.pickBtn} onPress={pickFile}>
               <Ionicons name="musical-note" size={20} color="#00cfff" />
-              <Text style={styles.pickText}>{file ? file.name : 'Izvēlies MP3 failu'}</Text>
+              <Text style={st.pickText}>{file ? file.name : 'Izvēlies MP3 failu'}</Text>
             </TouchableOpacity>
-
-            {/* Cover bilde */}
-            <TouchableOpacity style={styles.pickBtn} onPress={pickCover}>
+            <TouchableOpacity style={st.pickBtn} onPress={pickCover}>
               <Ionicons name="image-outline" size={20} color="#00cfff" />
-              <Text style={styles.pickText}>{coverImage ? 'Bilde izvēlēta ✅' : 'Izvēlies vāka bildi (pēc izvēles)'}</Text>
+              <Text style={st.pickText}>{coverImage ? 'Bilde izvēlēta ✅' : 'Izvēlies vāka bildi (pēc izvēles)'}</Text>
             </TouchableOpacity>
-            {coverImage && (
-              <Image source={{ uri: coverImage.uri }} style={styles.coverPreview} />
-            )}
-
-            <TouchableOpacity style={[styles.uploadBtn, uploading && styles.uploadBtnDisabled]} onPress={uploadTrack} disabled={uploading}>
-              <Text style={styles.uploadBtnText}>{uploading ? 'Augšupielādē...' : '⬆ Augšupielādēt'}</Text>
+            {coverImage && <Image source={{ uri: coverImage.uri }} style={st.coverPreview} />}
+            <TouchableOpacity style={[st.uploadBtn, uploading && st.uploadBtnDisabled]} onPress={uploadTrack} disabled={uploading}>
+              <Text style={st.uploadBtnText}>{uploading ? 'Augšupielādē...' : '⬆ Augšupielādēt'}</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* TRACKS TAB */}
         {tab === 'tracks' && (
           <View>
-            <Text style={styles.sectionTitle}>🎵 Dziesmas ({tracks.length})</Text>
+            <Text style={st.sectionTitle}>🎵 Dziesmas ({tracks.length})</Text>
             {tracks.map((tr: any) => (
-              <View key={tr._id} style={styles.trackRow}>
-                {tr.coverUrl ? (
-                  <Image source={{ uri: tr.coverUrl }} style={styles.trackCover} />
-                ) : (
-                  <View style={styles.trackCoverEmpty}>
-                    <Ionicons name="musical-note" size={16} color="#555" />
-                  </View>
-                )}
+              <View key={tr._id} style={st.trackRow}>
+                {tr.coverUrl
+                  ? <Image source={{ uri: tr.coverUrl }} style={st.trackCover} />
+                  : <View style={st.trackCoverEmpty}><Ionicons name="musical-note" size={16} color="#555" /></View>
+                }
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.trackTitle} numberOfLines={1}>{tr.title || 'Nav nosaukuma'}</Text>
-                  <Text style={styles.trackArtist}>{tr.artist || '—'} · {tr.plays || 0} atskaņojumi</Text>
+                  <Text style={st.trackTitle} numberOfLines={1}>{tr.title || 'Nav nosaukuma'}</Text>
+                  <Text style={st.trackArtist}>{tr.artist || '—'} · {tr.plays || 0} atskaņojumi</Text>
                 </View>
-                <TouchableOpacity onPress={() => deleteTrack(tr._id)} style={styles.deleteBtn}>
+                <TouchableOpacity onPress={() => deleteTrack(tr._id)} style={st.deleteBtn}>
                   <Ionicons name="trash" size={20} color="#ff4466" />
                 </TouchableOpacity>
               </View>
@@ -235,29 +267,47 @@ export default function AdminScreen() {
           </View>
         )}
 
-        {/* USERS TAB */}
         {tab === 'users' && (
           <View>
-            <Text style={styles.sectionTitle}>👥 Lietotāji ({users.length})</Text>
-            {users.length === 0 && (
-              <Text style={styles.emptyText}>Nav lietotāju vai nav piekļuves</Text>
-            )}
-            {users.map((u: any) => (
-              <View key={u._id || u.username} style={styles.userRow}>
-                <Ionicons name={u.isAdmin ? 'shield-checkmark' : 'person'} size={20} color={u.isAdmin ? '#00cfff' : '#888'} />
-                <Text style={styles.userName}>{u.username}</Text>
-                {u.isAdmin && <Text style={styles.adminBadge}>ADMIN</Text>}
-              </View>
-            ))}
+            <Text style={st.sectionTitle}>👥 Lietotāji ({users.length})</Text>
+            {users.length === 0 && <Text style={st.emptyText}>Nav lietotāju vai nav piekļuves</Text>}
+            {users.map((u: any) => {
+              const userViolations = violations[u._id] || [];
+              return (
+                <TouchableOpacity
+                  key={u._id || u.username}
+                  style={[st.userRow, userViolations.length > 0 && st.userRowWarned]}
+                  onPress={() => openUserModal(u)}
+                >
+                  <View style={[st.userAvatar, { backgroundColor: u.isAdmin ? '#00cfff22' : '#111118' }]}>
+                    <Text style={[st.userAvatarLetter, { color: u.isAdmin ? '#00cfff' : '#888' }]}>
+                      {u.username?.charAt(0)?.toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={st.userName}>{u.username}</Text>
+                      {u.isAdmin && <Text style={st.adminBadge}>ADMIN</Text>}
+                      {u.banned && <Text style={st.bannedBadge}>BLOĶĒTS</Text>}
+                    </View>
+                    <Text style={st.userMeta}>
+                      {userViolations.length > 0
+                        ? `⚠️ ${userViolations.length} brīdinājums(-i)`
+                        : '✓ Nav pārkāpumu'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#444" />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
-        {/* TICKER TAB */}
         {tab === 'ticker' && (
           <View>
-            <Text style={styles.sectionTitle}>📢 Slīdošais ziņojums</Text>
+            <Text style={st.sectionTitle}>📢 Slīdošais ziņojums</Text>
             <TextInput
-              style={[styles.input, { height: 80 }]}
+              style={[st.input, { height: 80 }]}
               placeholder="Ziņojuma teksts..."
               placeholderTextColor="#555"
               value={ticker}
@@ -265,25 +315,103 @@ export default function AdminScreen() {
               multiline
             />
             <TouchableOpacity
-              style={[styles.toggleBtn, tickerActive && styles.toggleBtnActive]}
+              style={[st.toggleBtn, tickerActive && st.toggleBtnActive]}
               onPress={() => setTickerActive(!tickerActive)}
             >
               <Ionicons name={tickerActive ? 'eye' : 'eye-off'} size={18} color={tickerActive ? '#000' : '#888'} />
-              <Text style={[styles.toggleText, tickerActive && styles.toggleTextActive]}>
+              <Text style={[st.toggleText, tickerActive && st.toggleTextActive]}>
                 {tickerActive ? 'Redzams visiem' : 'Paslēpts'}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.uploadBtn} onPress={saveTicker}>
-              <Text style={styles.uploadBtnText}>💾 Saglabāt</Text>
+            <TouchableOpacity style={st.uploadBtn} onPress={saveTicker}>
+              <Text style={st.uploadBtnText}>💾 Saglabāt</Text>
             </TouchableOpacity>
           </View>
         )}
       </ScrollView>
+
+      {/* LIETOTĀJA MODĀLS */}
+      <Modal visible={showUserModal} transparent animationType="slide">
+        <TouchableOpacity style={st.overlay} onPress={() => setShowUserModal(false)} activeOpacity={1}>
+          <View style={st.modal}>
+            {selectedUser && (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={st.modalUserHeader}>
+                  <View style={st.modalAvatar}>
+                    <Text style={st.modalAvatarLetter}>{selectedUser.username?.charAt(0)?.toUpperCase()}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={st.modalUsername}>{selectedUser.username}</Text>
+                    <Text style={st.modalRole}>{selectedUser.isAdmin ? '⭐ Admin' : '👤 Lietotājs'}</Text>
+                  </View>
+                </View>
+
+                {(violations[selectedUser._id] || []).length > 0 && (
+                  <View style={st.violationsBox}>
+                    <Text style={st.violationsTitle}>📋 Pārkāpumu vēsture:</Text>
+                    {(violations[selectedUser._id] || []).map((v: any) => (
+                      <View key={v.id} style={[st.violationRow, { borderLeftColor: VIOLATION_TYPES.find(vt => vt.key === v.type)?.color || '#888' }]}>
+                        <Text style={st.violationLabel}>{v.label} · {v.date}</Text>
+                        <Text style={st.violationMsg}>{v.msg}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <Text style={st.modalLabel}>Pārkāpuma veids:</Text>
+                <View style={st.violationTypes}>
+                  {VIOLATION_TYPES.map(vt => (
+                    <TouchableOpacity
+                      key={vt.key}
+                      style={[st.vtBtn, selectedViolation === vt.key && { backgroundColor: vt.color + '33', borderColor: vt.color }]}
+                      onPress={() => setSelectedViolation(vt.key)}
+                    >
+                      <Text style={[st.vtTxt, selectedViolation === vt.key && { color: vt.color }]}>{vt.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={st.modalLabel}>Brīdinājuma ziņojums:</Text>
+                <TextInput
+                  style={st.modalInput}
+                  placeholder="Piemēram: Lūdzu ievēro kopienas noteikumus..."
+                  placeholderTextColor="#444"
+                  value={warnMsg}
+                  onChangeText={setWarnMsg}
+                  multiline
+                />
+
+                <TouchableOpacity style={st.warnBtn} onPress={sendWarning}>
+                  <Ionicons name="warning-outline" size={18} color="#000" />
+                  <Text style={st.warnBtnTxt}>⚠️ Nosūtīt brīdinājumu</Text>
+                </TouchableOpacity>
+
+                {!selectedUser.isAdmin && (
+                  <View style={st.dangerRow}>
+                    <TouchableOpacity style={st.banBtn} onPress={() => banUser(selectedUser)}>
+                      <Ionicons name="ban-outline" size={16} color="#f59e0b" />
+                      <Text style={st.banBtnTxt}>Bloķēt</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={st.deleteUserBtn} onPress={() => deleteUser(selectedUser)}>
+                      <Ionicons name="trash-outline" size={16} color="#ff4466" />
+                      <Text style={st.deleteUserBtnTxt}>Dzēst</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                <TouchableOpacity style={st.closeBtn} onPress={() => setShowUserModal(false)}>
+                  <Text style={st.closeBtnTxt}>Aizvērt</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const st = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0f' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 55, paddingBottom: 15, backgroundColor: '#111118' },
   title: { fontSize: 20, fontWeight: 'bold', color: '#00cfff' },
@@ -306,9 +434,14 @@ const styles = StyleSheet.create({
   trackTitle: { color: '#fff', fontSize: 14, fontWeight: '600' },
   trackArtist: { color: '#888', fontSize: 12, marginTop: 2 },
   deleteBtn: { padding: 8 },
-  userRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a25', borderRadius: 12, padding: 14, marginBottom: 8 },
-  userName: { color: '#fff', fontSize: 15, marginLeft: 10, flex: 1 },
-  adminBadge: { color: '#00cfff', fontSize: 11, fontWeight: 'bold', backgroundColor: '#0d1a2a', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  userRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a25', borderRadius: 12, padding: 12, marginBottom: 8, gap: 10 },
+  userRowWarned: { borderWidth: 1, borderColor: '#f59e0b44', backgroundColor: '#2a1a0a' },
+  userAvatar: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center' },
+  userAvatarLetter: { fontSize: 16, fontWeight: '800' },
+  userName: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  userMeta: { color: '#555', fontSize: 11, marginTop: 2 },
+  adminBadge: { color: '#00cfff', fontSize: 10, fontWeight: 'bold', backgroundColor: '#0d1a2a', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 5 },
+  bannedBadge: { color: '#ff4466', fontSize: 10, fontWeight: 'bold', backgroundColor: '#2a0d0d', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 5 },
   emptyText: { color: '#444', fontSize: 15, textAlign: 'center', marginTop: 20 },
   toggleBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a25', borderRadius: 12, padding: 14, marginBottom: 12 },
   toggleBtnActive: { backgroundColor: '#00cfff' },
@@ -316,4 +449,30 @@ const styles = StyleSheet.create({
   toggleTextActive: { color: '#000' },
   noAccess: { flex: 1, backgroundColor: '#0a0a0f', justifyContent: 'center', alignItems: 'center' },
   noAccessText: { color: '#ff4466', fontSize: 20, fontWeight: 'bold', marginTop: 16 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
+  modal: { backgroundColor: '#111118', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '90%' },
+  modalUserHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  modalAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#00cfff22', justifyContent: 'center', alignItems: 'center' },
+  modalAvatarLetter: { fontSize: 22, fontWeight: '800', color: '#00cfff' },
+  modalUsername: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  modalRole: { color: '#555', fontSize: 12, marginTop: 2 },
+  modalLabel: { color: '#666', fontSize: 12, fontWeight: '700', marginBottom: 8, letterSpacing: 0.5 },
+  modalInput: { backgroundColor: '#0a0a0f', borderRadius: 12, padding: 12, color: '#fff', fontSize: 14, borderWidth: 1, borderColor: '#2a2a35', marginBottom: 12, minHeight: 70 },
+  violationsBox: { backgroundColor: '#1a1505', borderRadius: 12, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: '#f59e0b33' },
+  violationsTitle: { color: '#f59e0b', fontSize: 12, fontWeight: '700', marginBottom: 8 },
+  violationRow: { borderLeftWidth: 3, paddingLeft: 10, marginBottom: 6 },
+  violationLabel: { color: '#888', fontSize: 10, fontWeight: '600' },
+  violationMsg: { color: '#ccc', fontSize: 13, marginTop: 2 },
+  violationTypes: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 },
+  vtBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: '#1a1a25', borderWidth: 1, borderColor: '#2a2a35' },
+  vtTxt: { color: '#666', fontSize: 11, fontWeight: '600' },
+  warnBtn: { backgroundColor: '#f59e0b', borderRadius: 12, paddingVertical: 13, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 10 },
+  warnBtnTxt: { color: '#000', fontWeight: '800', fontSize: 14 },
+  dangerRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  banBtn: { flex: 1, backgroundColor: '#f59e0b22', borderRadius: 12, paddingVertical: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: '#f59e0b44' },
+  banBtnTxt: { color: '#f59e0b', fontWeight: '700' },
+  deleteUserBtn: { flex: 1, backgroundColor: '#ff446622', borderRadius: 12, paddingVertical: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: '#ff446644' },
+  deleteUserBtnTxt: { color: '#ff4466', fontWeight: '700' },
+  closeBtn: { backgroundColor: '#1a1a25', borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginTop: 4 },
+  closeBtnTxt: { color: '#666', fontWeight: '600' },
 });

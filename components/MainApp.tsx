@@ -1206,7 +1206,7 @@ function ShareScreen() {
             action: () => openUrl(`https://wa.me/?text=${encodeURIComponent(`🎵 SoundForge — Latvijas mūzikas app! Lejupielādē: ${APP_URL}`)}`),
           },
           {
-            icon: 'logo-telegram', label: 'Telegram', c: '#229ED9',
+            icon: 'paper-plane-outline', label: 'Telegram', c: '#229ED9',
             action: () => openUrl(`https://t.me/share/url?url=${encodeURIComponent(APP_URL)}&text=${encodeURIComponent('🎵 SoundForge — Latvijas mūzikas app!')}`),
           },
           {
