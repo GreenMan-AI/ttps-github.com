@@ -11,6 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useApp, API } from '../AppContext';
 import { Lang } from '../i18n';
 import MoodScreen from './MoodScreen';
+import { Share, Linking } from 'react-native';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const INACTIVITY_MS = 2 * 60 * 1000;
@@ -1059,16 +1060,226 @@ const pr = StyleSheet.create({
 });
 
 // ════════════════════════════════
+//  SHARE SCREEN
+// ════════════════════════════════
+const APP_URL = 'https://github.com/GreenMan-AI/greenman-ai/releases/tag/v1.0.0';
+const SHARE_COLORS = ['#00cfff','#a855f7','#22d3ee','#f59e0b','#10b981','#ef4444','#6366f1'];
+const SERVER_URL = 'https://greenman-ai.onrender.com';
+
+function SimpleQR({ size = 180, color = '#00cfff' }: { size?: number; color?: string }) {
+  const cells = 21;
+  const markers = [{ x: 0, y: 0 }, { x: cells - 7, y: 0 }, { x: 0, y: cells - 7 }];
+  return (
+    <View style={{ width: size, height: size, backgroundColor: '#fff', padding: 8, borderRadius: 12 }}>
+      <View style={{ flex: 1, position: 'relative' }}>
+        {markers.map((m, i) => (
+          <View key={i} style={{
+            position: 'absolute',
+            left: m.x * (size / cells), top: m.y * (size / cells),
+            width: 7 * (size / cells), height: 7 * (size / cells),
+            borderWidth: 2, borderColor: color, borderRadius: 2,
+          }}>
+            <View style={{
+              position: 'absolute', top: size / cells, left: size / cells,
+              width: 5 * (size / cells), height: 5 * (size / cells),
+              backgroundColor: color, borderRadius: 1,
+            }}>
+              <View style={{
+                position: 'absolute', top: size / cells, left: size / cells,
+                width: 3 * (size / cells), height: 3 * (size / cells),
+                backgroundColor: '#fff',
+              }} />
+            </View>
+          </View>
+        ))}
+        <View style={{
+          position: 'absolute', top: size * 0.35, left: size * 0.35,
+          width: size * 0.3, height: size * 0.3, backgroundColor: color + '22',
+          borderRadius: size * 0.15, borderWidth: 2, borderColor: color,
+          justifyContent: 'center', alignItems: 'center',
+        }}>
+          <Text style={{ fontSize: size * 0.12 }}>🎵</Text>
+        </View>
+        {Array.from({ length: 60 }, (_, i) => {
+          const seed = (i * 137 + 41) % 100;
+          const x = ((i * 13) % (cells - 8)) + 8;
+          const y = ((i * 7 + 3) % (cells - 8)) + 8;
+          return seed > 45 ? (
+            <View key={`d${i}`} style={{
+              position: 'absolute',
+              left: x * (size / cells), top: y * (size / cells),
+              width: (size / cells) - 1, height: (size / cells) - 1,
+              backgroundColor: color, borderRadius: 1,
+            }} />
+          ) : null;
+        })}
+      </View>
+    </View>
+  );
+}
+
+function ShareScreen() {
+  const { tracks } = useApp();
+  const [colorIdx, setColorIdx] = useState(0);
+  const [stats, setStats] = useState<any>(null);
+  const color = SHARE_COLORS[colorIdx];
+
+  useEffect(() => {
+    const t = setInterval(() => setColorIdx(i => (i + 1) % SHARE_COLORS.length), 2000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    fetch(`${SERVER_URL}/api/tracks`)
+      .then(r => r.json())
+      .then(d => {
+        const list = Array.isArray(d) ? d : (d.tracks || []);
+        setStats({
+          tracks: list.length,
+          plays: list.reduce((s: number, tr: any) => s + (tr.plays || 0), 0),
+        });
+      }).catch(() => {});
+  }, []);
+
+  const shareApp = async () => {
+    try {
+      await Share.share({
+        message: `🎵 SoundForge — Latvijas mūzikas aplikācija!\n\nKlausies mūziku, veido playlistes, Mood Player un vairāk!\n\nLejupielādē šeit: ${APP_URL}`,
+        title: 'SoundForge',
+      });
+    } catch {}
+  };
+
+  const openUrl = (url: string) => {
+    Linking.openURL(url).catch(() => Alert.alert('Kļūda', 'Nevar atvērt saiti'));
+  };
+
+  return (
+    <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: 40 }}>
+      <View style={[s.hdr, { borderBottomColor: color + '33' }]}>
+        <Text style={[s.logo, { color }]}>📲 Dalīties</Text>
+      </View>
+
+      {/* QR kods */}
+      <View style={[sh.qrCard, { borderColor: color + '44' }]}>
+        <Text style={[sh.qrTitle, { color }]}>📱 Lejupielādē SoundForge</Text>
+        <Text style={sh.qrSub}>Skenē QR kodu vai nospied pogu</Text>
+        <View style={sh.qrWrap}>
+          <SimpleQR size={180} color={color} />
+        </View>
+        <Text style={[sh.qrUrl, { color: color + '99' }]} numberOfLines={2}>{APP_URL}</Text>
+        <View style={sh.qrBtns}>
+          <TouchableOpacity style={[sh.qrBtn, { backgroundColor: color }]} onPress={shareApp}>
+            <Ionicons name="share-social" size={18} color="#000" />
+            <Text style={sh.qrBtnTxt}>Dalīties</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[sh.qrBtn, { backgroundColor: color + '22', borderWidth: 1, borderColor: color + '55' }]} onPress={() => openUrl(APP_URL)}>
+            <Ionicons name="download-outline" size={18} color={color} />
+            <Text style={[sh.qrBtnTxt, { color }]}>Lejupielādēt</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Statistika */}
+      {stats && (
+        <View style={sh.statsRow}>
+          {[
+            { v: stats.tracks, l: 'Dziesmas', e: '🎵', c: SHARE_COLORS[0] },
+            { v: stats.plays, l: 'Atskaņojumi', e: '▶️', c: SHARE_COLORS[1] },
+            { v: '🇱🇻', l: 'Made in Latvia', e: '🌍', c: SHARE_COLORS[2] },
+          ].map((st, i) => (
+            <View key={i} style={[sh.statBox, { borderColor: st.c + '44' }]}>
+              <Text style={sh.statE}>{st.e}</Text>
+              <Text style={[sh.statV, { color: st.c }]}>{st.v}</Text>
+              <Text style={sh.statL}>{st.l}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Dalīšanās veidi */}
+      <View style={{ paddingHorizontal: 16 }}>
+        <Text style={[s.secLbl, { color: color + '99' }]}>DALĪTIES AR DRAUGIEM</Text>
+        {[
+          {
+            icon: 'logo-whatsapp', label: 'WhatsApp', c: '#25D366',
+            action: () => openUrl(`https://wa.me/?text=${encodeURIComponent(`🎵 SoundForge — Latvijas mūzikas app! Lejupielādē: ${APP_URL}`)}`),
+          },
+          {
+            icon: 'logo-telegram', label: 'Telegram', c: '#229ED9',
+            action: () => openUrl(`https://t.me/share/url?url=${encodeURIComponent(APP_URL)}&text=${encodeURIComponent('🎵 SoundForge — Latvijas mūzikas app!')}`),
+          },
+          {
+            icon: 'share-social-outline', label: 'Cits', c: color,
+            action: shareApp,
+          },
+        ].map((item, i) => (
+          <TouchableOpacity key={i} style={[sh.shareRow, { borderColor: item.c + '33' }]} onPress={item.action}>
+            <View style={[sh.shareIcon, { backgroundColor: item.c + '22' }]}>
+              <Ionicons name={item.icon as any} size={24} color={item.c} />
+            </View>
+            <Text style={sh.shareLabel}>{item.label}</Text>
+            <Ionicons name="chevron-forward" size={18} color="#333" />
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Par aplikāciju */}
+      <View style={[sh.aboutCard, { borderColor: color + '33' }]}>
+        <Text style={[sh.aboutTitle, { color }]}>ℹ️ Par SoundForge</Text>
+        <Text style={sh.aboutTxt}>
+          SoundForge ir Latvijā radīta mūzikas straumēšanas platforma.
+          Klausies mūziku, veido playlistes, izmanto Mood Player un
+          atrod jaunas dziesmas. Pieejama Android ierīcēs.
+        </Text>
+        <View style={[sh.badge, { backgroundColor: color + '22', borderColor: color + '44' }]}>
+          <Text style={[sh.badgeTxt, { color }]}>v1.0 • Made in Latvia 🇱🇻</Text>
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
+const sh = StyleSheet.create({
+  qrCard: { margin: 16, backgroundColor: '#111118', borderRadius: 20, padding: 20, alignItems: 'center', borderWidth: 1 },
+  qrTitle: { fontSize: 17, fontWeight: '800', marginBottom: 4 },
+  qrSub: { color: '#555', fontSize: 13, marginBottom: 20 },
+  qrWrap: { marginBottom: 16 },
+  qrUrl: { fontSize: 10, marginBottom: 16, letterSpacing: 0.3, textAlign: 'center' },
+  qrBtns: { flexDirection: 'row', gap: 10, width: '100%' },
+  qrBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 12, paddingVertical: 12, gap: 8 },
+  qrBtnTxt: { color: '#000', fontWeight: '700', fontSize: 14 },
+  statsRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginBottom: 20 },
+  statBox: { flex: 1, backgroundColor: '#111118', borderRadius: 14, padding: 12, alignItems: 'center', gap: 4, borderWidth: 1 },
+  statE: { fontSize: 22 },
+  statV: { fontSize: 16, fontWeight: '900' },
+  statL: { color: '#555', fontSize: 9, fontWeight: '600', textAlign: 'center' },
+  shareRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#111118', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, gap: 14 },
+  shareIcon: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  shareLabel: { flex: 1, color: '#ccc', fontSize: 15, fontWeight: '600' },
+  aboutCard: { margin: 16, backgroundColor: '#111118', borderRadius: 16, padding: 18, borderWidth: 1 },
+  aboutTitle: { fontSize: 15, fontWeight: '800', marginBottom: 10 },
+  aboutTxt: { color: '#666', fontSize: 13, lineHeight: 20, marginBottom: 14 },
+  badge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  badgeTxt: { fontSize: 12, fontWeight: '700' },
+});
+
+// ════════════════════════════════
 //  MAIN APP
 // ════════════════════════════════
 export default function MainApp() {
   const [activeTab, setActiveTab] = useState('home');
-  const { t, logout } = useApp();
+  const { t, logout, isPlaying } = useApp();
   const color = useChameleon(3200);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isPlayingRef = useRef(isPlaying);
+
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
 
   const resetTimer = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
+    // Neizlogojas ja mūzika skan!
+    if (isPlayingRef.current) return;
     timer.current = setTimeout(logout, INACTIVITY_MS);
   }, [logout]);
 
@@ -1077,7 +1288,10 @@ export default function MainApp() {
     const sub = AppState.addEventListener('change', state => {
       if (state === 'background' || state === 'inactive') {
         if (timer.current) clearTimeout(timer.current);
-        timer.current = setTimeout(logout, 30000);
+        // Fonā NEKAD neizlogojas ja mūzika skan!
+        if (!isPlayingRef.current) {
+          timer.current = setTimeout(logout, 30000);
+        }
       } else {
         resetTimer();
       }
@@ -1090,6 +1304,7 @@ export default function MainApp() {
     { id: 'music',   icon: 'musical-notes-outline',      label: t.music },
     { id: 'mood',    icon: 'color-palette-outline',      label: 'Mood' },
     { id: 'chat',    icon: 'chatbubbles-outline',        label: t.chat },
+    { id: 'share',   icon: 'share-social-outline',       label: 'Dalīties' },
     { id: 'profile', icon: 'person-outline',             label: t.profile },
   ];
 
@@ -1099,6 +1314,7 @@ export default function MainApp() {
       case 'music':   return <MusicScreen />;
       case 'mood':    return <MoodScreen />;
       case 'chat':    return <ChatScreen />;
+      case 'share':   return <ShareScreen />;
       case 'info':    return <InfoScreen />;
       case 'profile': return <ProfileScreen />;
       default:        return <HomeScreen onNavigate={setActiveTab} />;
@@ -1162,6 +1378,6 @@ const s = StyleSheet.create({
 const tb = StyleSheet.create({
   bar: { flexDirection: 'row', backgroundColor: '#111118', borderBottomWidth: 1, paddingTop: 46, paddingBottom: 7 },
   item: { flex: 1, alignItems: 'center', gap: 2 },
-  lbl: { fontSize: 9, fontWeight: '600', color: '#444' },
+  lbl: { fontSize: 8, fontWeight: '600', color: '#444' },
   dot: { width: 4, height: 4, borderRadius: 2, marginTop: 1 },
 });
