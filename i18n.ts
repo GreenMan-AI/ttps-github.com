@@ -43,6 +43,7 @@ export const translations = {
     infoNamedPlTitle: 'Nosauktās playlistes', infoNamedPlText: 'Mūzika → 📋 Manas → + ikona. Saglabājas pastāvīgi.',
     infoProfileTitle: 'Profils', infoProfileText: 'Maini valodu, bildi, segvārdu un paroli profila cilnē.',
     infoContactTitle: 'Kontakti', infoContactText: 'Jautājumi? Sazinieties caur admin paneli.',
+    infoFooter: 'SoundForge v1.0 • Visas tiesības aizsargātas',
     featuredTrack: 'Ieteicamā dziesma',
     uploadTrack: 'Augšupielādēt dziesmu',
     uploadLimits: 'Max 25MB • Max 6 min • MP3/WAV/M4A • 10 augšupielādes/dienā',
@@ -53,8 +54,6 @@ export const translations = {
     uploadNote: 'Nospied lai izvēlētos audio failu',
     upload: 'Augšupielādēt',
     modalLbl: '',
-    infoFooter: 'SoundForge v1.0 • Visas tiesības aizsargātas',
-    featuredTrack: 'Ieteicamā dziesma',
   },
   en: {
     appName: 'SoundForge', appDesc: 'Music streaming platform',
@@ -100,6 +99,7 @@ export const translations = {
     infoNamedPlTitle: 'Named Playlists', infoNamedPlText: 'Music → 📋 Mine → + icon. Saved permanently.',
     infoProfileTitle: 'Profile', infoProfileText: 'Change language, picture, nickname and password in Profile tab.',
     infoContactTitle: 'Contact', infoContactText: 'Questions? Contact us through the admin panel.',
+    infoFooter: 'SoundForge v1.0 • All rights reserved',
     featuredTrack: 'Featured track',
     uploadTrack: 'Upload track',
     uploadLimits: 'Max 25MB • Max 6 min • MP3/WAV/M4A • 10 uploads/day',
@@ -110,8 +110,6 @@ export const translations = {
     uploadNote: 'Press to choose an audio file',
     upload: 'Upload',
     modalLbl: '',
-    infoFooter: 'SoundForge v1.0 • All rights reserved',
-    featuredTrack: 'Featured track',
   },
   ru: {
     appName: 'SoundForge', appDesc: 'Платформа для прослушивания музыки',
@@ -157,6 +155,7 @@ export const translations = {
     infoNamedPlTitle: 'Именованные плейлисты', infoNamedPlText: 'Музыка → 📋 Мои → иконка +. Сохраняются навсегда.',
     infoProfileTitle: 'Профиль', infoProfileText: 'Изменяйте язык, фото, псевдоним и пароль во вкладке Профиль.',
     infoContactTitle: 'Контакты', infoContactText: 'Вопросы? Свяжитесь через панель администратора.',
+    infoFooter: 'SoundForge v1.0 • Все права защищены',
     featuredTrack: 'Рекомендуемый трек',
     uploadTrack: 'Загрузить трек',
     uploadLimits: 'Макс 25МБ • Макс 6 мин • MP3/WAV/M4A • 10 загрузок/день',
@@ -167,8 +166,6 @@ export const translations = {
     uploadNote: 'Нажмите для выбора аудио файла',
     upload: 'Загрузить',
     modalLbl: '',
-    infoFooter: 'SoundForge v1.0 • Все права защищены',
-    featuredTrack: 'Рекомендуемый трек',
   },
 };
 
