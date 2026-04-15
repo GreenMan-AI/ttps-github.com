@@ -54,6 +54,7 @@ export const translations = {
     uploadNote: 'Nospied lai izvēlētos audio failu',
     upload: 'Augšupielādēt',
     modalLbl: '',
+    alert: "Uzmanību",
   },
   en: {
     appName: 'SoundForge', appDesc: 'Music streaming platform',
@@ -110,6 +111,7 @@ export const translations = {
     uploadNote: 'Press to choose an audio file',
     upload: 'Upload',
     modalLbl: '',
+    alert: "Warning",
   },
   ru: {
     appName: 'SoundForge', appDesc: 'Платформа для прослушивания музыки',
@@ -166,6 +168,7 @@ export const translations = {
     uploadNote: 'Нажмите для выбора аудио файла',
     upload: 'Загрузить',
     modalLbl: '',
+    alert: "Внимание",
   },
 };
 
