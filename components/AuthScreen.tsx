@@ -1,16 +1,24 @@
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  SafeAreaView, KeyboardAvoidingView, Platform, Alert, ScrollView,
+  KeyboardAvoidingView, Platform, Alert, ScrollView,
 } from 'react-native';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../AppContext';
+import { Lang } from '../i18n';
+
+const LANGUAGES = [
+  { code: 'lv' as Lang, flag: '🇱🇻' },
+  { code: 'en' as Lang, flag: '🇬🇧' },
+  { code: 'ru' as Lang, flag: '🇷🇺' },
+];
 
 export default function AuthScreen() {
-  const { login, register, t } = useApp();
+  const { login, register, t, lang, setLang, setLangChosen } = useApp();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -25,14 +33,18 @@ export default function AuthScreen() {
   };
 
   const strengthColor = ['#333', '#ef4444', '#f59e0b', '#22c55e', '#3b82f6'];
-  const strengthLabel = ['', 'Vāja', 'Vidēja', 'Laba', 'Droša'];
+  const strengthLabel = ['', t.pwWeak, t.pwMedium, t.pwGood, t.pwStrong];
 
   const handleSubmit = async () => {
+    setError('');
     if (!username.trim() || !password) {
       setError(t.fillAll);
       return;
     }
-    setError('');
+    if (mode === 'register' && password !== confirmPw) {
+      setError(t.pwNoMatch);
+      return;
+    }
     setLoading(true);
     const err = mode === 'login'
       ? await login(username.trim(), password)
@@ -46,34 +58,58 @@ export default function AuthScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.inner}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Valodas pārslēdzējs */}
+        <View style={styles.langRow}>
+          {LANGUAGES.map((l) => (
+            <TouchableOpacity
+              key={l.code}
+              style={[styles.langBtn, lang === l.code && styles.langBtnActive]}
+              onPress={() => setLang(l.code)}
+            >
+              <Text style={styles.langFlag}>{l.flag}</Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity
+            onPress={() => setLangChosen(false)}
+            style={styles.backLangBtn}
+          >
+            <Ionicons name="globe-outline" size={18} color="#00cfff" />
+          </TouchableOpacity>
+        </View>
+
         {/* Logo */}
-        <Text style={styles.logo}>🎵 SoundForge</Text>
+        <Text style={styles.logo}>🎵</Text>
+        <Text style={styles.appName}>SoundForge</Text>
         <Text style={styles.sub}>
-          {mode === 'login' ? 'Laba atgriešanās!' : 'Izveido kontu'}
+          {mode === 'login' ? t.welcomeBack : t.createAccount}
         </Text>
 
-        {/* Mode toggle */}
-        <View style={styles.toggle}>
+        {/* Login/Register tabs */}
+        <View style={styles.tabs}>
           <TouchableOpacity
-            style={[styles.toggleBtn, mode === 'login' && styles.toggleActive]}
-            onPress={() => { setMode('login'); setError(''); }}
+            style={[styles.tab, mode === 'login' && styles.tabActive]}
+            onPress={() => { setMode('login'); setError(''); setConfirmPw(''); }}
           >
-            <Text style={[styles.toggleTxt, mode === 'login' && styles.toggleTxtActive]}>
+            <Text style={[styles.tabTxt, mode === 'login' && styles.tabTxtActive]}>
               {t.login}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.toggleBtn, mode === 'register' && styles.toggleActive]}
+            style={[styles.tab, mode === 'register' && styles.tabActive]}
             onPress={() => { setMode('register'); setError(''); }}
           >
-            <Text style={[styles.toggleTxt, mode === 'register' && styles.toggleTxtActive]}>
+            <Text style={[styles.tabTxt, mode === 'register' && styles.tabTxtActive]}>
               {t.register}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Username */}
+        {/* Lietotājvārds */}
         <View style={styles.inputWrap}>
           <Ionicons name="person-outline" size={18} color="#555" style={styles.inputIcon} />
           <TextInput
@@ -87,7 +123,7 @@ export default function AuthScreen() {
           />
         </View>
 
-        {/* Password */}
+        {/* Parole */}
         <View style={styles.inputWrap}>
           <Ionicons name="lock-closed-outline" size={18} color="#555" style={styles.inputIcon} />
           <TextInput
@@ -104,7 +140,7 @@ export default function AuthScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Password strength (register only) */}
+        {/* Paroles stiprums (tikai reģistrācijai) */}
         {mode === 'register' && password.length > 0 && (
           <View style={styles.strengthWrap}>
             <View style={styles.strengthBars}>
@@ -124,10 +160,26 @@ export default function AuthScreen() {
           </View>
         )}
 
-        {/* Error */}
+        {/* Paroles apstiprināšana (tikai reģistrācijai) */}
+        {mode === 'register' && (
+          <View style={styles.inputWrap}>
+            <Ionicons name="lock-closed-outline" size={18} color="#555" style={styles.inputIcon} />
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              placeholder={t.repPw}
+              placeholderTextColor="#444"
+              value={confirmPw}
+              onChangeText={setConfirmPw}
+              secureTextEntry={!showPw}
+              autoCapitalize="none"
+            />
+          </View>
+        )}
+
+        {/* Kļūdas ziņojums */}
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {/* Submit */}
+        {/* Iesniegt */}
         <TouchableOpacity
           style={[styles.submitBtn, loading && { opacity: 0.6 }]}
           onPress={handleSubmit}
@@ -141,51 +193,56 @@ export default function AuthScreen() {
         {mode === 'register' && (
           <Text style={styles.hint}>{t.passMin}</Text>
         )}
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0f' },
-  inner: {
-    flex: 1, justifyContent: 'center',
-    paddingHorizontal: 28, paddingBottom: 40,
+  scroll: {
+    flexGrow: 1, justifyContent: 'center',
+    paddingHorizontal: 28, paddingBottom: 40, paddingTop: 20,
   },
-  logo: {
-    fontSize: 36, fontWeight: '800',
-    color: '#00cfff', textAlign: 'center',
-    marginBottom: 6,
+  langRow: {
+    flexDirection: 'row', justifyContent: 'flex-end',
+    gap: 8, marginBottom: 24,
+  },
+  langBtn: {
+    padding: 6, borderRadius: 8, backgroundColor: '#1a1a25',
+    borderWidth: 1, borderColor: 'transparent',
+  },
+  langBtnActive: { borderColor: '#00cfff' },
+  langFlag: { fontSize: 22 },
+  backLangBtn: {
+    padding: 6, borderRadius: 8, backgroundColor: '#1a1a25',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  logo: { fontSize: 48, textAlign: 'center', marginBottom: 4 },
+  appName: {
+    fontSize: 32, fontWeight: '900', color: '#00cfff',
+    textAlign: 'center', letterSpacing: 2, marginBottom: 6,
   },
   sub: {
     color: '#444', fontSize: 15,
-    textAlign: 'center', marginBottom: 32,
+    textAlign: 'center', marginBottom: 28,
   },
-  toggle: {
-    flexDirection: 'row',
-    backgroundColor: '#111118',
-    borderRadius: 14, marginBottom: 24,
-    padding: 4,
+  tabs: {
+    flexDirection: 'row', backgroundColor: '#111118',
+    borderRadius: 14, marginBottom: 20, padding: 4,
   },
-  toggleBtn: {
-    flex: 1, paddingVertical: 11,
-    borderRadius: 12, alignItems: 'center',
-  },
-  toggleActive: { backgroundColor: '#00cfff' },
-  toggleTxt: { color: '#444', fontWeight: '700', fontSize: 14 },
-  toggleTxtActive: { color: '#000' },
+  tab: { flex: 1, paddingVertical: 11, borderRadius: 12, alignItems: 'center' },
+  tabActive: { backgroundColor: '#00cfff' },
+  tabTxt: { color: '#444', fontWeight: '700', fontSize: 14 },
+  tabTxtActive: { color: '#000' },
   inputWrap: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#111118',
-    borderRadius: 14, marginBottom: 12,
+    backgroundColor: '#111118', borderRadius: 14, marginBottom: 12,
     paddingHorizontal: 14, paddingVertical: 4,
     borderWidth: 1, borderColor: '#1e1e2a',
   },
   inputIcon: { marginRight: 10 },
-  input: {
-    flex: 1, color: '#fff',
-    fontSize: 15, paddingVertical: 12,
-  },
+  input: { flex: 1, color: '#fff', fontSize: 15, paddingVertical: 12 },
   eyeBtn: { padding: 6 },
   strengthWrap: {
     flexDirection: 'row', alignItems: 'center',
@@ -199,9 +256,8 @@ const styles = StyleSheet.create({
     textAlign: 'center', marginBottom: 12,
   },
   submitBtn: {
-    backgroundColor: '#00cfff',
-    borderRadius: 14, paddingVertical: 16,
-    alignItems: 'center', marginTop: 4,
+    backgroundColor: '#00cfff', borderRadius: 14,
+    paddingVertical: 16, alignItems: 'center', marginTop: 4,
   },
   submitTxt: { color: '#000', fontSize: 16, fontWeight: '800' },
   hint: {
