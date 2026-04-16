@@ -1,6 +1,6 @@
 import {
-  View, Text, TextInput, TouchableOpacity,
-  SafeAreaView, KeyboardAvoidingView, Platform, Alert,
+View, Text, TextInput, TouchableOpacity, StyleSheet,
+  SafeAreaView, KeyboardAvoidingView, Platform, Alert, ScrollView,
 } from 'react-native';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
