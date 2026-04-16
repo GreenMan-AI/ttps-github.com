@@ -70,6 +70,44 @@ setInterval(() => { const now=Date.now(); for(const [k,v] of rateLimitMap) if(no
 const authLimiter   = rateLimit(10,  60000);  // 10 login attempts/min
 const uploadLimiter = rateLimit(20, 300000);  // 20 uploads per 6 min
 const apiLimiter    = rateLimit(200, 60000);  // 200 api calls/min
+// ═══════════════════════════════════════════════════════
+//  CORS FIX — Ielikt server.js PIRMS visiem /api/ maršrutiem
+//  Meklē: app.use('/api/', apiLimiter);
+//  Un PIRMS tās rindas ieliec šo:
+// ═══════════════════════════════════════════════════════
+
+app.use((req, res, next) => {
+  const allowed = [
+    'http://localhost:8081',
+    'http://localhost:19006',
+    'http://localhost:3000',
+    'https://greenman-ai.onrender.com',
+    'exp://192.168.1.102:8081',
+    'exp://localhost:8081',
+  ];
+  const origin = req.headers.origin || '';
+
+  // Atļauj visus Expo Go un localhost origins
+  if (allowed.includes(origin) || origin.startsWith('exp://') || origin.startsWith('http://192.168.') || !origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+
+  // Preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
+  next();
+});
+
+
 app.use('/api/', apiLimiter);
 
 // ══════════════════════════════════════════════════
@@ -1006,7 +1044,6 @@ app.delete('/api/admin/home-ads/:id', requireAuth, requireAdmin, async (req, res
 // ══════════════════════════════════════════════════
 //  HEALTH + PWA
 // ══════════════════════════════════════════════════
-app.get('/api/upload/limits', requireAuth, (req,res)=>{const today=new Date().toISOString().slice(0,10);const key=`${req.user.username}:${today}`;const used=dailyUploads.get(key)||0;res.json({used,limit:MAX_PER_USER_DAY,remaining:MAX_PER_USER_DAY-used,maxSizeMB:MAX_FILE_MB,maxDurationMin:MAX_DURATION_SEC/60});});
 app.get('/api/health', (req, res) => res.json({ ok:true, time:new Date().toISOString() }));
 
 app.get('/manifest.json', (req, res) => {
