@@ -10,12 +10,13 @@ import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { useApp, API } from '../AppContext';
 import { Lang } from '../i18n';
-import MoodScreen from './MoodScreen';
-import { Share, Linking } from 'react-native';
 
 const { width: SW, height: SH } = Dimensions.get('window');
-const INACTIVITY_MS = 2 * 60 * 1000;
+const INACTIVITY_MS = 2 * 60 * 1000; // 2 minūtes
 
+// ════════════════════════════════
+//  HAMELEONS
+// ════════════════════════════════
 const COLORS = ['#00cfff','#a855f7','#22d3ee','#f59e0b','#10b981','#ef4444','#6366f1','#ec4899'];
 const TRACK_COLORS = ['#00cfff','#a855f7','#f59e0b','#10b981','#ef4444','#6366f1','#ec4899','#22d3ee'];
 
@@ -66,19 +67,13 @@ const bn = StyleSheet.create({
 });
 
 // ════════════════════════════════
-//  PLAYER BAR — ar progress joslu, shuffle, repeat
+//  PLAYER BAR
 // ════════════════════════════════
 function PlayerBar() {
-  const {
-    playing, setPlaying, isPlaying, setIsPlaying,
-    playNext, playPrev, shuffle, setShuffle, repeat, setRepeat,
-  } = useApp();
+  const { playing, setPlaying, isPlaying, setIsPlaying, playNext, playPrev } = useApp();
   const sound = useRef<Audio.Sound | null>(null);
   const curId = useRef('');
   const color = useChameleon(4000);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [barWidth, setBarWidth] = useState(0);
 
   useEffect(() => {
     if (!playing) return;
@@ -96,23 +91,10 @@ function PlayerBar() {
       if (sound.current) { await sound.current.unloadAsync(); sound.current = null; }
       if (!playing?.cloudUrl) return;
       curId.current = playing._id;
-      setPosition(0); setDuration(0);
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-      const { sound: s } = await Audio.Sound.createAsync(
-        { uri: playing.cloudUrl },
-        { shouldPlay: true },
-        (st: any) => {
-          if (!st.isLoaded) return;
-          setPosition(st.positionMillis || 0);
-          setDuration(st.durationMillis || 0);
-          if (st.didJustFinish) {
-            if (repeat) s.replayAsync();
-            else playNext();
-          }
-        }
-      );
+      const { sound: s } = await Audio.Sound.createAsync({ uri: playing.cloudUrl }, { shouldPlay: true });
       sound.current = s;
       setIsPlaying(true);
+      s.setOnPlaybackStatusUpdate((st: any) => { if (st.didJustFinish) playNext(); });
     } catch {}
   };
 
@@ -122,94 +104,39 @@ function PlayerBar() {
     else { await sound.current.playAsync(); setIsPlaying(true); }
   };
 
-  const seekTo = async (x: number) => {
-    if (!sound.current || !duration || !barWidth) return;
-    const ratio = Math.max(0, Math.min(1, x / barWidth));
-    await sound.current.setPositionAsync(ratio * duration);
-  };
-
-  const fmt = (ms: number) => {
-    if (!ms || isNaN(ms)) return '0:00';
-    const s = Math.floor(ms / 1000);
-    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  };
-
-  const progress = duration > 0 ? position / duration : 0;
-
   if (!playing) return null;
   return (
     <View style={[pb.bar, { borderTopColor: color + '44' }]}>
-      {/* Info rinda */}
-      <View style={pb.infoRow}>
-        <View style={[pb.icon, { backgroundColor: color + '22', overflow: 'hidden' }]}>
-          {playing.coverUrl
-            ? <Image source={{ uri: playing.coverUrl }} style={{ width: 34, height: 34 }} />
-            : <Ionicons name="musical-note" size={18} color={color} />
-          }
-        </View>
-        <View style={pb.info}>
-          <Text style={pb.title} numberOfLines={1}>{playing.title || '—'}</Text>
-          <Text style={[pb.artist, { color: color + '99' }]} numberOfLines={1}>{playing.artist || '—'}</Text>
-        </View>
-        <TouchableOpacity onPress={() => setShuffle(!shuffle)} style={pb.modeBtn}>
-          <Ionicons name="shuffle" size={16} color={shuffle ? color : '#444'} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setRepeat(!repeat)} style={pb.modeBtn}>
-          <Ionicons name="repeat" size={16} color={repeat ? color : '#444'} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={playPrev} style={pb.btn}>
-          <Ionicons name="play-skip-back" size={20} color="#bbb" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={toggle} style={[pb.play, { backgroundColor: color }]}>
-          <Ionicons name={isPlaying ? 'pause' : 'play'} size={22} color="#000" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={playNext} style={pb.btn}>
-          <Ionicons name="play-skip-forward" size={20} color="#bbb" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => { sound.current?.unloadAsync(); setPlaying(null); setIsPlaying(false); }} style={pb.btn}>
-          <Ionicons name="close" size={20} color="#ff4466" />
-        </TouchableOpacity>
+      <View style={[pb.icon, { backgroundColor: color + '22' }]}>
+        <Ionicons name="musical-note" size={18} color={color} />
       </View>
-
-      {/* Progress josla */}
-      <View style={pb.progressRow}>
-        <Text style={pb.time}>{fmt(position)}</Text>
-        <TouchableOpacity
-          style={pb.progressTrack}
-          onLayout={e => setBarWidth(e.nativeEvent.layout.width)}
-          onPress={e => seekTo(e.nativeEvent.locationX)}
-          activeOpacity={1}
-        >
-          <View style={pb.progressBg}>
-            <View style={[pb.progressFill, { width: `${progress * 100}%`, backgroundColor: color }]} />
-            <View style={[pb.progressThumb, { left: `${progress * 100}%` as any, backgroundColor: color }]} />
-          </View>
-        </TouchableOpacity>
-        <Text style={pb.time}>{fmt(duration)}</Text>
+      <View style={pb.info}>
+        <Text style={pb.title} numberOfLines={1}>{playing.title || '—'}</Text>
+        <Text style={[pb.artist, { color: color + '99' }]} numberOfLines={1}>{playing.artist || '—'}</Text>
       </View>
+      <TouchableOpacity onPress={playPrev} style={pb.btn}><Ionicons name="play-skip-back" size={20} color="#bbb" /></TouchableOpacity>
+      <TouchableOpacity onPress={toggle} style={[pb.play, { backgroundColor: color }]}>
+        <Ionicons name={isPlaying ? 'pause' : 'play'} size={22} color="#000" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={playNext} style={pb.btn}><Ionicons name="play-skip-forward" size={20} color="#bbb" /></TouchableOpacity>
+      <TouchableOpacity onPress={() => { sound.current?.unloadAsync(); setPlaying(null); setIsPlaying(false); }} style={pb.btn}>
+        <Ionicons name="close" size={20} color="#ff4466" />
+      </TouchableOpacity>
     </View>
   );
 }
 const pb = StyleSheet.create({
-  bar: { backgroundColor: '#13131f', borderTopWidth: 1, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 6 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  icon: { width: 34, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginRight: 8 },
+  bar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#13131f', borderTopWidth: 1, paddingHorizontal: 14, paddingVertical: 10 },
+  icon: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
   info: { flex: 1 },
   title: { color: '#fff', fontSize: 13, fontWeight: '600' },
   artist: { fontSize: 11 },
-  modeBtn: { padding: 5 },
-  btn: { padding: 5 },
-  play: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginHorizontal: 3 },
-  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  time: { color: '#555', fontSize: 10, width: 30, textAlign: 'center' },
-  progressTrack: { flex: 1, paddingVertical: 6 },
-  progressBg: { height: 3, backgroundColor: '#2a2a35', borderRadius: 2, position: 'relative' },
-  progressFill: { height: 3, borderRadius: 2 },
-  progressThumb: { position: 'absolute', top: -4, width: 11, height: 11, borderRadius: 6, marginLeft: -5 },
+  btn: { padding: 6 },
+  play: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginHorizontal: 4 },
 });
 
 // ════════════════════════════════
-//  FLOATING NOTES
+//  FLOATING NOTES (sākuma ekrāniem)
 // ════════════════════════════════
 const NOTES = ['♪','♫','♬','♩','🎵','🎶','🎸','🎹','🎺','🎻'];
 function FloatingNotes() {
@@ -230,8 +157,11 @@ function FloatingNotes() {
       const run = () => {
         n.anim.setValue(0);
         Animated.timing(n.anim, {
-          toValue: 1, duration: n.duration,
-          easing: Easing.linear, useNativeDriver: true, delay: n.delay,
+          toValue: 1,
+          duration: n.duration,
+          easing: Easing.linear,
+          useNativeDriver: true,
+          delay: n.delay,
         }).start(({ finished }) => { if (finished) run(); });
       };
       run();
@@ -241,15 +171,23 @@ function FloatingNotes() {
   return (
     <View style={fn.container} pointerEvents="none">
       {notes.map((n, i) => (
-        <Animated.Text key={i} style={{
-          position: 'absolute', left: n.x, fontSize: n.size, color: n.color,
-          opacity: n.anim.interpolate({ inputRange: [0, 0.1, 0.8, 1], outputRange: [0, 1, 0.7, 0] }),
-          transform: [{
-            translateY: n.anim.interpolate({ inputRange: [0, 1], outputRange: [SH * 0.7, -80] }),
-          }, {
-            rotate: n.anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: ['0deg', '20deg', '-15deg'] }),
-          }],
-        }}>{n.note}</Animated.Text>
+        <Animated.Text
+          key={i}
+          style={{
+            position: 'absolute',
+            left: n.x,
+            fontSize: n.size,
+            color: n.color,
+            opacity: n.anim.interpolate({ inputRange: [0, 0.1, 0.8, 1], outputRange: [0, 1, 0.7, 0] }),
+            transform: [{
+              translateY: n.anim.interpolate({ inputRange: [0, 1], outputRange: [SH * 0.7, -80] }),
+            }, {
+              rotate: n.anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: ['0deg', '20deg', '-15deg'] }),
+            }],
+          }}
+        >
+          {n.note}
+        </Animated.Text>
       ))}
     </View>
   );
@@ -259,7 +197,7 @@ const fn = StyleSheet.create({
 });
 
 // ════════════════════════════════
-//  HOME SCREEN
+//  HOME SCREEN — moderns, bez mūzikas
 // ════════════════════════════════
 function HomeScreen({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const { t, user, tracks, setPlaying } = useApp();
@@ -267,6 +205,7 @@ function HomeScreen({ onNavigate }: { onNavigate: (tab: string) => void }) {
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: 30 }}>
+      {/* Hero */}
       <View style={[hm.hero, { borderBottomColor: color + '33', borderBottomWidth: 1 }]}>
         <FloatingNotes />
         <View style={hm.heroInner}>
@@ -278,6 +217,7 @@ function HomeScreen({ onNavigate }: { onNavigate: (tab: string) => void }) {
         </View>
       </View>
 
+      {/* Ātrās saites */}
       <View style={hm.grid}>
         {[
           { icon: 'musical-notes', label: t.music, tab: 'music', i: 0 },
@@ -296,6 +236,7 @@ function HomeScreen({ onNavigate }: { onNavigate: (tab: string) => void }) {
         ))}
       </View>
 
+      {/* Info kartes */}
       <View style={{ paddingHorizontal: 16, marginTop: 4 }}>
         <Text style={[hm.secTitle, { color }]}>🔥 {t.welcomeTitle}</Text>
         {[
@@ -312,17 +253,15 @@ function HomeScreen({ onNavigate }: { onNavigate: (tab: string) => void }) {
           </View>
         ))}
 
+        {/* Dziesma nedēļai */}
         {tracks.length > 0 && (() => {
           const featured = tracks[Math.floor(tracks.length / 2)];
           return (
             <View style={[hm.featuredCard, { borderColor: color + '55' }]}>
               <Text style={[hm.featuredLabel, { color }]}>🏆 {t.featuredTrack}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={[hm.featuredIcon, { backgroundColor: color + '22', overflow: 'hidden' }]}>
-                  {featured.coverUrl
-                    ? <Image source={{ uri: featured.coverUrl }} style={{ width: 52, height: 52 }} />
-                    : <Text style={{ fontSize: 28 }}>🎵</Text>
-                  }
+                <View style={[hm.featuredIcon, { backgroundColor: color + '22' }]}>
+                  <Text style={{ fontSize: 28 }}>🎵</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[hm.featuredTitle, { color }]} numberOfLines={1}>{featured.title || t.noTitle}</Text>
@@ -339,6 +278,7 @@ function HomeScreen({ onNavigate }: { onNavigate: (tab: string) => void }) {
           );
         })()}
 
+        {/* Statistika */}
         <View style={hm.statsRow}>
           {[
             { v: tracks.length, l: t.songs, e: '🎵', c: COLORS[0] },
@@ -383,7 +323,7 @@ const hm = StyleSheet.create({
 });
 
 // ════════════════════════════════
-//  MUSIC SCREEN
+//  MUSIC SCREEN — daudzkrāsains saraksts
 // ════════════════════════════════
 function MusicScreen() {
   const { tracks, setTracks, playlist, removeFromPlaylist, namedPlaylists, createNamedPlaylist,
@@ -397,6 +337,12 @@ function MusicScreen() {
   const [openPl, setOpenPl] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadArtist, setUploadArtist] = useState('');
+  const [uploadFile, setUploadFile] = useState<any>(null);
+  const [uploadStatus, setUploadStatus] = useState('');
   const { user, token } = useApp() as any;
   const color = useChameleon();
 
@@ -413,6 +359,52 @@ function MusicScreen() {
     if (tracks.length === 0) loadTracks();
   }, []);
 
+  const pickAudio = async () => {
+    try {
+      const { default: DocumentPicker } = await import('expo-document-picker');
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/mp4', 'audio/m4a', 'audio/x-m4a'],
+        copyToCacheDirectory: true,
+      });
+      if (!res.canceled && res.assets?.[0]) {
+        const asset = res.assets[0];
+        const sizeMB = (asset.size || 0) / (1024 * 1024);
+        if (sizeMB > 25) { Alert.alert(t.error, 'Fails pārāk liels! Max 25MB'); return; }
+        setUploadFile({ uri: asset.uri, name: asset.name, type: asset.mimeType || 'audio/mpeg', sizeMB: sizeMB.toFixed(1) });
+      }
+    } catch (e) { Alert.alert(t.error, 'Neizdevās izvēlēties failu'); }
+  };
+
+  const doUpload = async () => {
+    if (!uploadFile) { setUploadStatus('❌ Vajag izvēlēties audio failu!'); return; }
+    if (!uploadTitle.trim()) { setUploadStatus('❌ Vajag nosaukumu!'); return; }
+    setUploading(true);
+    setUploadStatus('⏳ Augšupielādē...');
+    try {
+      const form = new FormData();
+      form.append('audio', { uri: uploadFile.uri, type: uploadFile.type || 'audio/mpeg', name: uploadFile.name || 'track.mp3' } as any);
+      form.append('title', uploadTitle.trim());
+      form.append('artist', uploadArtist.trim() || 'Nezināms');
+      const res = await fetch(`${API}/api/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const d = await res.json();
+      if (d.track) {
+        setUploadStatus(`✅ "${d.track.title}" augšupielādēts!`);
+        setUploadTitle(''); setUploadArtist(''); setUploadFile(null);
+        setTimeout(() => { setShowUpload(false); setUploadStatus(''); loadTracks(); }, 2000);
+      } else {
+        setUploadStatus(`❌ ${d.error || 'Kļūda'}`);
+      }
+    } catch {
+      setUploadStatus('❌ Savienojuma kļūda');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const filtered = tracks.filter((tr: any) =>
     tr.title?.toLowerCase().includes(search.toLowerCase()) ||
     tr.artist?.toLowerCase().includes(search.toLowerCase())
@@ -426,17 +418,14 @@ function MusicScreen() {
     const liked = likes?.includes(item._id);
     return (
       <View style={[ms.row, active && { backgroundColor: tc + '18', borderColor: tc + '55', borderWidth: 1 }]}>
-        <View style={ms.num}>
+        <View style={[ms.num]}>
           {active && isPlaying
             ? <Ionicons name="volume-high" size={14} color={tc} />
             : <Text style={[ms.numTxt, { color: tc + '88' }]}>{index + 1}</Text>}
         </View>
         <TouchableOpacity style={ms.rowLeft} onPress={() => setPlaying(item)}>
-          <View style={[ms.dot, { backgroundColor: tc + '33', borderColor: tc + '66', borderWidth: 1, overflow: 'hidden' }]}>
-            {item.coverUrl
-              ? <Image source={{ uri: item.coverUrl }} style={{ width: 36, height: 36 }} />
-              : <Ionicons name="musical-note" size={16} color={active ? tc : tc + '99'} />
-            }
+          <View style={[ms.dot, { backgroundColor: tc + '33', borderColor: tc + '66', borderWidth: 1 }]}>
+            <Ionicons name="musical-note" size={16} color={active ? tc : tc + '99'} />
           </View>
           <View style={ms.info}>
             <Text style={[ms.title, active && { color: tc }]} numberOfLines={1}>{item.title || t.noTitle}</Text>
@@ -469,12 +458,7 @@ function MusicScreen() {
             <Ionicons name="chevron-back" size={24} color={color} />
           </TouchableOpacity>
           <Text style={[s.logo, { color }]} numberOfLines={1}>{selected.name}</Text>
-          <TouchableOpacity onPress={() => {
-            Alert.alert(t.delete + '?', selected.name, [
-              { text: t.cancel, style: 'cancel' },
-              { text: t.delete, style: 'destructive', onPress: () => { deleteNamedPlaylist(selected.id); setOpenPl(null); } }
-            ]);
-          }}>
+          <TouchableOpacity onPress={() => { Alert.alert(t.delete + '?', selected.name, [{ text: t.cancel, style: 'cancel' }, { text: t.delete, style: 'destructive', onPress: () => { deleteNamedPlaylist(selected.id); setOpenPl(null); } }]); }}>
             <Ionicons name="trash-outline" size={20} color="#ff446688" />
           </TouchableOpacity>
         </View>
@@ -492,6 +476,11 @@ function MusicScreen() {
       <View style={[s.hdr, { borderBottomColor: color + '33' }]}>
         <Text style={[s.logo, { color }]}>🎵 {t.music}</Text>
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          {user?.isAdmin && (
+            <TouchableOpacity onPress={() => setShowUpload(true)} style={{ backgroundColor: color + '22', borderRadius: 8, padding: 5, borderWidth: 1, borderColor: color + '55' }}>
+              <Ionicons name="cloud-upload-outline" size={20} color={color} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={() => setShowSearch(v => !v)}>
             <Ionicons name="search" size={22} color={showSearch ? color : '#555'} />
           </TouchableOpacity>
@@ -533,6 +522,11 @@ function MusicScreen() {
             <View style={s.empty}>
               <Ionicons name="musical-notes-outline" size={48} color="#222" />
               <Text style={s.emptyTxt}>{loading ? t.loading : t.noTracks}</Text>
+              {!loading && (
+                <TouchableOpacity onPress={loadTracks} style={{ marginTop: 12, backgroundColor: color + '22', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: color + '55' }}>
+                  <Text style={{ color, fontWeight: '700' }}>↺ Ielādēt</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />
@@ -541,7 +535,7 @@ function MusicScreen() {
         <FlatList data={playlist} keyExtractor={(x: any) => x._id}
           contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 20 }}
           renderItem={({ item, index }) => renderTrack({ item, index }, true)}
-          ListEmptyComponent={<View style={s.empty}><Text style={s.emptyTxt}>{t.playlistEmpty}</Text></View>}
+          ListEmptyComponent={<View style={s.empty}><Text style={s.emptyTxt}>{t.playlistEmpty}</Text><Text style={[s.emptyTxt, { fontSize: 12 }]}>{t.playlistEmptySub}</Text></View>}
         />
       )}
       {tab === 'named' && (
@@ -573,10 +567,62 @@ function MusicScreen() {
               <TouchableOpacity style={s.modalCnl} onPress={() => { setShowCreate(false); setNewName(''); }}>
                 <Text style={{ color: '#666', fontWeight: '700' }}>{t.cancel}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.modalOk, { backgroundColor: color }]} onPress={() => {
-                if (newName.trim()) { createNamedPlaylist(newName.trim()); setNewName(''); setShowCreate(false); }
-              }}>
+              <TouchableOpacity style={[s.modalOk, { backgroundColor: color }]} onPress={() => { if (newName.trim()) { createNamedPlaylist(newName.trim()); setNewName(''); setShowCreate(false); } }}>
                 <Text style={{ color: '#000', fontWeight: '800' }}>{t.create}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Admin Upload Modal */}
+      <Modal visible={showUpload} transparent animationType="slide">
+        <TouchableOpacity style={s.overlay} onPress={() => setShowUpload(false)} activeOpacity={1}>
+          <View style={[s.modal, { width: '92%' }]}>
+            <Text style={[s.modalTit, { color }]}>☁️ {t.uploadTrack}</Text>
+            <Text style={{ color: '#555', fontSize: 11, marginBottom: 12 }}>{t.uploadLimits}</Text>
+
+            <Text style={s.modalLbl}>{t.uploadTitle} *</Text>
+            <TextInput style={s.modalInp} placeholder={t.uploadTitlePh} placeholderTextColor="#444" value={uploadTitle} onChangeText={setUploadTitle} />
+
+            <Text style={s.modalLbl}>{t.uploadArtist}</Text>
+            <TextInput style={s.modalInp} placeholder={t.uploadArtistPh} placeholderTextColor="#444" value={uploadArtist} onChangeText={setUploadArtist} />
+
+            {/* File picker poga */}
+            <TouchableOpacity
+              onPress={pickAudio}
+              style={{ backgroundColor: '#0a0a0f', borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: uploadFile ? color + '55' : '#2a2a35', alignItems: 'center', gap: 6 }}
+            >
+              {uploadFile ? (
+                <>
+                  <Ionicons name="musical-note" size={28} color={color} />
+                  <Text style={{ color, fontWeight: '700', fontSize: 13 }}>{uploadFile.name}</Text>
+                  <Text style={{ color: '#555', fontSize: 11 }}>{uploadFile.sizeMB} MB</Text>
+                  <TouchableOpacity onPress={() => setUploadFile(null)}>
+                    <Text style={{ color: '#ff4466', fontSize: 12 }}>✕ {t.cancel}</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="cloud-upload-outline" size={32} color="#444" />
+                  <Text style={{ color: '#555', fontSize: 12 }}>{t.uploadNote}</Text>
+                  <Text style={{ color: '#333', fontSize: 10 }}>MP3, WAV, M4A • max 25MB • max 6 min</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {uploadStatus ? (
+              <Text style={{ color: uploadStatus.startsWith('✅') ? '#22c55e' : uploadStatus.startsWith('⏳') ? color : '#ef4444', fontSize: 13, marginBottom: 12, textAlign: 'center' }}>{uploadStatus}</Text>
+            ) : null}
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity style={s.modalCnl} onPress={() => { setShowUpload(false); setUploadStatus(''); }}>
+                <Text style={{ color: '#666', fontWeight: '700' }}>{t.cancel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.modalOk, { backgroundColor: uploading ? '#333' : color }]} onPress={doUpload} disabled={uploading}>
+                <Text style={{ color: uploading ? '#666' : '#000', fontWeight: '800' }}>
+                  {uploading ? '⏳' : '☁️ ' + t.upload}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -602,15 +648,16 @@ const ms = StyleSheet.create({
 });
 
 // ════════════════════════════════
-//  CHAT
+//  CHAT — ar krāsu izvēli
 // ════════════════════════════════
 interface Msg { id: string; user: string; text: string; time: string; color: string; avatarUri?: string; }
+
 const CHAT_COLORS = ['#00cfff','#a855f7','#f59e0b','#10b981','#ef4444','#ec4899','#6366f1','#fff'];
 
 function ChatScreen() {
-  const { user, t, profileData } = useApp() as any;
+  const { user, t } = useApp() as any;
   const nick = user?.username || 'Lietotājs';
-  const avatarUri: string | null = profileData?.avatarUrl || null;
+  const avatarUri: string | null = null;
 
   const [msgs, setMsgs] = useState<Msg[]>([
     { id: '0', user: 'SoundForge', text: '👋 Laipni lūdzam čatā! Dalies ar idejām par mūziku!', time: '—', color: '#a855f7' },
@@ -629,7 +676,7 @@ function ChatScreen() {
       text: text.trim(),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       color: myColor,
-      avatarUri: avatarUri || undefined,
+      avatarUri,
     };
     setMsgs(p => [...p, m]);
     setText('');
@@ -685,22 +732,22 @@ function ChatScreen() {
       />
 
       <View style={[ct.inp, { borderTopColor: myColor + '33' }]}>
-        <View style={[ct.colorIndicator, { backgroundColor: myColor }]} />
-        <TextInput
-          style={[ct.input, { borderColor: myColor + '55', color: myColor === '#fff' ? '#fff' : myColor }]}
-          placeholder={t.chatPlaceholder}
-          placeholderTextColor="#444"
-          value={text}
-          onChangeText={setText}
-          onSubmitEditing={send}
-          returnKeyType="send"
-          multiline
-        />
-        <TouchableOpacity onPress={send} style={[ct.sendBtn, { backgroundColor: text.trim() ? myColor : '#222' }]}>
-          <Ionicons name="send" size={18} color={text.trim() ? '#000' : '#555'} />
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+          <View style={[ct.colorIndicator, { backgroundColor: myColor }]} />
+          <TextInput
+            style={[ct.input, { borderColor: myColor + '55', color: myColor === '#fff' ? '#fff' : myColor }]}
+            placeholder={t.chatPlaceholder}
+            placeholderTextColor="#444"
+            value={text}
+            onChangeText={setText}
+            onSubmitEditing={send}
+            returnKeyType="send"
+            multiline
+          />
+          <TouchableOpacity onPress={send} style={[ct.sendBtn, { backgroundColor: text.trim() ? myColor : '#222' }]}>
+            <Ionicons name="send" size={18} color={text.trim() ? '#000' : '#555'} />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
   );
 }
 const ct = StyleSheet.create({
@@ -766,7 +813,117 @@ const inf = StyleSheet.create({
 });
 
 // ════════════════════════════════
-//  PROFILE SCREEN — ar ĪSTU avatar saglabāšanu
+//  ADMIN LIETOTĀJU SARAKSTS
+// ════════════════════════════════
+function AdminUsersSection({ color, token, t }: { color: string; token: string; t: any }) {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/admin/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await res.json();
+      setUsers(d.users || []);
+    } catch {} finally { setLoading(false); }
+  };
+
+  const toggleExpand = () => {
+    if (!expanded) loadUsers();
+    setExpanded(v => !v);
+  };
+
+  const deleteUser = (username: string) => {
+    Alert.alert('Dzēst lietotāju?', username, [
+      { text: t.cancel, style: 'cancel' },
+      { text: t.delete, style: 'destructive', onPress: async () => {
+        try {
+          await fetch(`${API}/api/admin/users/${username}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+          setUsers(u => u.filter(x => x.username !== username));
+        } catch { Alert.alert(t.error, t.serverError); }
+      }},
+    ]);
+  };
+
+  const promoteUser = (username: string) => {
+    Alert.alert('Paaugstināt uz admin?', username, [
+      { text: t.cancel, style: 'cancel' },
+      { text: '⭐ Admin', onPress: async () => {
+        try {
+          await fetch(`${API}/api/admin/users/${username}/role`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ role: 'admin' }),
+          });
+          loadUsers();
+        } catch { Alert.alert(t.error, t.serverError); }
+      }},
+    ]);
+  };
+
+  return (
+    <View style={{ marginTop: 8 }}>
+      <TouchableOpacity
+        style={[s.menuItem, { borderColor: color + '44', borderWidth: 1, backgroundColor: color + '0a' }]}
+        onPress={toggleExpand}
+      >
+        <Ionicons name="people-outline" size={19} color={color} />
+        <Text style={s.menuTxt}>👥 Lietotāju saraksts {users.length > 0 ? `(${users.length})` : ''}</Text>
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={15} color="#333" />
+      </TouchableOpacity>
+
+      {expanded && (
+        <View style={{ backgroundColor: '#111118', borderRadius: 14, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: color + '22' }}>
+          {loading ? (
+            <Text style={{ color: '#555', textAlign: 'center', padding: 10 }}>Ielādē...</Text>
+          ) : users.length === 0 ? (
+            <Text style={{ color: '#555', textAlign: 'center', padding: 10 }}>Nav lietotāju</Text>
+          ) : (
+            <>
+              <View style={{ flexDirection: 'row', paddingBottom: 8, borderBottomWidth: 1, borderColor: '#222', marginBottom: 6 }}>
+                <Text style={{ color: '#555', fontSize: 10, flex: 1, fontWeight: '700' }}>LIETOTĀJS</Text>
+                <Text style={{ color: '#555', fontSize: 10, width: 60, fontWeight: '700' }}>LOMA</Text>
+                <Text style={{ color: '#555', fontSize: 10, width: 70, fontWeight: '700' }}>DARBĪBAS</Text>
+              </View>
+              {users.map((u: any) => (
+                <View key={u.username} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderColor: '#1a1a25' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#ccc', fontSize: 13, fontWeight: '600' }}>{u.username}</Text>
+                    <Text style={{ color: '#444', fontSize: 10 }}>{new Date(u.createdAt).toLocaleDateString('lv-LV')}</Text>
+                  </View>
+                  <View style={{ width: 60 }}>
+                    <Text style={{ color: u.role === 'admin' ? '#f59e0b' : '#555', fontSize: 11, fontWeight: '700' }}>
+                      {u.role === 'admin' ? '⭐ Admin' : '👤 User'}
+                    </Text>
+                  </View>
+                  <View style={{ width: 70, flexDirection: 'row', gap: 4 }}>
+                    {u.role !== 'admin' && (
+                      <TouchableOpacity onPress={() => promoteUser(u.username)} style={{ backgroundColor: '#f59e0b22', borderRadius: 6, padding: 5 }}>
+                        <Ionicons name="arrow-up" size={14} color="#f59e0b" />
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity onPress={() => deleteUser(u.username)} style={{ backgroundColor: '#ff446622', borderRadius: 6, padding: 5 }}>
+                      <Ionicons name="trash-outline" size={14} color="#ff4466" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+              <TouchableOpacity onPress={loadUsers} style={{ alignItems: 'center', paddingTop: 10 }}>
+                <Text style={{ color: color, fontSize: 12, fontWeight: '700' }}>↺ Atjaunot</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ════════════════════════════════
+//  PROFILE SCREEN — ar bildi no telefona
 // ════════════════════════════════
 const LANGS = [
   { code: 'lv' as Lang, flag: '🇱🇻', name: 'Latviešu' },
@@ -776,10 +933,9 @@ const LANGS = [
 
 function ProfileScreen() {
   const ctx = useApp() as any;
-  const { user, logout, t, lang, setLang, tracks, playlist, namedPlaylists, likes,
-    banner, setBanner, token, profileData, saveProfile, uploadAvatar } = ctx;
-
-  // Lokāli tikai priekš UI
+  const { user, logout, t, lang, setLang, tracks, playlist, namedPlaylists, likes, banner, setBanner, token } = ctx;
+  const [nick, setNick] = useState(user?.username || '');
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showLang, setShowLang] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
@@ -792,44 +948,39 @@ function ProfileScreen() {
   const [pwErr, setPwErr] = useState('');
   const [pwOk, setPwOk] = useState('');
   const [nickEdit, setNickEdit] = useState('');
-  const [avatarUploading, setAvatarUploading] = useState(false);
   const color = useChameleon();
 
-  // Izmanto profileData no AppContext — tas paliek pāri ekrāniem!
-  const displayName = profileData?.nick || user?.username;
-  const avatarUrl = profileData?.avatarUrl || null;
+  // profile state is local to ProfileScreen - shared via AppContext setProfile if available
 
-  const pickAndUploadAvatar = async (fromCamera = false) => {
-    try {
-      let res;
-      if (fromCamera) {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) { Alert.alert(t.error, 'Vajag atļauju kamerai'); return; }
-        res = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.7 });
-      } else {
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) { Alert.alert(t.error, 'Vajag atļauju galerijai'); return; }
-        res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
-      }
-      if (!res.canceled && res.assets[0]) {
-        setAvatarUploading(true);
-        const url = await uploadAvatar(res.assets[0].uri);
-        setAvatarUploading(false);
-        if (!url) Alert.alert(t.error, 'Neizdevās augšupielādēt bildi');
-      }
-    } catch { setAvatarUploading(false); }
+  const pickImage = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) { Alert.alert(t.error, 'Vajag atļauju piekļūt galerijai'); return; }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true, aspect: [1, 1], quality: 0.7,
+    });
+    if (!res.canceled && res.assets[0]) setAvatarUri(res.assets[0].uri);
+  };
+
+  const pickCamera = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) { Alert.alert(t.error, 'Vajag atļauju kamerai'); return; }
+    const res = await ImagePicker.launchCameraAsync({
+      allowsEditing: true, aspect: [1, 1], quality: 0.7,
+    });
+    if (!res.canceled && res.assets[0]) setAvatarUri(res.assets[0].uri);
   };
 
   const showAvatarOptions = () => {
     Alert.alert(t.avatarLabel, '', [
-      { text: '📷 ' + t.fromCamera, onPress: () => pickAndUploadAvatar(true) },
-      { text: '🖼️ ' + t.fromGallery, onPress: () => pickAndUploadAvatar(false) },
+      { text: '📷 ' + t.fromCamera, onPress: pickCamera },
+      { text: '🖼️ ' + t.fromGallery, onPress: pickImage },
       { text: t.cancel, style: 'cancel' },
     ]);
   };
 
-  const handleSaveProfile = async () => {
-    await saveProfile({ nick: nickEdit.trim() || undefined });
+  const saveProfile = () => {
+    if (nickEdit.trim()) setNick(nickEdit.trim());
     setShowEditProfile(false);
   };
 
@@ -871,6 +1022,7 @@ function ProfileScreen() {
   };
 
   const curLang = LANGS.find(l => l.code === lang);
+  const displayName = nick || user?.username;
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -878,25 +1030,20 @@ function ProfileScreen() {
         <Text style={[s.logo, { color }]}>👤 {t.profile}</Text>
       </View>
 
-      {/* Avatar — tagad saglabājas serverī! */}
+      {/* Avatar */}
       <View style={pr.avatarWrap}>
         <TouchableOpacity onPress={showAvatarOptions} style={pr.avatarBtn}>
           <View style={[pr.avatar, { borderColor: color }]}>
-            {avatarUploading
-              ? <Text style={{ color }}>⏳</Text>
-              : avatarUrl
-                ? <Image source={{ uri: avatarUrl }} style={pr.avatarImg} />
-                : <Text style={[pr.avatarLetter, { color }]}>{displayName?.charAt(0)?.toUpperCase() || '?'}</Text>
-            }
+            {avatarUri
+              ? <Image source={{ uri: avatarUri }} style={pr.avatarImg} />
+              : <Text style={[pr.avatarLetter, { color }]}>{displayName?.charAt(0)?.toUpperCase() || '?'}</Text>}
           </View>
           <View style={[pr.camBadge, { backgroundColor: color }]}>
             <Ionicons name="camera" size={12} color="#000" />
           </View>
         </TouchableOpacity>
         <Text style={pr.name}>{displayName}</Text>
-        {profileData?.nick && profileData.nick !== user?.username && (
-          <Text style={pr.username}>@{user?.username}</Text>
-        )}
+        {nick !== user?.username && <Text style={pr.username}>@{user?.username}</Text>}
         <View style={[pr.badge, { backgroundColor: color + '22', borderColor: color + '55' }]}>
           <Text style={[pr.badgeTxt, { color }]}>{user?.isAdmin ? t.admin : `👤 ${t.user}`}</Text>
         </View>
@@ -921,7 +1068,7 @@ function ProfileScreen() {
       <View style={{ paddingHorizontal: 16 }}>
         <Text style={[s.secLbl, { color: color + '77' }]}>{t.settings.toUpperCase()}</Text>
 
-        <TouchableOpacity style={s.menuItem} onPress={() => { setNickEdit(profileData?.nick || ''); setShowEditProfile(true); }}>
+        <TouchableOpacity style={s.menuItem} onPress={() => { setNickEdit(nick); setShowEditProfile(true); }}>
           <Ionicons name="person-outline" size={19} color={color} />
           <Text style={s.menuTxt}>{t.editProfile}</Text>
           <Ionicons name="chevron-forward" size={15} color="#333" style={{ marginLeft: 'auto' }} />
@@ -951,6 +1098,8 @@ function ProfileScreen() {
           </TouchableOpacity>
         )}
 
+        {user?.isAdmin && <AdminUsersSection color={color} token={token} t={t} />}
+
         <TouchableOpacity style={[s.menuItem, { borderColor: '#ff446633', borderWidth: 1 }]} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={19} color="#ff4466" />
           <Text style={[s.menuTxt, { color: '#ff4466' }]}>{t.logout}</Text>
@@ -965,11 +1114,21 @@ function ProfileScreen() {
             <Text style={[s.modalTit, { color }]}>{t.editProfile}</Text>
             <Text style={s.modalLbl}>{t.nickLabel}</Text>
             <TextInput style={s.modalInp} placeholder={user?.username} placeholderTextColor="#444" value={nickEdit} onChangeText={setNickEdit} autoCapitalize="none" />
+            <Text style={s.modalLbl}>{t.avatarLabel}</Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+              <TouchableOpacity style={[s.modalCnl, { flex: 1 }]} onPress={pickCamera}>
+                <Text style={{ color: color, fontWeight: '700' }}>📷 {t.fromCamera}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.modalCnl, { flex: 1 }]} onPress={pickImage}>
+                <Text style={{ color: color, fontWeight: '700' }}>🖼️ {t.fromGallery}</Text>
+              </TouchableOpacity>
+            </View>
+            {avatarUri && <Image source={{ uri: avatarUri }} style={{ width: 60, height: 60, borderRadius: 30, alignSelf: 'center', marginBottom: 14, borderWidth: 2, borderColor: color }} />}
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <TouchableOpacity style={s.modalCnl} onPress={() => setShowEditProfile(false)}>
                 <Text style={{ color: '#666', fontWeight: '700' }}>{t.cancel}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.modalOk, { backgroundColor: color }]} onPress={handleSaveProfile}>
+              <TouchableOpacity style={[s.modalOk, { backgroundColor: color }]} onPress={saveProfile}>
                 <Text style={{ color: '#000', fontWeight: '800' }}>{t.save}</Text>
               </TouchableOpacity>
             </View>
@@ -1000,6 +1159,7 @@ function ProfileScreen() {
         <TouchableOpacity style={s.overlay} onPress={() => setShowBanner(false)} activeOpacity={1}>
           <View style={[s.modal, { width: '92%' }]}>
             <Text style={[s.modalTit, { color }]}>📢 {t.bannerTitle}</Text>
+            <Text style={{ color: '#555', fontSize: 12, marginBottom: 12 }}>{t.bannerHint}</Text>
             <TextInput style={[s.modalInp, { minHeight: 70, borderColor: color + '55' }]} placeholder={t.bannerPlaceholder} placeholderTextColor="#444" value={bannerText} onChangeText={setBannerText} multiline autoFocus />
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <TouchableOpacity style={s.modalCnl} onPress={() => setShowBanner(false)}>
@@ -1060,226 +1220,16 @@ const pr = StyleSheet.create({
 });
 
 // ════════════════════════════════
-//  SHARE SCREEN
-// ════════════════════════════════
-const APP_URL = 'https://github.com/GreenMan-AI/greenman-ai/releases/tag/v1.0.0';
-const SHARE_COLORS = ['#00cfff','#a855f7','#22d3ee','#f59e0b','#10b981','#ef4444','#6366f1'];
-const SERVER_URL = 'https://greenman-ai.onrender.com';
-
-function SimpleQR({ size = 180, color = '#00cfff' }: { size?: number; color?: string }) {
-  const cells = 21;
-  const markers = [{ x: 0, y: 0 }, { x: cells - 7, y: 0 }, { x: 0, y: cells - 7 }];
-  return (
-    <View style={{ width: size, height: size, backgroundColor: '#fff', padding: 8, borderRadius: 12 }}>
-      <View style={{ flex: 1, position: 'relative' }}>
-        {markers.map((m, i) => (
-          <View key={i} style={{
-            position: 'absolute',
-            left: m.x * (size / cells), top: m.y * (size / cells),
-            width: 7 * (size / cells), height: 7 * (size / cells),
-            borderWidth: 2, borderColor: color, borderRadius: 2,
-          }}>
-            <View style={{
-              position: 'absolute', top: size / cells, left: size / cells,
-              width: 5 * (size / cells), height: 5 * (size / cells),
-              backgroundColor: color, borderRadius: 1,
-            }}>
-              <View style={{
-                position: 'absolute', top: size / cells, left: size / cells,
-                width: 3 * (size / cells), height: 3 * (size / cells),
-                backgroundColor: '#fff',
-              }} />
-            </View>
-          </View>
-        ))}
-        <View style={{
-          position: 'absolute', top: size * 0.35, left: size * 0.35,
-          width: size * 0.3, height: size * 0.3, backgroundColor: color + '22',
-          borderRadius: size * 0.15, borderWidth: 2, borderColor: color,
-          justifyContent: 'center', alignItems: 'center',
-        }}>
-          <Text style={{ fontSize: size * 0.12 }}>🎵</Text>
-        </View>
-        {Array.from({ length: 60 }, (_, i) => {
-          const seed = (i * 137 + 41) % 100;
-          const x = ((i * 13) % (cells - 8)) + 8;
-          const y = ((i * 7 + 3) % (cells - 8)) + 8;
-          return seed > 45 ? (
-            <View key={`d${i}`} style={{
-              position: 'absolute',
-              left: x * (size / cells), top: y * (size / cells),
-              width: (size / cells) - 1, height: (size / cells) - 1,
-              backgroundColor: color, borderRadius: 1,
-            }} />
-          ) : null;
-        })}
-      </View>
-    </View>
-  );
-}
-
-function ShareScreen() {
-  const { tracks } = useApp();
-  const [colorIdx, setColorIdx] = useState(0);
-  const [stats, setStats] = useState<any>(null);
-  const color = SHARE_COLORS[colorIdx];
-
-  useEffect(() => {
-    const t = setInterval(() => setColorIdx(i => (i + 1) % SHARE_COLORS.length), 2000);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
-    fetch(`${SERVER_URL}/api/tracks`)
-      .then(r => r.json())
-      .then(d => {
-        const list = Array.isArray(d) ? d : (d.tracks || []);
-        setStats({
-          tracks: list.length,
-          plays: list.reduce((s: number, tr: any) => s + (tr.plays || 0), 0),
-        });
-      }).catch(() => {});
-  }, []);
-
-  const shareApp = async () => {
-    try {
-      await Share.share({
-        message: `🎵 SoundForge — Latvijas mūzikas aplikācija!\n\nKlausies mūziku, veido playlistes, Mood Player un vairāk!\n\nLejupielādē šeit: ${APP_URL}`,
-        title: 'SoundForge',
-      });
-    } catch {}
-  };
-
-  const openUrl = (url: string) => {
-    Linking.openURL(url).catch(() => Alert.alert('Kļūda', 'Nevar atvērt saiti'));
-  };
-
-  return (
-    <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: 40 }}>
-      <View style={[s.hdr, { borderBottomColor: color + '33' }]}>
-        <Text style={[s.logo, { color }]}>📲 Dalīties</Text>
-      </View>
-
-      {/* QR kods */}
-      <View style={[sh.qrCard, { borderColor: color + '44' }]}>
-        <Text style={[sh.qrTitle, { color }]}>📱 Lejupielādē SoundForge</Text>
-        <Text style={sh.qrSub}>Skenē QR kodu vai nospied pogu</Text>
-        <View style={sh.qrWrap}>
-          <SimpleQR size={180} color={color} />
-        </View>
-        <Text style={[sh.qrUrl, { color: color + '99' }]} numberOfLines={2}>{APP_URL}</Text>
-        <View style={sh.qrBtns}>
-          <TouchableOpacity style={[sh.qrBtn, { backgroundColor: color }]} onPress={shareApp}>
-            <Ionicons name="share-social" size={18} color="#000" />
-            <Text style={sh.qrBtnTxt}>Dalīties</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[sh.qrBtn, { backgroundColor: color + '22', borderWidth: 1, borderColor: color + '55' }]} onPress={() => openUrl(APP_URL)}>
-            <Ionicons name="download-outline" size={18} color={color} />
-            <Text style={[sh.qrBtnTxt, { color }]}>Lejupielādēt</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Statistika */}
-      {stats && (
-        <View style={sh.statsRow}>
-          {[
-            { v: stats.tracks, l: 'Dziesmas', e: '🎵', c: SHARE_COLORS[0] },
-            { v: stats.plays, l: 'Atskaņojumi', e: '▶️', c: SHARE_COLORS[1] },
-            { v: '🇱🇻', l: 'Made in Latvia', e: '🌍', c: SHARE_COLORS[2] },
-          ].map((st, i) => (
-            <View key={i} style={[sh.statBox, { borderColor: st.c + '44' }]}>
-              <Text style={sh.statE}>{st.e}</Text>
-              <Text style={[sh.statV, { color: st.c }]}>{st.v}</Text>
-              <Text style={sh.statL}>{st.l}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Dalīšanās veidi */}
-      <View style={{ paddingHorizontal: 16 }}>
-        <Text style={[s.secLbl, { color: color + '99' }]}>DALĪTIES AR DRAUGIEM</Text>
-        {[
-          {
-            icon: 'logo-whatsapp', label: 'WhatsApp', c: '#25D366',
-            action: () => openUrl(`https://wa.me/?text=${encodeURIComponent(`🎵 SoundForge — Latvijas mūzikas app! Lejupielādē: ${APP_URL}`)}`),
-          },
-          {
-            icon: 'paper-plane-outline', label: 'Telegram', c: '#229ED9',
-            action: () => openUrl(`https://t.me/share/url?url=${encodeURIComponent(APP_URL)}&text=${encodeURIComponent('🎵 SoundForge — Latvijas mūzikas app!')}`),
-          },
-          {
-            icon: 'share-social-outline', label: 'Cits', c: color,
-            action: shareApp,
-          },
-        ].map((item, i) => (
-          <TouchableOpacity key={i} style={[sh.shareRow, { borderColor: item.c + '33' }]} onPress={item.action}>
-            <View style={[sh.shareIcon, { backgroundColor: item.c + '22' }]}>
-              <Ionicons name={item.icon as any} size={24} color={item.c} />
-            </View>
-            <Text style={sh.shareLabel}>{item.label}</Text>
-            <Ionicons name="chevron-forward" size={18} color="#333" />
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Par aplikāciju */}
-      <View style={[sh.aboutCard, { borderColor: color + '33' }]}>
-        <Text style={[sh.aboutTitle, { color }]}>ℹ️ Par SoundForge</Text>
-        <Text style={sh.aboutTxt}>
-          SoundForge ir Latvijā radīta mūzikas straumēšanas platforma.
-          Klausies mūziku, veido playlistes, izmanto Mood Player un
-          atrod jaunas dziesmas. Pieejama Android ierīcēs.
-        </Text>
-        <View style={[sh.badge, { backgroundColor: color + '22', borderColor: color + '44' }]}>
-          <Text style={[sh.badgeTxt, { color }]}>v1.0 • Made in Latvia 🇱🇻</Text>
-        </View>
-      </View>
-    </ScrollView>
-  );
-}
-
-const sh = StyleSheet.create({
-  qrCard: { margin: 16, backgroundColor: '#111118', borderRadius: 20, padding: 20, alignItems: 'center', borderWidth: 1 },
-  qrTitle: { fontSize: 17, fontWeight: '800', marginBottom: 4 },
-  qrSub: { color: '#555', fontSize: 13, marginBottom: 20 },
-  qrWrap: { marginBottom: 16 },
-  qrUrl: { fontSize: 10, marginBottom: 16, letterSpacing: 0.3, textAlign: 'center' },
-  qrBtns: { flexDirection: 'row', gap: 10, width: '100%' },
-  qrBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 12, paddingVertical: 12, gap: 8 },
-  qrBtnTxt: { color: '#000', fontWeight: '700', fontSize: 14 },
-  statsRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginBottom: 20 },
-  statBox: { flex: 1, backgroundColor: '#111118', borderRadius: 14, padding: 12, alignItems: 'center', gap: 4, borderWidth: 1 },
-  statE: { fontSize: 22 },
-  statV: { fontSize: 16, fontWeight: '900' },
-  statL: { color: '#555', fontSize: 9, fontWeight: '600', textAlign: 'center' },
-  shareRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#111118', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, gap: 14 },
-  shareIcon: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  shareLabel: { flex: 1, color: '#ccc', fontSize: 15, fontWeight: '600' },
-  aboutCard: { margin: 16, backgroundColor: '#111118', borderRadius: 16, padding: 18, borderWidth: 1 },
-  aboutTitle: { fontSize: 15, fontWeight: '800', marginBottom: 10 },
-  aboutTxt: { color: '#666', fontSize: 13, lineHeight: 20, marginBottom: 14 },
-  badge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
-  badgeTxt: { fontSize: 12, fontWeight: '700' },
-});
-
-// ════════════════════════════════
 //  MAIN APP
 // ════════════════════════════════
 export default function MainApp() {
   const [activeTab, setActiveTab] = useState('home');
-  const { t, logout, isPlaying } = useApp();
+  const { t, logout } = useApp();
   const color = useChameleon(3200);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isPlayingRef = useRef(isPlaying);
-
-  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
 
   const resetTimer = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
-    // Neizlogojas ja mūzika skan!
-    if (isPlayingRef.current) return;
     timer.current = setTimeout(logout, INACTIVITY_MS);
   }, [logout]);
 
@@ -1288,10 +1238,7 @@ export default function MainApp() {
     const sub = AppState.addEventListener('change', state => {
       if (state === 'background' || state === 'inactive') {
         if (timer.current) clearTimeout(timer.current);
-        // Fonā NEKAD neizlogojas ja mūzika skan!
-        if (!isPlayingRef.current) {
-          timer.current = setTimeout(logout, 30000);
-        }
+        timer.current = setTimeout(logout, 30000);
       } else {
         resetTimer();
       }
@@ -1300,21 +1247,18 @@ export default function MainApp() {
   }, []);
 
   const TABS = [
-    { id: 'home',    icon: 'home-outline',               label: t.home },
-    { id: 'music',   icon: 'musical-notes-outline',      label: t.music },
-    { id: 'mood',    icon: 'color-palette-outline',      label: 'Mood' },
-    { id: 'chat',    icon: 'chatbubbles-outline',        label: t.chat },
-    { id: 'share',   icon: 'share-social-outline',       label: 'Dalīties' },
-    { id: 'profile', icon: 'person-outline',             label: t.profile },
+    { id: 'home',    icon: 'home-outline',          label: t.home },
+    { id: 'music',   icon: 'musical-notes-outline', label: t.music },
+    { id: 'chat',    icon: 'chatbubbles-outline',   label: t.chat },
+    { id: 'info',    icon: 'information-circle-outline', label: t.info },
+    { id: 'profile', icon: 'person-outline',        label: t.profile },
   ];
 
   const renderScreen = () => {
     switch (activeTab) {
       case 'home':    return <HomeScreen onNavigate={setActiveTab} />;
       case 'music':   return <MusicScreen />;
-      case 'mood':    return <MoodScreen />;
       case 'chat':    return <ChatScreen />;
-      case 'share':   return <ShareScreen />;
       case 'info':    return <InfoScreen />;
       case 'profile': return <ProfileScreen />;
       default:        return <HomeScreen onNavigate={setActiveTab} />;
@@ -1378,6 +1322,6 @@ const s = StyleSheet.create({
 const tb = StyleSheet.create({
   bar: { flexDirection: 'row', backgroundColor: '#111118', borderBottomWidth: 1, paddingTop: 46, paddingBottom: 7 },
   item: { flex: 1, alignItems: 'center', gap: 2 },
-  lbl: { fontSize: 8, fontWeight: '600', color: '#444' },
+  lbl: { fontSize: 9, fontWeight: '600', color: '#444' },
   dot: { width: 4, height: 4, borderRadius: 2, marginTop: 1 },
 });
