@@ -70,6 +70,23 @@ setInterval(() => { const now=Date.now(); for(const [k,v] of rateLimitMap) if(no
 const authLimiter   = rateLimit(10,  60000);  // 10 login attempts/min
 const uploadLimiter = rateLimit(20, 300000);  // 20 uploads per 6 min
 const apiLimiter    = rateLimit(200, 60000);  // 200 api calls/min
+
+// ── CORS — atļauj Expo Go un web piekļuvi ──
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '';
+  if (!origin || origin.startsWith('exp://') || origin.startsWith('http://192.168.') ||
+      origin.startsWith('http://localhost') || origin === 'https://greenman-ai.onrender.com') {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  next();
+});
+
 app.use('/api/', apiLimiter);
 
 // ══════════════════════════════════════════════════
@@ -136,13 +153,32 @@ const avatarStorage = new CloudinaryStorage({  // ✅ FIX 4: Avatar storage piev
 const uploadCover  = multer({ storage: coverStorage,  fileFilter: imageFilter, limits: { fileSize: 10*1024*1024 } });
 const uploadImage  = multer({ storage: imageStorage,  fileFilter: imageFilter, limits: { fileSize: 10*1024*1024 } });
 const uploadAvatar = multer({ storage: avatarStorage, fileFilter: imageFilter, limits: { fileSize: 5*1024*1024 } });  // ✅ FIX 4
-const MAX_FILE_MB = 25;
+// ── Upload limits konfigurācija ──
+const MAX_FILE_MB      = 25;
 const MAX_DURATION_SEC = 360;
 const MAX_PER_USER_DAY = 10;
-const dailyUploads = new Map();
-function checkDailyLimit(req,res,next){const today=new Date().toISOString().slice(0,10);const key=`${req.user.username}:${today}`;const count=dailyUploads.get(key)||0;if(count>=MAX_PER_USER_DAY)return res.status(429).json({error:`Dienas limits (${MAX_PER_USER_DAY}/dienā)`});req._uploadKey=key;next();}
-const uploadAudio = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: MAX_FILE_MB*1024*1024 } });
-const uploadMulti = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: MAX_FILE_MB*1024*1024 } });
+const dailyUploads     = new Map();
+
+const uploadAudio = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: MAX_FILE_MB * 1024 * 1024 } });
+const uploadMulti = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: MAX_FILE_MB * 1024 * 1024 } });
+
+function checkDailyLimit(req, res, next) {
+  const today = new Date().toISOString().slice(0, 10);
+  const key   = `${req.user.username}:${today}`;
+  const count = dailyUploads.get(key) || 0;
+  if (count >= MAX_PER_USER_DAY)
+    return res.status(429).json({ error: `Dienas limits sasniegts (${MAX_PER_USER_DAY} augšupielādes/dienā)` });
+  req._uploadKey = key;
+  next();
+}
+
+// Notīra vecos ierakstus reizi dienā
+setInterval(() => {
+  const today = new Date().toISOString().slice(0, 10);
+  for (const k of dailyUploads.keys()) {
+    if (!k.endsWith(today)) dailyUploads.delete(k);
+  }
+}, 24 * 60 * 60 * 1000);
 
 // ══════════════════════════════════════════════════
 //  MONGODB
@@ -272,7 +308,6 @@ async function requireAuth(req, res, next) {
     if (!sess) return res.status(401).json({ error: 'Sesija beigusies — ielogojies vēlreiz' });
     const user = await User.findOne({ username: sess.username });
     if (!user) return res.status(401).json({ error: 'Lietotājs neeksistē' });
-    if (user.role === 'banned') return res.status(403).json({ error: 'Konts ir bloķēts' });
     req.user = { username: user.username, role: user.role };
     next();
   } catch(e) { res.status(500).json({ error: 'Servera kļūda' }); }
@@ -1035,63 +1070,6 @@ self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.add
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
 self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.pathname.startsWith('/api/')||u.pathname.match(/\\.(mp3|wav|ogg|flac|m4a|aac)$/i))return;e.respondWith(caches.match(e.request).then(cached=>{if(cached)return cached;return fetch(e.request).then(res=>{if(res&&res.status===200&&e.request.method==='GET'){const cl=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cl));}return res;}).catch(()=>caches.match('/index.html'));}));});`;
   res.send(sw);
-});
-
-
-// ══════════════════════════════════════════════════
-//  TICKER ALIAS (app izmanto /api/ticker)
-// ══════════════════════════════════════════════════
-app.post('/api/ticker', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const { text, active } = req.body || {};
-    if (active === false) {
-      await Ticker.updateMany({}, { active: false });
-      return res.json({ ok: true, text: '' });
-    }
-    if (!text?.trim()) return res.status(400).json({ error: 'Teksts obligāts' });
-    await Ticker.updateMany({}, { active: false });
-    const t = await Ticker.create({ text: sanitize(text).slice(0,300), active: true, updatedBy: req.user.username });
-    io.emit('ticker', t.text);
-    res.json({ ok: true, text: t.text });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// ══════════════════════════════════════════════════
-//  ADMIN — WARN / BAN lietotājus
-// ══════════════════════════════════════════════════
-app.post('/api/admin/warn/:userId', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const { message, type } = req.body || {};
-    if (!message?.trim()) return res.status(400).json({ error: 'Ziņojums obligāts' });
-    const user = await User.findById(req.params.userId);
-    if (!user) return res.status(404).json({ error: 'Lietotājs nav atrasts' });
-    await User.findByIdAndUpdate(req.params.userId, {
-      $push: { notifications: { message: `⚠️ Brīdinājums (${type||'other'}): ${sanitize(message)}` } }
-    });
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post('/api/admin/ban/:userId', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const user = await User.findById(req.params.userId);
-    if (!user) return res.status(404).json({ error: 'Lietotājs nav atrasts' });
-    if (user.username === req.user.username) return res.status(400).json({ error: 'Nevar bloķēt sevi' });
-    await User.findByIdAndUpdate(req.params.userId, { role: 'banned' });
-    await Session.deleteMany({ username: user.username });
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-app.delete('/api/admin/users/:userId', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const user = await User.findById(req.params.userId);
-    if (!user) return res.status(404).json({ error: 'Lietotājs nav atrasts' });
-    if (user.username === req.user.username) return res.status(400).json({ error: 'Nevar dzēst sevi' });
-    await User.findByIdAndDelete(req.params.userId);
-    await Session.deleteMany({ username: user.username });
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ══════════════════════════════════════════════════
