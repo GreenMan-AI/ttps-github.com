@@ -42,6 +42,19 @@
   </div>
   <div class="splash-sub">TAVA MŪZIKAS PASAULE UN MŪZIKAS VALSTĪBA</div>
   <button class="splash-btn" onclick="openAuthFromSplash()">IEIET / REĢISTRĒTIES</button>
+  <div style="display:flex;gap:10px;margin-top:14px;justify-content:center;flex-wrap:wrap">
+    <a href="https://github.com/GreenMan-AI/greenman-ai/releases/latest/download/SoundForge.apk"
+       style="background:linear-gradient(135deg,#00cfff,#6366f1);color:#000;font-weight:800;font-size:12px;padding:8px 18px;border-radius:20px;text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+      📱 LEJUPIELĀDĒT APK
+    </a>
+    <button onclick="toggleQR()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;font-weight:700;font-size:12px;padding:8px 16px;border-radius:20px;cursor:pointer">🔗 QR KODS</button>
+    <button onclick="shareApp()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;font-weight:700;font-size:12px;padding:8px 16px;border-radius:20px;cursor:pointer">📤 DALĪTIES</button>
+  </div>
+  <div id="qr-box" style="display:none;margin:14px auto 0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:16px;max-width:220px;text-align:center">
+    <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px;letter-spacing:2px">SKENĒ AR TELEFONU</div>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://greenman-ai.onrender.com&bgcolor=0a0a0f&color=00cfff&format=png&qzone=1" style="width:160px;height:160px;border-radius:8px" alt="QR"/>
+    <div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:8px;font-family:monospace">greenman-ai.onrender.com</div>
+  </div>
   <div class="splash-note">Nepieciešams konts, lai piekļūtu mūzikai</div>
 
   <a href="https://github.com/GreenMan-AI/greenman-ai/releases/latest" 
@@ -801,6 +814,7 @@
 <div id="toast"></div>
 <audio id="aud"></audio>
 
+<script src="/socket.io/socket.io.js"></script>
 <script>
 // ════════════════════════════════════════
 //  STATE
@@ -2761,7 +2775,7 @@ async function deleteHAdById(id){
   }catch(e){ toast(e.message,'err'); }
 }
 
-init().then(()=>{
+init().then(()=>{ if(S.token) setTimeout(initSocket,600);
   populateFolderSels(); loadSavedTheme(); initSortSel(); applyLang(); loadTicker();
   // Pārbaudīt vai URL satur ?shared=username — atvērt dalīto playlisti
   const sharedUser = new URLSearchParams(location.search).get('shared');
@@ -2789,6 +2803,91 @@ async function loadSharedPlaylist(username){
     toast('📋 '+username+' playliste ielādēta!','ok');
   }catch(e){ toast('Neizdevās ielādēt playlisti','err'); }
 }
+
+// ════════════════════════════════════════
+//  SOCKET.IO + ČATS
+// ════════════════════════════════════════
+const CHAT_COLORS = ['#1565a0','#a855f7','#10b981','#ef4444','#f59e0b','#ec4899','#6366f1','#00ccff'];
+let chatMsgs = [{ id:'sys0', user:'SoundForge', text:'👋 Laipni lūdzam SoundForge čatā!', time:'—', color:'#1565a0', isSystem:true }];
+let _socket = null;
+
+function initSocket(){
+  if(_socket) return;
+  try{
+    _socket = io({ transports:['websocket','polling'] });
+    _socket.on('connect', ()=>{ const b=document.getElementById('cnt-chat'); if(b) b.style.background='rgba(0,255,136,.2)'; });
+    _socket.on('chat-history', msgs=>{
+      if(msgs&&msgs.length) chatMsgs = [chatMsgs[0], ...msgs];
+      const v=document.getElementById('v-chat'); if(v&&v.classList.contains('on')) renderChat();
+    });
+    _socket.on('chat-msg', msg=>{
+      if(chatMsgs.find(m=>m.id===msg.id)) return;
+      chatMsgs.push(msg);
+      const v=document.getElementById('v-chat');
+      if(v&&v.classList.contains('on')) renderChat();
+      else { const b=document.getElementById('cnt-chat'); if(b) b.textContent='NEW'; }
+    });
+    _socket.on('ticker', txt=>{
+      if(txt) showTicker(txt);
+      else { const tw=document.getElementById('ticker-wrap'); if(tw) tw.style.display='none'; }
+    });
+    _socket.on('disconnect', ()=>{ _socket=null; setTimeout(initSocket,3000); });
+  }catch(e){ console.log('Socket.IO nav pieejams'); }
+}
+
+function renderChat(){
+  const wrap=document.getElementById('chat-msgs');
+  const inpWrap=document.getElementById('chat-inp-wrap');
+  const loginPrompt=document.getElementById('chat-login-prompt');
+  if(!wrap) return;
+  if(S.username){ if(inpWrap) inpWrap.style.display='flex'; if(loginPrompt) loginPrompt.style.display='none'; }
+  else { if(inpWrap) inpWrap.style.display='none'; if(loginPrompt) loginPrompt.style.display='block'; }
+  wrap.innerHTML = chatMsgs.map(m=>{
+    const isMe = m.user===S.username;
+    if(m.isSystem) return '<div style="text-align:center;margin:4px 0"><span style="background:rgba(21,101,160,.1);border:1px solid rgba(21,101,160,.2);border-radius:20px;padding:4px 14px;font-size:11px;color:var(--mut)">'+esc(m.text)+'</span></div>';
+    return '<div class="chat-msg '+(isMe?'me':'')+'"><div class="chat-av" style="background:'+m.color+'22;color:'+m.color+'">'+esc(m.user.charAt(0).toUpperCase())+'</div><div class="chat-bubble '+(isMe?'me':'')+'">'+(!isMe?'<div class="chat-user" style="color:'+m.color+'">'+esc(m.user)+'</div>':'')+'<div class="chat-text">'+esc(m.text)+'</div><div class="chat-time">'+m.time+'</div></div></div>';
+  }).join('');
+  setTimeout(()=>{ wrap.scrollTop=wrap.scrollHeight; },50);
+  const b=document.getElementById('cnt-chat'); if(b) b.textContent='';
+}
+
+function sendChatMsg(){
+  if(!S.username){ openAuth(); return; }
+  const inp=document.getElementById('chat-inp');
+  if(!inp) return;
+  const text=inp.value.trim();
+  if(!text) return;
+  const now=new Date();
+  const time=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  const colorIdx=S.username.split('').reduce((a,c)=>a+c.charCodeAt(0),0)%CHAT_COLORS.length;
+  const msg={id:Date.now().toString(),user:S.username,text,time,color:CHAT_COLORS[colorIdx]};
+  inp.value='';
+  if(_socket&&_socket.connected){ _socket.emit('chat-msg',msg); }
+  else { chatMsgs.push(msg); renderChat(); }
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const inp=document.getElementById('chat-inp');
+  if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChatMsg();} });
+  if(S.token) setTimeout(initSocket,500);
+});
+
+// ════════════════════════════════════════
+//  SHARE / QR
+// ════════════════════════════════════════
+function toggleQR(){ const b=document.getElementById('qr-box'); if(b) b.style.display=b.style.display==='none'?'block':'none'; }
+function shareApp(){
+  const url='https://greenman-ai.onrender.com';
+  const text='🎵 SoundForge — Mūzikas platforma! Klausies mūziku, veido playlistes!';
+  if(navigator.share){ navigator.share({title:'SoundForge',text,url}).catch(()=>{}); }
+  else { navigator.clipboard.writeText(url+'\n'+text).then(()=>toast('✅ Saite nokopēta!','ok')).catch(()=>window.open('https://wa.me/?text='+encodeURIComponent(text+' '+url),'_blank')); }
+}
+function shareTrack(title,artist,url){
+  const text='🎵 '+title+(artist?' — '+artist:'')+' | SoundForge';
+  if(navigator.share){ navigator.share({title:'SoundForge',text,url:location.origin}).catch(()=>{}); }
+  else { navigator.clipboard.writeText(text).then(()=>toast('✅ Nokopēts!','ok')).catch(()=>{}); }
+}
+
 </script>
 </body>
 <!--

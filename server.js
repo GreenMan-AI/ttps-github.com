@@ -1,4 +1,7 @@
+require('dotenv').config();
 const express    = require('express');
+const http       = require('http');
+const { Server } = require('socket.io');
 const multer     = require('multer');
 const path       = require('path');
 const fs         = require('fs');
@@ -7,8 +10,23 @@ const mongoose   = require('mongoose');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-const app  = express();
-const PORT = process.env.PORT || 3000;
+const app    = express();
+const server = http.createServer(app);
+const io     = new Server(server, { cors: { origin: '*', credentials: true } });
+const PORT   = process.env.PORT || 3000;
+
+// ── Socket.IO — reāllaika čats ──
+const chatHistory = [];
+io.on('connection', socket => {
+  socket.emit('chat-history', chatHistory.slice(-50));
+  socket.on('chat-msg', data => {
+    const msg = { id: Date.now().toString(), user: data.user || 'Anonīms', text: String(data.text||'').slice(0,500), time: data.time || '', color: data.color || '#1565a0' };
+    chatHistory.push(msg);
+    if (chatHistory.length > 200) chatHistory.shift();
+    io.emit('chat-msg', msg);
+  });
+  socket.on('ticker-update', txt => io.emit('ticker', txt));
+});
 
 // ── JSON / form body parsing — PIRMS visiem maršrutiem ──
 app.use(express.json({ limit: '2mb' }));
@@ -161,8 +179,8 @@ const avatarStorage = new CloudinaryStorage({
 const uploadAvatar = multer({ storage: avatarStorage, fileFilter: imageFilter, limits: { fileSize: 5*1024*1024 } });
 
 const uploadImage = multer({ storage: imageStorage, fileFilter: imageFilter, limits: { fileSize: 10*1024*1024  } });
-const uploadMulti = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: 100*1024*1024 } });
-const uploadAudio = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: 100*1024*1024 } });
+const uploadMulti = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: 25*1024*1024 } });
+const uploadAudio = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: 25*1024*1024 } });
 
 // ══════════════════════════════════════════════════
 //  MONGODB
@@ -631,6 +649,7 @@ app.post('/api/upload', requireAuth, uploadLimiter, (req, res) => {
         uploader: req.user.username,
         folderId: folderId||null,
       });
+      _incUploadCount(req.user.username);
       res.status(201).json({ track });
       // Notify all other users
       await User.updateMany(
@@ -1233,12 +1252,14 @@ app.delete('/api/admin/users/:username', requireAuth, requireAdmin, async (req, 
 });
 
 // ── Upload limits ──
+const UPLOAD_MAX_MB = 25;
+const UPLOAD_MAX_DAY = 10;
+const _uploadCounts = new Map();
+function _getUploadCount(u){ const t=new Date().toDateString(); const e=_uploadCounts.get(u); if(!e||e.date!==t){_uploadCounts.set(u,{count:0,date:t});return 0;} return e.count; }
+function _incUploadCount(u){ const t=new Date().toDateString(); const e=_uploadCounts.get(u); if(!e||e.date!==t)_uploadCounts.set(u,{count:1,date:t}); else e.count++; }
 app.get('/api/upload/limits', requireAuth, (req, res) => {
-  res.json({
-    maxSizeMB: 25, maxDurationMin: 6,
-    uploadsPerDay: 10, remaining: 10, canUpload: true,
-    allowedTypes: ['audio/mpeg','audio/wav','audio/ogg','audio/flac','audio/m4a'],
-  });
+  const used = _getUploadCount(req.user.username);
+  res.json({ maxSizeMB: UPLOAD_MAX_MB, maxDurationMin: 6, uploadsPerDay: UPLOAD_MAX_DAY, usedToday: used, remaining: Math.max(0, UPLOAD_MAX_DAY-used), canUpload: used < UPLOAD_MAX_DAY, allowedTypes: ['.mp3','.wav','.ogg','.flac','.m4a','.aac'] });
 });
 
 // ── /api/ticker POST alias ──
@@ -1256,6 +1277,10 @@ app.post('/api/ticker', requireAuth, requireAdmin, async (req, res) => {
     );
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/chat/history', (req, res) => {
+  res.json({ messages: chatHistory.slice(-50) });
 });
 
 app.get('/api/health', (req, res) => res.json({ ok:true, time:new Date().toISOString() }));
@@ -1301,7 +1326,7 @@ app.get('*', (req, res) => {
 
 mongoose.connection.once('open', async () => {
   await seedAdmin();
-  app.listen(PORT, () => console.log(`
+  server.listen(PORT, () => console.log(`
 ╔═══════════════════════════════════════════╗
 ║  SoundForge v3.0  —  Full Edition    ║
 ║  i18n + Trending + Feed + Ads + Profiles  ║
