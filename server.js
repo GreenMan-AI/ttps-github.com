@@ -235,6 +235,17 @@ const ProfileSchema = new mongoose.Schema({
   nick:     { type: String, default: '', maxlength: 30 },
 }, { timestamps: true });
 
+
+// ══════════════════════════════════════════════════
+//  CHAT SCHEMA
+// ══════════════════════════════════════════════════
+const ChatMsgSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  text:     { type: String, required: true, maxlength: 500 },
+  color:    { type: String, default: '#00cfff' },
+}, { timestamps: true });
+const ChatMsg = mongoose.model('ChatMsg', ChatMsgSchema);
+
 const User     = mongoose.model('User',     UserSchema);
 const Track    = mongoose.model('Track',    TrackSchema);
 const Folder   = mongoose.model('Folder',   FolderSchema);
@@ -1068,62 +1079,65 @@ app.put('/api/me/profile', requireAuth, async (req, res) => {
 });
 
 
-// ── /api/ticker POST alias (aplikācija izmanto šo) ──
-app.post('/api/ticker', requireAuth, requireAdmin, async (req, res) => {
+// ══════════════════════════════════════════════════
+//  ČATS — reāllaika polling
+// ══════════════════════════════════════════════════
+
+// GET /api/chat?since=<ISO> — ielādē jaunākos 50 ziņojumus
+app.get('/api/chat', async (req, res) => {
   try {
-    const { text, active } = req.body || {};
-    if (active === false || !text?.trim()) {
-      await Settings.findOneAndUpdate({ key: 'ticker' }, { value: '' }, { upsert: true });
-      return res.json({ ok: true, text: '' });
-    }
-    await Settings.findOneAndUpdate(
-      { key: 'ticker' },
-      { key: 'ticker', value: sanitize(text).slice(0,300), updatedBy: req.user.username },
-      { upsert: true, new: true }
-    );
-    res.json({ ok: true, text: sanitize(text) });
+    const since = req.query.since ? new Date(req.query.since) : new Date(0);
+    const msgs = await ChatMsg.find({ createdAt: { $gt: since } })
+      .sort({ createdAt: 1 })
+      .limit(50)
+      .lean();
+    res.json({ msgs });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── /api/upload/limits ──
-app.get('/api/upload/limits', requireAuth, (req, res) => {
-  const today = new Date().toDateString();
-  const key   = req.user.username + ':' + today;
-  const used  = 0; // simplified
-  res.json({
-    maxSizeMB:      25,
-    maxDurationMin: 6,
-    uploadsPerDay:  10,
-    usedToday:      used,
-    remaining:      10 - used,
-    canUpload:      true,
-    allowedTypes:   ['audio/mpeg','audio/wav','audio/ogg','audio/flac','audio/m4a'],
-  });
+// GET /api/chat/history — pēdējos 60 ziņojumus (lapa ielādējas)
+app.get('/api/chat/history', async (req, res) => {
+  try {
+    const msgs = await ChatMsg.find()
+      .sort({ createdAt: -1 })
+      .limit(60)
+      .lean();
+    res.json({ msgs: msgs.reverse() });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── Admin: brīdināt lietotāju ──
-app.post('/api/admin/warn/:username', requireAuth, requireAdmin, async (req, res) => {
+// POST /api/chat — nosūtīt ziņojumu
+app.post('/api/chat', requireAuth, async (req, res) => {
   try {
-    const { message, type } = req.body || {};
-    if (!message?.trim()) return res.status(400).json({ error: 'Ziņojums obligāts' });
-    await User.findOneAndUpdate(
-      { username: req.params.username },
-      makeNotifPush('⚠️ Brīdinājums: ' + sanitize(message))
-    );
+    const { text, color } = req.body || {};
+    if (!text?.trim()) return res.status(400).json({ error: 'Teksts obligāts' });
+    if (text.trim().length > 500) return res.status(400).json({ error: 'Ziņojums par garu (max 500)' });
+    const msg = await ChatMsg.create({
+      username: req.user.username,
+      text:     sanitize(text.trim()),
+      color:    (color && /^#[0-9a-fA-F]{6}$/.test(color)) ? color : '#00cfff',
+    });
+    res.status(201).json({ msg });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/chat/:id — admin dzēš ziņojumu
+app.delete('/api/chat/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    if (!isValidId(req.params.id)) return badId(res);
+    await ChatMsg.findByIdAndDelete(req.params.id);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── Admin: bloķēt lietotāju ──
-app.post('/api/admin/ban/:username', requireAuth, requireAdmin, async (req, res) => {
+// Tīra vecos ziņojumus (vecākus par 7 dienām) reizi dienā
+setInterval(async () => {
   try {
-    const user = await User.findOne({ username: req.params.username });
-    if (!user) return res.status(404).json({ error: 'Lietotājs nav atrasts' });
-    if (user.username === req.user.username) return res.status(400).json({ error: 'Nevar bloķēt sevi' });
-    await Session.deleteMany({ username: req.params.username });
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
+    const week = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const r = await ChatMsg.deleteMany({ createdAt: { $lt: week } });
+    if (r.deletedCount > 0) console.log('🧹 Čats: dzēsti', r.deletedCount, 'veci ziņojumi');
+  } catch(e) {}
+}, 24 * 60 * 60 * 1000);
 
 app.get('/api/health', (req, res) => res.json({ ok:true, time:new Date().toISOString() }));
 
@@ -1132,7 +1146,7 @@ app.get('/manifest.json', (req, res) => {
   res.json({
     name: 'SoundForge',
     short_name: 'SoundForge',
-    description: 'SoundForge — Latvijas mūzikas platforma',
+    description: 'Tava personīgā mūzikas bibliotēka',
     start_url: '/',
     display: 'standalone',
     background_color: '#d4e9f8',
@@ -1170,7 +1184,7 @@ mongoose.connection.once('open', async () => {
   await seedAdmin();
   app.listen(PORT, () => console.log(`
 ╔═══════════════════════════════════════════╗
-║  SoundForge v2.0  —  Full Security Edition    ║
+║  MusicBox v8  —  Full Security Edition    ║
 ║  i18n + Trending + Feed + Ads + Profiles  ║
 ║  http://localhost:${PORT}                     ║
 ╚═══════════════════════════════════════════╝`));
