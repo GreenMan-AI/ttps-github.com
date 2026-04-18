@@ -1,4 +1,6 @@
+require('dotenv').config();
 const express    = require('express');
+const cors       = require('cors');
 const multer     = require('multer');
 const path       = require('path');
 const fs         = require('fs');
@@ -13,6 +15,15 @@ const PORT = process.env.PORT || 3000;
 // ── JSON / form body parsing — PIRMS visiem maršrutiem ──
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
+// ── CORS ──
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://greenman-ai.onrender.com',
+  ],
+  credentials: true,
+}));
 
 // ── Kopē index.html un design.css uz public/ nekavējoties pie starta ──
 if (!fs.existsSync('public')) fs.mkdirSync('public', { recursive: true });
@@ -234,17 +245,6 @@ const ProfileSchema = new mongoose.Schema({
   social:   { type: String, default: '' },
   nick:     { type: String, default: '', maxlength: 30 },
 }, { timestamps: true });
-
-
-// ══════════════════════════════════════════════════
-//  CHAT SCHEMA
-// ══════════════════════════════════════════════════
-const ChatMsgSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  text:     { type: String, required: true, maxlength: 500 },
-  color:    { type: String, default: '#00cfff' },
-}, { timestamps: true });
-const ChatMsg = mongoose.model('ChatMsg', ChatMsgSchema);
 
 const User     = mongoose.model('User',     UserSchema);
 const Track    = mongoose.model('Track',    TrackSchema);
@@ -564,6 +564,7 @@ app.get('/api/tracks', async (req, res) => {
 app.patch('/api/tracks/:id', requireAuth, async (req, res) => {
   try {
     if (!isValidId(req.params.id)) return badId(res);
+    const t = await Track.findById(req.params.id);
     if (!t) return res.status(404).json({ error: 'Nav atrasts' });
     if (t.uploader !== req.user.username && req.user.role !== 'admin')
       return res.status(403).json({ error: 'Nav tiesību' });
@@ -615,6 +616,7 @@ app.post('/api/upload', requireAuth, uploadLimiter, (req, res) => {
         folderId: folderId||null,
       });
       res.status(201).json({ track });
+      incrementUploadCount(req.user.username);
       // Notify all other users
       await User.updateMany(
         { username: { $ne: req.user.username } },
@@ -643,6 +645,7 @@ app.post('/api/upload-multi', requireAuth, uploadLimiter, (req, res) => {
         })
       ));
       res.status(201).json({ tracks, count: tracks.length });
+      incrementUploadCount(req.user.username);
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 });
@@ -1078,67 +1081,6 @@ app.put('/api/me/profile', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-
-// ══════════════════════════════════════════════════
-//  ČATS — reāllaika polling
-// ══════════════════════════════════════════════════
-
-// GET /api/chat?since=<ISO> — ielādē jaunākos 50 ziņojumus
-app.get('/api/chat', async (req, res) => {
-  try {
-    const since = req.query.since ? new Date(req.query.since) : new Date(0);
-    const msgs = await ChatMsg.find({ createdAt: { $gt: since } })
-      .sort({ createdAt: 1 })
-      .limit(50)
-      .lean();
-    res.json({ msgs });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// GET /api/chat/history — pēdējos 60 ziņojumus (lapa ielādējas)
-app.get('/api/chat/history', async (req, res) => {
-  try {
-    const msgs = await ChatMsg.find()
-      .sort({ createdAt: -1 })
-      .limit(60)
-      .lean();
-    res.json({ msgs: msgs.reverse() });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// POST /api/chat — nosūtīt ziņojumu
-app.post('/api/chat', requireAuth, async (req, res) => {
-  try {
-    const { text, color } = req.body || {};
-    if (!text?.trim()) return res.status(400).json({ error: 'Teksts obligāts' });
-    if (text.trim().length > 500) return res.status(400).json({ error: 'Ziņojums par garu (max 500)' });
-    const msg = await ChatMsg.create({
-      username: req.user.username,
-      text:     sanitize(text.trim()),
-      color:    (color && /^#[0-9a-fA-F]{6}$/.test(color)) ? color : '#00cfff',
-    });
-    res.status(201).json({ msg });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// DELETE /api/chat/:id — admin dzēš ziņojumu
-app.delete('/api/chat/:id', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    if (!isValidId(req.params.id)) return badId(res);
-    await ChatMsg.findByIdAndDelete(req.params.id);
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// Tīra vecos ziņojumus (vecākus par 7 dienām) reizi dienā
-setInterval(async () => {
-  try {
-    const week = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const r = await ChatMsg.deleteMany({ createdAt: { $lt: week } });
-    if (r.deletedCount > 0) console.log('🧹 Čats: dzēsti', r.deletedCount, 'veci ziņojumi');
-  } catch(e) {}
-}, 24 * 60 * 60 * 1000);
-
 app.get('/api/health', (req, res) => res.json({ ok:true, time:new Date().toISOString() }));
 
 // PWA files
@@ -1146,7 +1088,7 @@ app.get('/manifest.json', (req, res) => {
   res.json({
     name: 'SoundForge',
     short_name: 'SoundForge',
-    description: 'Tava personīgā mūzikas bibliotēka',
+    description: 'Tava mūzikas platforma — klausies, čatē, veido playlistes!',
     start_url: '/',
     display: 'standalone',
     background_color: '#d4e9f8',
@@ -1163,11 +1105,47 @@ app.get('/manifest.json', (req, res) => {
 app.get('/sw.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
   res.setHeader('Service-Worker-Allowed', '/');
-  const sw = `const CACHE='musicbox-v1';const STATIC=['/'];
+  const sw = `const CACHE='soundforge-v2';const STATIC=['/'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC).catch(()=>{})));self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
 self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.pathname.startsWith('/api/')||u.pathname.match(/\\.(mp3|wav|ogg|flac|m4a|aac)$/i))return;e.respondWith(caches.match(e.request).then(cached=>{if(cached)return cached;return fetch(e.request).then(res=>{if(res&&res.status===200&&e.request.method==='GET'){const cl=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cl));}return res;}).catch(()=>caches.match('/index.html'));}));});`;
   res.send(sw);
+});
+
+// ══════════════════════════════════════════════════
+//  UPLOAD LIMITS — /api/upload/limits
+// ══════════════════════════════════════════════════
+const UPLOAD_LIMITS = {
+  maxSizeMB:      25,
+  maxDurationMin: 6,
+  allowedTypes:   ['audio/mpeg','audio/mp3','audio/wav','audio/x-wav','audio/mp4','audio/m4a','audio/x-m4a'],
+  uploadsPerDay:  10,
+};
+const uploadCountMap = new Map();
+function getUploadCount(username) {
+  const today = new Date().toDateString();
+  const e = uploadCountMap.get(username);
+  if (!e || e.date !== today) { uploadCountMap.set(username, { count: 0, date: today }); return 0; }
+  return e.count;
+}
+function incrementUploadCount(username) {
+  const today = new Date().toDateString();
+  const e = uploadCountMap.get(username);
+  if (!e || e.date !== today) uploadCountMap.set(username, { count: 1, date: today });
+  else e.count++;
+}
+app.get('/api/upload/limits', requireAuth, (req, res) => {
+  const used = getUploadCount(req.user.username);
+  const remaining = Math.max(0, UPLOAD_LIMITS.uploadsPerDay - used);
+  res.json({
+    maxSizeMB:      UPLOAD_LIMITS.maxSizeMB,
+    maxDurationMin: UPLOAD_LIMITS.maxDurationMin,
+    allowedTypes:   UPLOAD_LIMITS.allowedTypes,
+    uploadsPerDay:  UPLOAD_LIMITS.uploadsPerDay,
+    usedToday:      used,
+    remaining,
+    canUpload:      remaining > 0,
+  });
 });
 
 // SPA catch-all — atgriež index.html visiem non-API pieprasījumiem
@@ -1184,8 +1162,9 @@ mongoose.connection.once('open', async () => {
   await seedAdmin();
   app.listen(PORT, () => console.log(`
 ╔═══════════════════════════════════════════╗
-║  MusicBox v8  —  Full Security Edition    ║
-║  i18n + Trending + Feed + Ads + Profiles  ║
+║  SoundForge v2  —  Full Security Edition  ║
+║  i18n LV/EN/RU + Čats + Info + Ads        ║
+║  Upload Limits + Avatar + BG              ║
 ║  http://localhost:${PORT}                     ║
 ╚═══════════════════════════════════════════╝`));
 });
