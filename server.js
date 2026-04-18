@@ -1,6 +1,4 @@
-require('dotenv').config();
 const express    = require('express');
-const cors       = require('cors');
 const multer     = require('multer');
 const path       = require('path');
 const fs         = require('fs');
@@ -16,15 +14,6 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// ── CORS ──
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://greenman-ai.onrender.com',
-  ],
-  credentials: true,
-}));
-
 // ── Kopē index.html un design.css uz public/ nekavējoties pie starta ──
 if (!fs.existsSync('public')) fs.mkdirSync('public', { recursive: true });
 const _idxSrc  = path.join(__dirname, 'index.html');
@@ -34,6 +23,28 @@ if (fs.existsSync(_idxSrc)) fs.copyFileSync(_idxSrc, _idxDest);
 const _cssSrc  = path.join(__dirname, 'design.css');
 const _cssDest = path.join(__dirname, 'public', 'design.css');
 if (fs.existsSync(_cssSrc)) fs.copyFileSync(_cssSrc, _cssDest);
+
+// ── CORS ──────────────────────────────────────────────
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '';
+  const allowed = [
+    'https://greenman-ai.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:8081',
+    'http://192.168.1',
+    'exp://',
+  ];
+  const isAllowed = !origin ||
+    allowed.some(a => origin.startsWith(a)) ||
+    origin.startsWith('exp://') ||
+    origin.match(/^http:\/\/192\.168\./);
+  res.setHeader('Access-Control-Allow-Origin', isAllowed ? (origin || '*') : 'https://greenman-ai.onrender.com');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  next();
+});
 
 // ── Static files — PIRMS maršrutiem ──────────────────
 app.use(express.static('public', { maxAge: '1d' }));
@@ -55,7 +66,7 @@ app.use((req, res, next) => {
     "font-src 'self' https://fonts.gstatic.com data:; " +
     "img-src 'self' data: blob: https:; " +
     "media-src 'self' blob: https: https://*.cloudinary.com https://res.cloudinary.com; " +
-    "connect-src 'self' https://*.cloudinary.com https://api.cloudinary.com https://res.cloudinary.com; " +
+    "connect-src 'self' https://*.cloudinary.com https://api.cloudinary.com https://res.cloudinary.com https://greenman-ai.onrender.com; " +
     "worker-src 'self' blob:; " +
     "frame-ancestors 'none';"
   );
@@ -564,7 +575,6 @@ app.get('/api/tracks', async (req, res) => {
 app.patch('/api/tracks/:id', requireAuth, async (req, res) => {
   try {
     if (!isValidId(req.params.id)) return badId(res);
-    const t = await Track.findById(req.params.id);
     if (!t) return res.status(404).json({ error: 'Nav atrasts' });
     if (t.uploader !== req.user.username && req.user.role !== 'admin')
       return res.status(403).json({ error: 'Nav tiesību' });
@@ -606,8 +616,14 @@ app.post('/api/upload', requireAuth, uploadLimiter, (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: 'Nav faila' });
       const { title, artist='', folderId='' } = req.body || {};
+      const trackTitle = title?.trim() || req.file.originalname.replace(/\.[^/.]+$/,'');
+      // Pārbauda vai dziesma ar šādu nosaukumu jau eksistē (no šī paša augšupielādētāja)
+      const existing = await Track.findOne({ title: trackTitle, uploader: req.user.username });
+      if (existing) {
+        return res.status(409).json({ error: `Dziesma "${trackTitle}" jau eksistē tavā bibliotēkā` });
+      }
       const track = await Track.create({
-        title:    title?.trim() || req.file.originalname.replace(/\.[^/.]+$/,''),
+        title:    trackTitle,
         artist:   artist?.trim()||'',
         cloudUrl: req.file.path,
         publicId: req.file.filename,
@@ -616,7 +632,6 @@ app.post('/api/upload', requireAuth, uploadLimiter, (req, res) => {
         folderId: folderId||null,
       });
       res.status(201).json({ track });
-      incrementUploadCount(req.user.username);
       // Notify all other users
       await User.updateMany(
         { username: { $ne: req.user.username } },
@@ -645,7 +660,6 @@ app.post('/api/upload-multi', requireAuth, uploadLimiter, (req, res) => {
         })
       ));
       res.status(201).json({ tracks, count: tracks.length });
-      incrementUploadCount(req.user.username);
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 });
@@ -1066,6 +1080,15 @@ app.get('/api/profiles/:username', async (req, res) => {
 app.put('/api/me/profile', requireAuth, async (req, res) => {
   try {
     const { bio, mood, social, nick } = req.body||{};
+    // Pārbauda nick unikalitāti
+    if (nick && nick.trim()) {
+      const cleanNick = sanitize(nick.trim()).slice(0,30);
+      const existingNick = await Profile.findOne({
+        nick: { $regex: new RegExp('^' + cleanNick.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '$', 'i') },
+        username: { $ne: req.user.username },
+      });
+      if (existingNick) return res.status(409).json({ error: `Nick "${cleanNick}" jau tiek izmantots` });
+    }
     const upd = {
       bio:    sanitize(bio||'').slice(0,200),
       mood:   sanitize(mood||'').slice(0,50),
@@ -1081,6 +1104,160 @@ app.put('/api/me/profile', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// ══════════════════════════════════════════════════
+//  ČATS — reāllaika (polling katras 3 sekundes)
+// ══════════════════════════════════════════════════
+const ChatMsgSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  text:     { type: String, required: true, maxlength: 500 },
+  color:    { type: String, default: '#00cfff' },
+}, { timestamps: true });
+const ChatMsg = mongoose.model('ChatMsg', ChatMsgSchema);
+
+// GET /api/chat/history — pēdējos 80 ziņojumus
+app.get('/api/chat/history', async (req, res) => {
+  try {
+    const msgs = await ChatMsg.find()
+      .sort({ createdAt: -1 }).limit(80).lean();
+    res.json({ msgs: msgs.reverse() });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/chat/poll?since=<ISO> — jaunie ziņojumi kopš laika
+app.get('/api/chat/poll', async (req, res) => {
+  try {
+    const since = req.query.since ? new Date(req.query.since) : new Date(0);
+    const msgs = await ChatMsg.find({ createdAt: { $gt: since } })
+      .sort({ createdAt: 1 }).limit(50).lean();
+    res.json({ msgs });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/chat — nosūtīt ziņojumu
+const chatLimiter = rateLimit(30, 60000, 'chat'); // 30 ziņas/min
+app.post('/api/chat', requireAuth, chatLimiter, async (req, res) => {
+  try {
+    const { text, color } = req.body || {};
+    if (!text?.trim()) return res.status(400).json({ error: 'Teksts obligāts' });
+    if (text.trim().length > 500) return res.status(400).json({ error: 'Maks. 500 rakstzīmes' });
+    const msg = await ChatMsg.create({
+      username: req.user.username,
+      text:     sanitize(text.trim()).slice(0, 500),
+      color:    /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#00cfff',
+    });
+    res.status(201).json({ msg });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/chat/:id — admin dzēš ziņojumu
+app.delete('/api/chat/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    if (!isValidId(req.params.id)) return badId(res);
+    await ChatMsg.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Tīra vecos čata ziņojumus (>7 dienas) reizi dienā
+setInterval(async () => {
+  try {
+    const week = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const r = await ChatMsg.deleteMany({ createdAt: { $lt: week } });
+    if (r.deletedCount > 0) console.log('🧹 Čats: dzēsti', r.deletedCount, 'veci ziņojumi');
+  } catch(e) {}
+}, 24 * 60 * 60 * 1000);
+
+
+// ── Nick pārbaude reāllaika — GET /api/check/nick?value=xxx ──
+app.get('/api/check/nick', async (req, res) => {
+  try {
+    const { value, exclude } = req.query;
+    if (!value?.trim()) return res.json({ available: true });
+    const clean = sanitize(value.trim()).slice(0, 30);
+    const existing = await Profile.findOne({
+      nick: { $regex: new RegExp('^' + clean.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '$', 'i') },
+      ...(exclude ? { username: { $ne: exclude } } : {}),
+    });
+    res.json({ available: !existing, nick: clean });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Lietotājvārda pārbaude ── GET /api/check/username?value=xxx
+app.get('/api/check/username', async (req, res) => {
+  try {
+    const { value } = req.query;
+    if (!value?.trim()) return res.json({ available: false });
+    const existing = await User.findOne({ username: value.trim().toLowerCase() });
+    res.json({ available: !existing });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+
+// ── Admin: brīdināt lietotāju ──
+app.post('/api/admin/warn/:username', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { message, type } = req.body || {};
+    if (!message?.trim()) return res.status(400).json({ error: 'Ziņojums obligāts' });
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) return res.status(404).json({ error: 'Lietotājs nav atrasts' });
+    await User.findOneAndUpdate(
+      { username: req.params.username },
+      makeNotifPush(`⚠️ Brīdinājums (${sanitize(type||'other')}): ${sanitize(message)}`)
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Admin: bloķēt lietotāju (dzēš sesijas) ──
+app.post('/api/admin/ban/:username', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) return res.status(404).json({ error: 'Lietotājs nav atrasts' });
+    if (user.username === req.user.username) return res.status(400).json({ error: 'Nevar bloķēt sevi' });
+    await Session.deleteMany({ username: req.params.username });
+    res.json({ ok: true, message: `Lietotājs "${req.params.username}" izlogots` });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Admin: dzēst lietotāju ──
+app.delete('/api/admin/users/:username', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) return res.status(404).json({ error: 'Lietotājs nav atrasts' });
+    if (user.username === req.user.username) return res.status(400).json({ error: 'Nevar dzēst sevi' });
+    await User.deleteOne({ username: req.params.username });
+    await Session.deleteMany({ username: req.params.username });
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Upload limits ──
+app.get('/api/upload/limits', requireAuth, (req, res) => {
+  res.json({
+    maxSizeMB: 25, maxDurationMin: 6,
+    uploadsPerDay: 10, remaining: 10, canUpload: true,
+    allowedTypes: ['audio/mpeg','audio/wav','audio/ogg','audio/flac','audio/m4a'],
+  });
+});
+
+// ── /api/ticker POST alias ──
+app.post('/api/ticker', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { text, active } = req.body || {};
+    if (active === false || !text?.trim()) {
+      await Settings.findOneAndUpdate({ key: 'ticker' }, { value: '' }, { upsert: true });
+      return res.json({ ok: true });
+    }
+    await Settings.findOneAndUpdate(
+      { key: 'ticker' },
+      { key: 'ticker', value: sanitize(text).slice(0,300), updatedBy: req.user.username },
+      { upsert: true, new: true }
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/health', (req, res) => res.json({ ok:true, time:new Date().toISOString() }));
 
 // PWA files
@@ -1088,7 +1265,7 @@ app.get('/manifest.json', (req, res) => {
   res.json({
     name: 'SoundForge',
     short_name: 'SoundForge',
-    description: 'Tava mūzikas platforma — klausies, čatē, veido playlistes!',
+    description: 'SoundForge — Latvijas mūzikas platforma',
     start_url: '/',
     display: 'standalone',
     background_color: '#d4e9f8',
@@ -1112,42 +1289,6 @@ self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.pathname.s
   res.send(sw);
 });
 
-// ══════════════════════════════════════════════════
-//  UPLOAD LIMITS — /api/upload/limits
-// ══════════════════════════════════════════════════
-const UPLOAD_LIMITS = {
-  maxSizeMB:      25,
-  maxDurationMin: 6,
-  allowedTypes:   ['audio/mpeg','audio/mp3','audio/wav','audio/x-wav','audio/mp4','audio/m4a','audio/x-m4a'],
-  uploadsPerDay:  10,
-};
-const uploadCountMap = new Map();
-function getUploadCount(username) {
-  const today = new Date().toDateString();
-  const e = uploadCountMap.get(username);
-  if (!e || e.date !== today) { uploadCountMap.set(username, { count: 0, date: today }); return 0; }
-  return e.count;
-}
-function incrementUploadCount(username) {
-  const today = new Date().toDateString();
-  const e = uploadCountMap.get(username);
-  if (!e || e.date !== today) uploadCountMap.set(username, { count: 1, date: today });
-  else e.count++;
-}
-app.get('/api/upload/limits', requireAuth, (req, res) => {
-  const used = getUploadCount(req.user.username);
-  const remaining = Math.max(0, UPLOAD_LIMITS.uploadsPerDay - used);
-  res.json({
-    maxSizeMB:      UPLOAD_LIMITS.maxSizeMB,
-    maxDurationMin: UPLOAD_LIMITS.maxDurationMin,
-    allowedTypes:   UPLOAD_LIMITS.allowedTypes,
-    uploadsPerDay:  UPLOAD_LIMITS.uploadsPerDay,
-    usedToday:      used,
-    remaining,
-    canUpload:      remaining > 0,
-  });
-});
-
 // SPA catch-all — atgriež index.html visiem non-API pieprasījumiem
 app.get('*', (req, res) => {
   const idx = path.join(__dirname, 'public', 'index.html');
@@ -1162,9 +1303,8 @@ mongoose.connection.once('open', async () => {
   await seedAdmin();
   app.listen(PORT, () => console.log(`
 ╔═══════════════════════════════════════════╗
-║  SoundForge v2  —  Full Security Edition  ║
-║  i18n LV/EN/RU + Čats + Info + Ads        ║
-║  Upload Limits + Avatar + BG              ║
+║  SoundForge v3.0  —  Full Edition    ║
+║  i18n + Trending + Feed + Ads + Profiles  ║
 ║  http://localhost:${PORT}                     ║
 ╚═══════════════════════════════════════════╝`));
 });
