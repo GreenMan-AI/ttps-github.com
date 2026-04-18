@@ -648,50 +648,121 @@ const ms = StyleSheet.create({
 });
 
 // ════════════════════════════════
-//  CHAT — ar krāsu izvēli
+//  CHAT — reāllaika ar serveri (polling)
 // ════════════════════════════════
-interface Msg { id: string; user: string; text: string; time: string; color: string; avatarUri?: string; }
+interface Msg { id: string; user: string; text: string; time: string; color: string; }
 
-const CHAT_COLORS = ['#00cfff','#a855f7','#f59e0b','#10b981','#ef4444','#ec4899','#6366f1','#fff'];
+const CHAT_COLORS = ['#00cfff','#a855f7','#f59e0b','#10b981','#ef4444','#ec4899','#6366f1','#22d3ee'];
 
 function ChatScreen() {
-  const { user, t } = useApp() as any;
-  const nick = user?.username || 'Lietotājs';
-  const avatarUri: string | null = null;
+  const { user, token, t } = useApp() as any;
+  const nick = user?.username || '';
+  const color = useChameleon();
 
-  const [msgs, setMsgs] = useState<Msg[]>([
-    { id: '0', user: 'SoundForge', text: '👋 Laipni lūdzam čatā! Dalies ar idejām par mūziku!', time: '—', color: '#a855f7' },
-  ]);
+  const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useState('');
   const [myColor, setMyColor] = useState(CHAT_COLORS[0]);
   const [showColors, setShowColors] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
   const listRef = useRef<FlatList>(null);
-  const color = useChameleon();
+  const lastTs = useRef<string>('');
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const send = () => {
-    if (!text.trim()) return;
-    const m: Msg = {
-      id: Date.now().toString(),
-      user: nick,
-      text: text.trim(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      color: myColor,
-      avatarUri,
-    };
-    setMsgs(p => [...p, m]);
+  // Pārvērš DB ziņojumu uz lokālo formātu
+  const toMsg = (m: any): Msg => ({
+    id: m._id,
+    user: m.username,
+    text: m.text,
+    color: m.color || '#00cfff',
+    time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  });
+
+  // Ielādē vēsturi pie atvēršanas
+  const loadHistory = async () => {
+    try {
+      const r = await fetch(`${API}/api/chat/history`);
+      const d = await r.json();
+      if (d.msgs?.length) {
+        setMsgs(d.msgs.map(toMsg));
+        lastTs.current = d.msgs[d.msgs.length - 1].createdAt;
+      } else {
+        // Ievietojam sveiciena ziņu ja nav ziņu
+        setMsgs([{ id: '0', user: 'SoundForge', text: '👋 Laipni lūdzam čatā! Dalies ar idejām par mūziku!', time: '—', color: '#a855f7' }]);
+      }
+    } catch { setError('Neizdevās ielādēt čatu'); }
+    finally { setLoading(false); }
+  };
+
+  // Polling — jauni ziņojumi ik pēc 3 sekundēm
+  const poll = async () => {
+    try {
+      const since = lastTs.current || new Date(0).toISOString();
+      const r = await fetch(`${API}/api/chat?since=${encodeURIComponent(since)}`);
+      const d = await r.json();
+      if (d.msgs?.length) {
+        lastTs.current = d.msgs[d.msgs.length - 1].createdAt;
+        setMsgs(prev => {
+          const existingIds = new Set(prev.map(m => m.id));
+          const newMsgs = d.msgs.filter((m: any) => !existingIds.has(m._id)).map(toMsg);
+          if (!newMsgs.length) return prev;
+          setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+          return [...prev, ...newMsgs];
+        });
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    loadHistory();
+    pollRef.current = setInterval(poll, 3000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
+
+  const send = async () => {
+    const trimmed = text.trim();
+    if (!trimmed || sending) return;
+    if (!token) { setError('Vajag ielogoties lai rakstītu!'); return; }
+    setSending(true);
     setText('');
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+    try {
+      const r = await fetch(`${API}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text: trimmed, color: myColor }),
+      });
+      const d = await r.json();
+      if (d.msg) {
+        const newMsg = toMsg(d.msg);
+        lastTs.current = d.msg.createdAt;
+        setMsgs(prev => [...prev, newMsg]);
+        setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+      } else {
+        setError(d.error || 'Neizdevās nosūtīt');
+      }
+    } catch { setError('Savienojuma kļūda'); }
+    finally { setSending(false); }
   };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#0a0a0f' }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}>
       <View style={[s.hdr, { borderBottomColor: color + '33' }]}>
         <Text style={[s.logo, { color }]}>💬 {t.chat}</Text>
-        <TouchableOpacity onPress={() => setShowColors(v => !v)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: myColor }} />
-          <Ionicons name="color-palette-outline" size={20} color={color} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#22c55e' }} />
+          <Text style={{ color: '#22c55e', fontSize: 10, fontWeight: '700' }}>LIVE</Text>
+          <TouchableOpacity onPress={() => setShowColors(v => !v)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: myColor }} />
+            <Ionicons name="color-palette-outline" size={20} color={color} />
+          </TouchableOpacity>
+        </View>
       </View>
+      {error ? (
+        <View style={{ backgroundColor: '#ff446622', padding: 8, paddingHorizontal: 14 }}>
+          <Text style={{ color: '#ff4466', fontSize: 12 }}>{error}</Text>
+        </View>
+      ) : null}
 
       {showColors && (
         <View style={ct.colorRow}>
@@ -704,6 +775,11 @@ function ChatScreen() {
         </View>
       )}
 
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: '#555', fontSize: 14 }}>Ielādē čatu...</Text>
+        </View>
+      ) : (
       <FlatList
         ref={listRef}
         data={msgs}
@@ -730,6 +806,13 @@ function ChatScreen() {
           );
         }}
       />
+      )}
+
+      {!token && (
+        <View style={{ backgroundColor: '#1a1a25', margin: 12, borderRadius: 12, padding: 14, alignItems: 'center', gap: 8 }}>
+          <Text style={{ color: '#888', fontSize: 13 }}>Ielogojies lai rakstītu čatā</Text>
+        </View>
+      )}
 
       <View style={[ct.inp, { borderTopColor: myColor + '33' }]}>
           <View style={[ct.colorIndicator, { backgroundColor: myColor }]} />
@@ -743,8 +826,8 @@ function ChatScreen() {
             returnKeyType="send"
             multiline
           />
-          <TouchableOpacity onPress={send} style={[ct.sendBtn, { backgroundColor: text.trim() ? myColor : '#222' }]}>
-            <Ionicons name="send" size={18} color={text.trim() ? '#000' : '#555'} />
+          <TouchableOpacity onPress={send} disabled={sending || !token} style={[ct.sendBtn, { backgroundColor: (text.trim() && !sending && token) ? myColor : '#222' }]}>
+            <Ionicons name={sending ? 'hourglass' : 'send'} size={18} color={(text.trim() && !sending && token) ? '#000' : '#555'} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -1228,23 +1311,30 @@ export default function MainApp() {
   const color = useChameleon(3200);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const { isPlaying } = useApp();
+
   const resetTimer = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
+    // Neizlogojamies ja mūzika spēlē
+    if (isPlaying) return;
     timer.current = setTimeout(logout, INACTIVITY_MS);
-  }, [logout]);
+  }, [logout, isPlaying]);
 
   useEffect(() => {
     resetTimer();
     const sub = AppState.addEventListener('change', state => {
       if (state === 'background' || state === 'inactive') {
         if (timer.current) clearTimeout(timer.current);
-        timer.current = setTimeout(logout, 30000);
+        // Fonā — neizlogojamies ja mūzika spēlē
+        if (!isPlaying) {
+          timer.current = setTimeout(logout, 30 * 60 * 1000); // 30 min fonā
+        }
       } else {
         resetTimer();
       }
     });
     return () => { sub.remove(); if (timer.current) clearTimeout(timer.current); };
-  }, []);
+  }, [isPlaying]);
 
   const TABS = [
     { id: 'home',    icon: 'home-outline',          label: t.home },

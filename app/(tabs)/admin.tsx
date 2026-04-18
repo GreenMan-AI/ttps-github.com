@@ -149,7 +149,7 @@ export default function AdminScreen() {
       [selectedUser._id]: [...(prev[selectedUser._id] || []), newViolation],
     }));
     try {
-      await fetch(`${API}/api/admin/warn/${selectedUser._id}`, {
+      await fetch(`${API}/api/admin/warn/${selectedUser.username}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ message: warnMsg.trim(), type: selectedViolation }),
@@ -165,7 +165,7 @@ export default function AdminScreen() {
       { text: 'Atcelt', style: 'cancel' },
       { text: 'Dzēst', style: 'destructive', onPress: async () => {
         try {
-          await fetch(`${API}/api/admin/users/${u._id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+          await fetch(`${API}/api/admin/users/${u.username}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
           setShowUserModal(false);
           loadUsers();
           Alert.alert('✅', `Lietotājs "${u.username}" dzēsts!`);
@@ -179,7 +179,7 @@ export default function AdminScreen() {
       { text: 'Atcelt', style: 'cancel' },
       { text: 'Bloķēt', style: 'destructive', onPress: async () => {
         try {
-          await fetch(`${API}/api/admin/ban/${u._id}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+          await fetch(`${API}/api/admin/ban/${u.username}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
           setShowUserModal(false);
           loadUsers();
           Alert.alert('✅', `Lietotājs "${u.username}" bloķēts!`);
