@@ -1279,9 +1279,6 @@ app.post('/api/ticker', requireAuth, requireAdmin, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/chat/history', (req, res) => {
-  res.json({ messages: chatHistory.slice(-50) });
-});
 
 app.get('/api/health', (req, res) => res.json({ ok:true, time:new Date().toISOString() }));
 
