@@ -1,0 +1,30 @@
+# ══ Atkarības ══
+node_modules/
+package-lock.json
+
+# ══ Slepeni mainīgie — NEKAD GitHub! ══
+.env
+.env.local
+.env.production
+
+# ══ Serveris ══
+public/
+*.log
+npm-debug.*
+
+# ══ macOS ══
+.DS_Store
+*.pem
+
+# ══ Expo (ja vienā repo) ══
+.expo/
+dist/
+web-build/
+/ios
+/android
+.kotlin/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
