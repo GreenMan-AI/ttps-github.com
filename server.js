@@ -1,4 +1,4 @@
-require('dotenv').config();
+//require('dotenv').config();
 const express    = require('express');
 const http       = require('http');
 const { Server } = require('socket.io');
@@ -32,22 +32,9 @@ io.on('connection', socket => {
 });
 
 // ── JSON / form body parsing — PIRMS visiem maršrutiem ──
-// CORS — atļauj piekļuvi no Expo app un web
-app.use((req, res, next) => {
-  const origin = req.headers.origin || '';
-  const allowed = ['https://greenman-ai.onrender.com', 'http://localhost:3000', 'http://localhost:8081'];
-  const ok = !origin || allowed.some(a => origin.startsWith(a)) ||
-             origin.startsWith('exp://') || /^http:\/\/192\.168\./.test(origin);
-  res.setHeader('Access-Control-Allow-Origin', ok ? (origin || '*') : 'https://greenman-ai.onrender.com');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  next();
-});
-
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Kopē index.html un design.css uz public/ nekavējoties pie starta ──
 if (!fs.existsSync('public')) fs.mkdirSync('public', { recursive: true });
@@ -138,7 +125,7 @@ cloudinary.config({
 const audioStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
-    folder:        ' soundpulse/audio',
+    folder:        'soundpulse/audio',
     resource_type: 'video',
     public_id:     'track_' + Date.now() + '_' + crypto.randomBytes(6).toString('hex'),
   }),
@@ -148,7 +135,7 @@ const audioStorage = new CloudinaryStorage({
 const imageStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
-    folder:        ' soundpulse/backgrounds',
+    folder:        'soundpulse/backgrounds',
     resource_type: 'image',
     public_id:     'bg_' + req.user.username + '_' + Date.now(),
     transformation: [{ width: 1920, height: 1080, crop: 'fill', quality: 'auto' }],
@@ -168,7 +155,7 @@ const imageFilter = (req, file, cb) => {
 const coverStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
-    folder:        ' soundpulse/covers',
+    folder:        'soundpulse/covers',
     resource_type: 'image',
     public_id:     'cover_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
     transformation: [{ width: 500, height: 500, crop: 'fill', quality: 'auto' }],
@@ -179,7 +166,7 @@ const uploadCover = multer({ storage: coverStorage, fileFilter: imageFilter, lim
 const avatarStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
-    folder:        ' soundpulse/avatars',
+    folder:        'soundpulse/avatars',
     resource_type: 'image',
     public_id:     'avatar_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
     transformation: [{ width: 300, height: 300, crop: 'fill', quality: 'auto' }],
@@ -201,21 +188,20 @@ setInterval(()=>{const t=new Date().toISOString().slice(0,10);for(const k of dai
 // ══════════════════════════════════════════════════
 //  MONGODB
 // ══════════════════════════════════════════════════
-// dotenv ielādēts augšā
+// Ielādējam dotenv, bet neļaujam serverim "nomirt", ja tā nav
+try {
+    require('dotenv').config();
+} catch (e) {
+    console.log("Dotenv netika ielādēts, izmantojam sistēmas mainīgos");
+}
 
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 
-if (!MONGO_URI) {
-  console.error("❌ KĻŪDA: MONGODB_URI nav iestatīts!");
-  console.error("   Render.com → Environment → Pievienot: MONGODB_URI=mongodb+srv://...");
-  process.exit(1);
-}
-
 mongoose.connect(MONGO_URI)
-  .then(() => console.log("✅ MongoDB savienots veiksmīgi!"))
+  .then(() => console.log("✅ MongoDB SAVIENOTS VEIKSMĪGI!"))
   .catch(err => {
-    console.error("❌ MongoDB kļūda:", err.message);
-    process.exit(1);
+    console.log("❌ MongoDB AUTH KĻŪDA:", err.message);
+    process.exit(1); // Apstādināt serveri, ja nevar pieslēgties
   });
 
 // ── Schemas ──────────────────────────────────────
@@ -633,6 +619,7 @@ app.get('/api/tracks', async (req, res) => {
 app.patch('/api/tracks/:id', requireAuth, async (req, res) => {
   try {
     if (!isValidId(req.params.id)) return badId(res);
+    const t = await Track.findById(req.params.id);
     if (!t) return res.status(404).json({ error: 'Nav atrasts' });
     if (t.uploader !== req.user.username && req.user.role !== 'admin')
       return res.status(403).json({ error: 'Nav tiesību' });
@@ -939,7 +926,7 @@ app.get('/api/feed', async (req, res) => {
       plays: t.plays,
       createdAt: t.createdAt,
     }));
-    res.json({ feed });
+    res.json({ feed, tracks: feed });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1211,7 +1198,6 @@ setInterval(async () => {
 app.get('/api/upload/limits', requireAuth, (req,res)=>{const today=new Date().toISOString().slice(0,10);const key=req.user.username+':'+today;const used=dailyUploads.get(key)||0;res.json({used,limit:MAX_PER_USER_DAY,remaining:Math.max(0,MAX_PER_USER_DAY-used),maxSizeMB:MAX_FILE_MB,maxDurationMin:MAX_DURATION_SEC/60,allowedFormats:['.mp3','.wav','.ogg','.flac','.m4a','.aac'],canUpload:used<MAX_PER_USER_DAY});});
 
 // ── Chat history endpoint ──
-app.get('/api/chat/history', (req,res)=>{ res.json({ messages: chatHistory.slice(-50) }); });
 
 app.get('/api/health', (req, res) => res.json({ ok:true, time:new Date().toISOString() }));
 
@@ -1234,32 +1220,51 @@ app.get('/manifest.json', (req, res) => {
     lang: 'lv'
   });
 });
+// ==================================================
+// 1. SERVICE WORKER
+// ==================================================
 app.get('/sw.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
-  res.setHeader('Service-Worker-Allowed', '/');
-  const sw = `const CACHE=' soundpulse-v1';const STATIC=['/'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC).catch(()=>{})));self.skipWaiting();});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
-self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.pathname.startsWith('/api/')||u.pathname.match(/\\.(mp3|wav|ogg|flac|m4a|aac)$/i))return;e.respondWith(caches.match(e.request).then(cached=>{if(cached)return cached;return fetch(e.request).then(res=>{if(res&&res.status===200&&e.request.method==='GET'){const cl=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cl));}return res;}).catch(()=>caches.match('/index.html'));}));});`;
-  res.send(sw);
+  res.send(`self.addEventListener('install', () => self.skipWaiting());`);
 });
 
-// SPA catch-all — atgriež index.html visiem non-API pieprasījumiem
+// ==================================================
+// 1. TICKER API
+// ==================================================
+app.get('/api/ticker', async (req, res) => {
+  try {
+    const s = await mongoose.model('Settings').findOne({ key: 'ticker' });
+    res.json({ text: s ? s.value : 'Laipni lūdzam SoundPulse!' });
+  } catch(e) {
+    res.json({ text: 'Laipni lūdzam SoundPulse!' });
+  }
+});
+
+// ==================================================
+// 2. STATISKIE FAILI (Pārliecinies, ka index.html ir mapē public!)
+// ==================================================
+
 app.get('*', (req, res) => {
   const idx = path.join(__dirname, 'public', 'index.html');
   if (fs.existsSync(idx)) {
     res.sendFile(idx);
   } else {
-    res.status(404).send('index.html nav atrasts public/ mapē');
+    res.status(404).send('Kļūda: public/index.html nav atrasts!');
   }
 });
 
-mongoose.connection.once('open', async () => {
-  await seedAdmin();
-  server.listen(PORT, () => console.log(`
+// ==================================================
+// 3. SERVERA STARTĒŠANA
+// ==================================================
+seedAdmin().then(() => {
+  server.listen(PORT, () => {
+    console.log(`
 ╔═══════════════════════════════════════════╗
-║  SoundPulse v8  —  Full Security Edition    ║
-║  i18n + Trending + Feed + Ads + Profiles  ║
-║  http://localhost:${3000}                     ║
-╚═══════════════════════════════════════════╝`));
+║   SoundPulse v8 — Iedarbināts veiksmīgi!  ║
+║   Portals: ${PORT}                            ║
+╚═══════════════════════════════════════════╝
+    `);
+  });
+}).catch(err => {
+  console.error("❌ Kritiska kļūda startējot serveri:", err);
 });
