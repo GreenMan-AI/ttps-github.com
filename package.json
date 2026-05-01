@@ -1,7 +1,7 @@
 {
-  "name": "soundpulse",
+  "name": "soundpulse-server",
   "version": "2.0.0",
-  "description": "SoundPulse — Mūzikas platforma",
+  "description": "SoundPulse — Mūzikas platforma serveris",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -11,15 +11,14 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "dependencies": {
-  "cloudinary": "^1.41.3",
-  "cors": "^2.8.5",
-  "dotenv": "^16.4.5",
-  "express": "^4.18.2",
-  "mongoose": "^8.0.3",
-  "multer": "^1.4.5-lts.1",
-  "multer-storage-cloudinary": "^4.0.0",
-  "socket.io": "^4.7.2"
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3",
+    "multer": "^1.4.5-lts.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "socket.io": "^4.7.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

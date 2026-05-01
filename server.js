@@ -1,4 +1,4 @@
-//require('dotenv').config();
+require('dotenv').config();
 const express    = require('express');
 const http       = require('http');
 const { Server } = require('socket.io');
@@ -12,18 +12,15 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app    = express();
 const server = http.createServer(app);
-const io     = new Server(server, {
-  cors: { origin: '*', credentials: true }
-});
-const PORT = process.env.PORT || 3000;
+const io     = new Server(server, { cors: { origin: '*', credentials: true } });
+const PORT   = process.env.PORT || 3000;
 
 // ── Socket.IO — reāllaika čats ──
 const chatHistory = [];
 io.on('connection', socket => {
-  // Sūta vēsturi jaunam lietotājam
   socket.emit('chat-history', chatHistory.slice(-50));
   socket.on('chat-msg', data => {
-    const msg = { id: Date.now().toString(), user: data.user, text: data.text, time: data.time, color: data.color };
+    const msg = { id: Date.now().toString(), user: data.user || 'Anonīms', text: String(data.text||'').slice(0,500), time: data.time || '', color: data.color || '#1565a0' };
     chatHistory.push(msg);
     if (chatHistory.length > 200) chatHistory.shift();
     io.emit('chat-msg', msg);
@@ -34,7 +31,6 @@ io.on('connection', socket => {
 // ── JSON / form body parsing — PIRMS visiem maršrutiem ──
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Kopē index.html un design.css uz public/ nekavējoties pie starta ──
 if (!fs.existsSync('public')) fs.mkdirSync('public', { recursive: true });
@@ -45,6 +41,32 @@ if (fs.existsSync(_idxSrc)) fs.copyFileSync(_idxSrc, _idxDest);
 const _cssSrc  = path.join(__dirname, 'design.css');
 const _cssDest = path.join(__dirname, 'public', 'design.css');
 if (fs.existsSync(_cssSrc)) fs.copyFileSync(_cssSrc, _cssDest);
+
+const _bgSrc  = path.join(__dirname, 'bg.jpg');
+const _bgDest = path.join(__dirname, 'public', 'bg.jpg');
+if (fs.existsSync(_bgSrc)) fs.copyFileSync(_bgSrc, _bgDest);
+
+// ── CORS ──────────────────────────────────────────────
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '';
+  const allowed = [
+    'https://greenman-ai.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:8081',
+    'http://192.168.1',
+    'exp://',
+  ];
+  const isAllowed = !origin ||
+    allowed.some(a => origin.startsWith(a)) ||
+    origin.startsWith('exp://') ||
+    origin.match(/^http:\/\/192\.168\./);
+  res.setHeader('Access-Control-Allow-Origin', isAllowed ? (origin || '*') : 'https://greenman-ai.onrender.com');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  next();
+});
 
 // ── Static files — PIRMS maršrutiem ──────────────────
 app.use(express.static('public', { maxAge: '1d' }));
@@ -66,7 +88,7 @@ app.use((req, res, next) => {
     "font-src 'self' https://fonts.gstatic.com data:; " +
     "img-src 'self' data: blob: https:; " +
     "media-src 'self' blob: https: https://*.cloudinary.com https://res.cloudinary.com; " +
-    "connect-src 'self' https://*.cloudinary.com https://api.cloudinary.com https://res.cloudinary.com; " +
+    "connect-src 'self' https://*.cloudinary.com https://api.cloudinary.com https://res.cloudinary.com https://greenman-ai.onrender.com; " +
     "worker-src 'self' blob:; " +
     "frame-ancestors 'none';"
   );
@@ -93,20 +115,6 @@ function rateLimit(maxReq, windowMs, prefix) {
 // Clean up old entries every 5 min
 setInterval(() => { const now=Date.now(); for(const [k,v] of rateLimitMap) if(now>v.reset) rateLimitMap.delete(k); }, 300000);
 
-// ── CORS ──
-app.use((req, res, next) => {
-  const origin = req.headers.origin || '';
-  if (!origin || origin.startsWith('exp://') || origin.startsWith('http://192.168.') ||
-      origin.startsWith('http://localhost') || origin === 'https://greenman-ai.onrender.com') {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  } else { res.setHeader('Access-Control-Allow-Origin', '*'); }
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  next();
-});
-
 const authLimiter   = rateLimit(10,   60000, 'auth');    // 10 login attempts/min
 const uploadLimiter = rateLimit(20,  300000, 'upload');  // 20 uploads per 5 min
 const apiLimiter    = rateLimit(200,  60000, 'api');     // 200 api calls/min
@@ -125,7 +133,7 @@ cloudinary.config({
 const audioStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
-    folder:        'soundpulse/audio',
+    folder:        'SoundPulse/audio',
     resource_type: 'video',
     public_id:     'track_' + Date.now() + '_' + crypto.randomBytes(6).toString('hex'),
   }),
@@ -135,7 +143,7 @@ const audioStorage = new CloudinaryStorage({
 const imageStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
-    folder:        'soundpulse/backgrounds',
+    folder:        'SoundPulse/backgrounds',
     resource_type: 'image',
     public_id:     'bg_' + req.user.username + '_' + Date.now(),
     transformation: [{ width: 1920, height: 1080, crop: 'fill', quality: 'auto' }],
@@ -155,7 +163,7 @@ const imageFilter = (req, file, cb) => {
 const coverStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
-    folder:        'soundpulse/covers',
+    folder:        'SoundPulse/covers',
     resource_type: 'image',
     public_id:     'cover_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
     transformation: [{ width: 500, height: 500, crop: 'fill', quality: 'auto' }],
@@ -166,7 +174,7 @@ const uploadCover = multer({ storage: coverStorage, fileFilter: imageFilter, lim
 const avatarStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
-    folder:        'soundpulse/avatars',
+    folder:        'SoundPulse/avatars',
     resource_type: 'image',
     public_id:     'avatar_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
     transformation: [{ width: 300, height: 300, crop: 'fill', quality: 'auto' }],
@@ -175,34 +183,20 @@ const avatarStorage = new CloudinaryStorage({
 const uploadAvatar = multer({ storage: avatarStorage, fileFilter: imageFilter, limits: { fileSize: 5*1024*1024 } });
 
 const uploadImage = multer({ storage: imageStorage, fileFilter: imageFilter, limits: { fileSize: 10*1024*1024  } });
-// ── Upload limits ──
-const MAX_FILE_MB = 25;
-const MAX_DURATION_SEC = 360;
-const MAX_PER_USER_DAY = 10;
-const dailyUploads = new Map();
-const uploadMulti = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: MAX_FILE_MB*1024*1024 } });
-const uploadAudio = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: MAX_FILE_MB*1024*1024 } });
-function checkDailyLimit(req,res,next){const today=new Date().toISOString().slice(0,10);const key=req.user.username+':'+today;const count=dailyUploads.get(key)||0;if(count>=MAX_PER_USER_DAY)return res.status(429).json({error:'Dienas limits sasniegts ('+MAX_PER_USER_DAY+'/dienā)'});req._uploadKey=key;next();}
-setInterval(()=>{const t=new Date().toISOString().slice(0,10);for(const k of dailyUploads.keys())if(!k.endsWith(t))dailyUploads.delete(k);},3600000);
+const uploadMulti = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: 25*1024*1024 } });
+const uploadAudio = multer({ storage: audioStorage, fileFilter: audioFilter, limits: { fileSize: 25*1024*1024 } });
 
 // ══════════════════════════════════════════════════
 //  MONGODB
 // ══════════════════════════════════════════════════
-// Ielādējam dotenv, bet neļaujam serverim "nomirt", ja tā nav
-try {
-    require('dotenv').config();
-} catch (e) {
-    console.log("Dotenv netika ielādēts, izmantojam sistēmas mainīgos");
-}
-
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
-
-mongoose.connect(MONGO_URI)
-  .then(() => console.log("✅ MongoDB SAVIENOTS VEIKSMĪGI!"))
-  .catch(err => {
-    console.log("❌ MongoDB AUTH KĻŪDA:", err.message);
-    process.exit(1); // Apstādināt serveri, ja nevar pieslēgties
-  });
+if (!MONGO_URI) {
+  console.error('❌ KĻŪDA: MONGODB_URI nav iestatīts Render.com Environment Variables!');
+  console.error('   Pievieno: MONGODB_URI = mongodb+srv://GreenMan:ManaJaunaParole2026@greenman.ijlx6sr.mongodb.net/SoundPulse?retryWrites=true&w=majority');
+}
+mongoose.connect(MONGO_URI || 'mongodb+srv://GreenMan:ManaJaunaParole2026@greenman.ijlx6sr.mongodb.net/SoundPulse?retryWrites=true&w=majority')
+  .then(() => console.log('✅ MongoDB savienots!'))
+  .catch(e => { console.error('❌ MongoDB kļūda:', e.message); /* nav process.exit — serveris turpina */ });
 
 // ── Schemas ──────────────────────────────────────
 const UserSchema = new mongoose.Schema({
@@ -289,17 +283,6 @@ const ProfileSchema = new mongoose.Schema({
   social:   { type: String, default: '' },
   nick:     { type: String, default: '', maxlength: 30 },
 }, { timestamps: true });
-
-
-// ══════════════════════════════════════════════════
-//  CHAT SCHEMA
-// ══════════════════════════════════════════════════
-const ChatMsgSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  text:     { type: String, required: true, maxlength: 500 },
-  color:    { type: String, default: '#00cfff' },
-}, { timestamps: true });
-const ChatMsg = mongoose.model('ChatMsg', ChatMsgSchema);
 
 const User     = mongoose.model('User',     UserSchema);
 const Track    = mongoose.model('Track',    TrackSchema);
@@ -619,7 +602,6 @@ app.get('/api/tracks', async (req, res) => {
 app.patch('/api/tracks/:id', requireAuth, async (req, res) => {
   try {
     if (!isValidId(req.params.id)) return badId(res);
-    const t = await Track.findById(req.params.id);
     if (!t) return res.status(404).json({ error: 'Nav atrasts' });
     if (t.uploader !== req.user.username && req.user.role !== 'admin')
       return res.status(403).json({ error: 'Nav tiesību' });
@@ -655,14 +637,23 @@ app.post('/api/tracks/:id/cover', requireAuth, (req, res) => {
 });
 
 // Single upload
-app.post('/api/upload', requireAuth, uploadLimiter, checkDailyLimit, (req, res) => {
+app.post('/api/upload', requireAuth, uploadLimiter, (req, res) => {
   uploadAudio.single('audio')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     try {
       if (!req.file) return res.status(400).json({ error: 'Nav faila' });
+      // ── Dienas limits pārbaude ──
+      const _used = _getUploadCount(req.user.username);
+      if (_used >= UPLOAD_MAX_DAY) return res.status(429).json({ error: `Dienas limits sasniegts — max ${UPLOAD_MAX_DAY} augšupielādes/dienā` });
       const { title, artist='', folderId='' } = req.body || {};
+      const trackTitle = title?.trim() || req.file.originalname.replace(/\.[^/.]+$/,'');
+      // Pārbauda vai dziesma ar šādu nosaukumu jau eksistē (no šī paša augšupielādētāja)
+      const existing = await Track.findOne({ title: trackTitle, uploader: req.user.username });
+      if (existing) {
+        return res.status(409).json({ error: `Dziesma "${trackTitle}" jau eksistē tavā bibliotēkā` });
+      }
       const track = await Track.create({
-        title:    title?.trim() || req.file.originalname.replace(/\.[^/.]+$/,''),
+        title:    trackTitle,
         artist:   artist?.trim()||'',
         cloudUrl: req.file.path,
         publicId: req.file.filename,
@@ -670,6 +661,7 @@ app.post('/api/upload', requireAuth, uploadLimiter, checkDailyLimit, (req, res) 
         uploader: req.user.username,
         folderId: folderId||null,
       });
+      _incUploadCount(req.user.username);
       res.status(201).json({ track });
       // Notify all other users
       await User.updateMany(
@@ -926,7 +918,7 @@ app.get('/api/feed', async (req, res) => {
       plays: t.plays,
       createdAt: t.createdAt,
     }));
-    res.json({ feed, tracks: feed });
+    res.json({ feed });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1119,6 +1111,15 @@ app.get('/api/profiles/:username', async (req, res) => {
 app.put('/api/me/profile', requireAuth, async (req, res) => {
   try {
     const { bio, mood, social, nick } = req.body||{};
+    // Pārbauda nick unikalitāti
+    if (nick && nick.trim()) {
+      const cleanNick = sanitize(nick.trim()).slice(0,30);
+      const existingNick = await Profile.findOne({
+        nick: { $regex: new RegExp('^' + cleanNick.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '$', 'i') },
+        username: { $ne: req.user.username },
+      });
+      if (existingNick) return res.status(409).json({ error: `Nick "${cleanNick}" jau tiek izmantots` });
+    }
     const upd = {
       bio:    sanitize(bio||'').slice(0,200),
       mood:   sanitize(mood||'').slice(0,50),
@@ -1136,42 +1137,45 @@ app.put('/api/me/profile', requireAuth, async (req, res) => {
 
 
 // ══════════════════════════════════════════════════
-//  ČATS — reāllaika polling
+//  ČATS — reāllaika (polling katras 3 sekundes)
 // ══════════════════════════════════════════════════
+const ChatMsgSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  text:     { type: String, required: true, maxlength: 500 },
+  color:    { type: String, default: '#00cfff' },
+}, { timestamps: true });
+const ChatMsg = mongoose.model('ChatMsg', ChatMsgSchema);
 
-// GET /api/chat?since=<ISO> — ielādē jaunākos 50 ziņojumus
-app.get('/api/chat', async (req, res) => {
-  try {
-    const since = req.query.since ? new Date(req.query.since) : new Date(0);
-    const msgs = await ChatMsg.find({ createdAt: { $gt: since } })
-      .sort({ createdAt: 1 })
-      .limit(50)
-      .lean();
-    res.json({ msgs });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// GET /api/chat/history — pēdējos 60 ziņojumus (lapa ielādējas)
+// GET /api/chat/history — pēdējos 80 ziņojumus
 app.get('/api/chat/history', async (req, res) => {
   try {
     const msgs = await ChatMsg.find()
-      .sort({ createdAt: -1 })
-      .limit(60)
-      .lean();
+      .sort({ createdAt: -1 }).limit(80).lean();
     res.json({ msgs: msgs.reverse() });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/chat/poll?since=<ISO> — jaunie ziņojumi kopš laika
+app.get('/api/chat/poll', async (req, res) => {
+  try {
+    const since = req.query.since ? new Date(req.query.since) : new Date(0);
+    const msgs = await ChatMsg.find({ createdAt: { $gt: since } })
+      .sort({ createdAt: 1 }).limit(50).lean();
+    res.json({ msgs });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // POST /api/chat — nosūtīt ziņojumu
-app.post('/api/chat', requireAuth, async (req, res) => {
+const chatLimiter = rateLimit(30, 60000, 'chat'); // 30 ziņas/min
+app.post('/api/chat', requireAuth, chatLimiter, async (req, res) => {
   try {
     const { text, color } = req.body || {};
     if (!text?.trim()) return res.status(400).json({ error: 'Teksts obligāts' });
-    if (text.trim().length > 500) return res.status(400).json({ error: 'Ziņojums par garu (max 500)' });
+    if (text.trim().length > 500) return res.status(400).json({ error: 'Maks. 500 rakstzīmes' });
     const msg = await ChatMsg.create({
       username: req.user.username,
-      text:     sanitize(text.trim()),
-      color:    (color && /^#[0-9a-fA-F]{6}$/.test(color)) ? color : '#00cfff',
+      text:     sanitize(text.trim()).slice(0, 500),
+      color:    /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#00cfff',
     });
     res.status(201).json({ msg });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -1186,7 +1190,7 @@ app.delete('/api/chat/:id', requireAuth, requireAdmin, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Tīra vecos ziņojumus (vecākus par 7 dienām) reizi dienā
+// Tīra vecos čata ziņojumus (>7 dienas) reizi dienā
 setInterval(async () => {
   try {
     const week = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -1195,9 +1199,98 @@ setInterval(async () => {
   } catch(e) {}
 }, 24 * 60 * 60 * 1000);
 
-app.get('/api/upload/limits', requireAuth, (req,res)=>{const today=new Date().toISOString().slice(0,10);const key=req.user.username+':'+today;const used=dailyUploads.get(key)||0;res.json({used,limit:MAX_PER_USER_DAY,remaining:Math.max(0,MAX_PER_USER_DAY-used),maxSizeMB:MAX_FILE_MB,maxDurationMin:MAX_DURATION_SEC/60,allowedFormats:['.mp3','.wav','.ogg','.flac','.m4a','.aac'],canUpload:used<MAX_PER_USER_DAY});});
 
-// ── Chat history endpoint ──
+// ── Nick pārbaude reāllaika — GET /api/check/nick?value=xxx ──
+app.get('/api/check/nick', async (req, res) => {
+  try {
+    const { value, exclude } = req.query;
+    if (!value?.trim()) return res.json({ available: true });
+    const clean = sanitize(value.trim()).slice(0, 30);
+    const existing = await Profile.findOne({
+      nick: { $regex: new RegExp('^' + clean.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '$', 'i') },
+      ...(exclude ? { username: { $ne: exclude } } : {}),
+    });
+    res.json({ available: !existing, nick: clean });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Lietotājvārda pārbaude ── GET /api/check/username?value=xxx
+app.get('/api/check/username', async (req, res) => {
+  try {
+    const { value } = req.query;
+    if (!value?.trim()) return res.json({ available: false });
+    const existing = await User.findOne({ username: value.trim().toLowerCase() });
+    res.json({ available: !existing });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+
+// ── Admin: brīdināt lietotāju ──
+app.post('/api/admin/warn/:username', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { message, type } = req.body || {};
+    if (!message?.trim()) return res.status(400).json({ error: 'Ziņojums obligāts' });
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) return res.status(404).json({ error: 'Lietotājs nav atrasts' });
+    await User.findOneAndUpdate(
+      { username: req.params.username },
+      makeNotifPush(`⚠️ Brīdinājums (${sanitize(type||'other')}): ${sanitize(message)}`)
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Admin: bloķēt lietotāju (dzēš sesijas) ──
+app.post('/api/admin/ban/:username', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) return res.status(404).json({ error: 'Lietotājs nav atrasts' });
+    if (user.username === req.user.username) return res.status(400).json({ error: 'Nevar bloķēt sevi' });
+    await Session.deleteMany({ username: req.params.username });
+    res.json({ ok: true, message: `Lietotājs "${req.params.username}" izlogots` });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Admin: dzēst lietotāju ──
+app.delete('/api/admin/users/:username', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) return res.status(404).json({ error: 'Lietotājs nav atrasts' });
+    if (user.username === req.user.username) return res.status(400).json({ error: 'Nevar dzēst sevi' });
+    await User.deleteOne({ username: req.params.username });
+    await Session.deleteMany({ username: req.params.username });
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Upload limits ──
+const UPLOAD_MAX_MB = 25;
+const UPLOAD_MAX_DAY = 10;
+const _uploadCounts = new Map();
+function _getUploadCount(u){ const t=new Date().toDateString(); const e=_uploadCounts.get(u); if(!e||e.date!==t){_uploadCounts.set(u,{count:0,date:t});return 0;} return e.count; }
+function _incUploadCount(u){ const t=new Date().toDateString(); const e=_uploadCounts.get(u); if(!e||e.date!==t)_uploadCounts.set(u,{count:1,date:t}); else e.count++; }
+app.get('/api/upload/limits', requireAuth, (req, res) => {
+  const used = _getUploadCount(req.user.username);
+  res.json({ maxSizeMB: UPLOAD_MAX_MB, maxDurationMin: 6, uploadsPerDay: UPLOAD_MAX_DAY, limit: UPLOAD_MAX_DAY, usedToday: used, used, remaining: Math.max(0, UPLOAD_MAX_DAY-used), canUpload: used < UPLOAD_MAX_DAY, allowedTypes: ['.mp3','.wav','.ogg','.flac','.m4a','.aac'] });
+});
+
+// ── /api/ticker POST alias ──
+app.post('/api/ticker', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { text, active } = req.body || {};
+    if (active === false || !text?.trim()) {
+      await Settings.findOneAndUpdate({ key: 'ticker' }, { value: '' }, { upsert: true });
+      return res.json({ ok: true });
+    }
+    await Settings.findOneAndUpdate(
+      { key: 'ticker' },
+      { key: 'ticker', value: sanitize(text).slice(0,300), updatedBy: req.user.username },
+      { upsert: true, new: true }
+    );
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 
 app.get('/api/health', (req, res) => res.json({ ok:true, time:new Date().toISOString() }));
 
@@ -1206,11 +1299,11 @@ app.get('/manifest.json', (req, res) => {
   res.json({
     name: 'SoundPulse',
     short_name: 'SoundPulse',
-    description: 'Tava personīgā mūzikas bibliotēka',
+    description: 'SoundPulse — Latvijas mūzikas platforma',
     start_url: '/',
     display: 'standalone',
-    background_color: '#d4e9f8',
-    theme_color: '#1565a0',
+    background_color: '#0a0a0f',
+    theme_color: '#00cfff',
     orientation: 'portrait-primary',
     icons: [
       { src: 'https://i.pinimg.com/1200x/0c/f9/5a/0cf95a12ec2d42ef15df2727a16ef208.jpg', sizes: '192x192', type: 'image/jpeg', purpose: 'any maskable' },
@@ -1220,51 +1313,37 @@ app.get('/manifest.json', (req, res) => {
     lang: 'lv'
   });
 });
-// ==================================================
-// 1. SERVICE WORKER
-// ==================================================
 app.get('/sw.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
-  res.send(`self.addEventListener('install', () => self.skipWaiting());`);
+  res.setHeader('Service-Worker-Allowed', '/');
+  const sw = `const CACHE='soundforge-v2';const STATIC=['/'];
+self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC).catch(()=>{})));self.skipWaiting();});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
+self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.pathname.startsWith('/api/')||u.pathname.match(/\\.(mp3|wav|ogg|flac|m4a|aac)$/i))return;e.respondWith(caches.match(e.request).then(cached=>{if(cached)return cached;return fetch(e.request).then(res=>{if(res&&res.status===200&&e.request.method==='GET'){const cl=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cl));}return res;}).catch(()=>caches.match('/index.html'));}));});`;
+  res.send(sw);
 });
 
-// ==================================================
-// 1. TICKER API
-// ==================================================
-app.get('/api/ticker', async (req, res) => {
-  try {
-    const s = await mongoose.model('Settings').findOne({ key: 'ticker' });
-    res.json({ text: s ? s.value : 'Laipni lūdzam SoundPulse!' });
-  } catch(e) {
-    res.json({ text: 'Laipni lūdzam SoundPulse!' });
-  }
+// Speciāls maršruts privātuma politikai (Googlei)
+app.get('/privacy', (req, res) => {
+  res.redirect('/#privacy');
 });
 
-// ==================================================
-// 2. STATISKIE FAILI (Pārliecinies, ka index.html ir mapē public!)
-// ==================================================
-
+// SPA catch-all — atgriež index.html visiem non-API pieprasījumiem
 app.get('*', (req, res) => {
   const idx = path.join(__dirname, 'public', 'index.html');
   if (fs.existsSync(idx)) {
     res.sendFile(idx);
   } else {
-    res.status(404).send('Kļūda: public/index.html nav atrasts!');
+    res.status(404).send('index.html nav atrasts public/ mapē');
   }
 });
 
-// ==================================================
-// 3. SERVERA STARTĒŠANA
-// ==================================================
-seedAdmin().then(() => {
-  server.listen(PORT, () => {
-    console.log(`
+mongoose.connection.once('open', async () => {
+  await seedAdmin();
+  server.listen(PORT, () => console.log(`
 ╔═══════════════════════════════════════════╗
-║   SoundPulse v8 — Iedarbināts veiksmīgi!  ║
-║   Portals: ${PORT}                            ║
-╚═══════════════════════════════════════════╝
-    `);
-  });
-}).catch(err => {
-  console.error("❌ Kritiska kļūda startējot serveri:", err);
+║  SoundPulse v3.0  —  Full Edition    ║
+║  i18n + Trending + Feed + Ads + Profiles  ║
+║  http://localhost:${PORT}                     ║
+╚═══════════════════════════════════════════╝`));
 });
