@@ -50,7 +50,7 @@ if (fs.existsSync(_bgSrc)) fs.copyFileSync(_bgSrc, _bgDest);
 app.use((req, res, next) => {
   const origin = req.headers.origin || '';
   const allowed = [
-    'https://greenman-ai.onrender.com',
+    'https://soundpulse-backend-e0e2.onrender.com',
     'http://localhost:3000',
     'http://localhost:8081',
     'http://192.168.1',
@@ -60,7 +60,7 @@ app.use((req, res, next) => {
     allowed.some(a => origin.startsWith(a)) ||
     origin.startsWith('exp://') ||
     origin.match(/^http:\/\/192\.168\./);
-  res.setHeader('Access-Control-Allow-Origin', isAllowed ? (origin || '*') : 'https://greenman-ai.onrender.com');
+  res.setHeader('Access-Control-Allow-Origin', isAllowed ? (origin || '*') : 'https://soundpulse-backend-e0e2.onrender.com');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -88,7 +88,7 @@ app.use((req, res, next) => {
     "font-src 'self' https://fonts.gstatic.com data:; " +
     "img-src 'self' data: blob: https:; " +
     "media-src 'self' blob: https: https://*.cloudinary.com https://res.cloudinary.com; " +
-    "connect-src 'self' https://*.cloudinary.com https://api.cloudinary.com https://res.cloudinary.com https://greenman-ai.onrender.com; " +
+    "connect-src 'self' https://*.cloudinary.com https://api.cloudinary.com https://res.cloudinary.com https://soundpulse-backend-e0e2.onrender.com; " +
     "worker-src 'self' blob:; " +
     "frame-ancestors 'none';"
   );
@@ -192,9 +192,9 @@ const uploadAudio = multer({ storage: audioStorage, fileFilter: audioFilter, lim
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 if (!MONGO_URI) {
   console.error('❌ KĻŪDA: MONGODB_URI nav iestatīts Render.com Environment Variables!');
-  console.error('   Pievieno: MONGODB_URI = mongodb+srv://GreenMan:ManaJaunaParole2026@greenman.ijlx6sr.mongodb.net/SoundPulse?retryWrites=true&w=majority');
+  console.error('   Pievieno: MONGODB_URI = mongodb+srv://GreenMan:Draconball1@greenman.ijlx6sr.mongodb.net/SoundPulse?retryWrites=true&w=majority');
 }
-mongoose.connect(MONGO_URI || 'mongodb+srv://GreenMan:ManaJaunaParole2026@greenman.ijlx6sr.mongodb.net/SoundPulse?retryWrites=true&w=majority')
+mongoose.connect(MONGO_URI || 'mongodb+srv://GreenMan:Draconball1@greenman.ijlx6sr.mongodb.net/SoundPulse?retryWrites=true&w=majority')
   .then(() => console.log('✅ MongoDB savienots!'))
   .catch(e => { console.error('❌ MongoDB kļūda:', e.message); /* nav process.exit — serveris turpina */ });
 
