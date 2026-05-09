@@ -807,8 +807,8 @@
     <button class="auth-close" onclick="closeAuth()">✕</button>
     <div class="auth-logo" style="line-height:1.3">SoundPulse<br><span style="font-size:11px;background:linear-gradient(90deg,#00ff88,#00ccff,#c084fc,#ffc400,#00ff88);background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:hshift 3s linear infinite;letter-spacing:3px;display:inline-block;margin-top:3px">GreenMan-AI</span></div>
     <div class="auth-tabs">
-      <button class="auth-tab on" data-af="btn-login">IEIET</button>
-      <button class="auth-tab" data-af="btn-reg">REĢISTRĒTIES</button>
+      <button class="auth-tab on" data-af="l">IEIET</button>
+      <button class="auth-tab" data-af="r">REĢISTRĒTIES</button>
     </div>
     <div id="af-l" class="auth-f">
       <input id="l-u" type="text" placeholder="Lietotājvārds" autocomplete="username"/>
@@ -820,9 +820,9 @@
       <button class="auth-submit" id="btn-login" >IEIET</button>
     </div>
     <div id="af-r" class="auth-f" style="display:none">
-      <input id="r-u" type="text" placeholder="Lietotājvārds (min. 5)" autocomplete="username"/>
+      <input id="r-u" type="text" placeholder="Lietotājvārds (min. 3)" autocomplete="username"/>
       <div style="position:relative">
-        <input id="r-p" type="password" placeholder="Parole (min. 10)" autocomplete="new-password" style="width:100%;padding-right:40px"/>
+        <input id="r-p" type="password" placeholder="Parole (min. 6)" autocomplete="new-password" style="width:100%;padding-right:40px"/>
         <button type="button" onclick="togglePw('r-p',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#1565a0">👁</button>
       </div>
       <div class="aerr" id="r-err"></div>
