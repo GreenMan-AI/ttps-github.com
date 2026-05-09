@@ -30,6 +30,10 @@ self.addEventListener('activate', (e) => {
 
 // Failu paņemšana (Fetch)
 self.addEventListener('fetch', (e) => {
+  // Ārējos pieprasījumus (ne pašu domēnu) izlaižam cauri bez kešošanas
+  if (!e.request.url.startsWith(self.location.origin)) {
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then((response) => {
       return response || fetch(e.request);
