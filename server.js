@@ -60,7 +60,7 @@ app.use((req, res, next) => {
     allowed.some(a => origin.startsWith(a)) ||
     origin.startsWith('exp://') ||
     origin.match(/^http:\/\/192\.168\./);
-  res.setHeader('Access-Control-Allow-Origin', isAllowed ? (origin || '*') : 'https://soundpulse-backend-e0e2.onrender.com');
+  res.setHeader('Access-Control-Allow-Origin', origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -76,7 +76,7 @@ app.use(express.static('public', { maxAge: '1d' }));
 // ══════════════════════════════════════════════════
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
@@ -90,7 +90,7 @@ app.use((req, res, next) => {
     "media-src 'self' blob: https: https://*.cloudinary.com https://res.cloudinary.com; " +
     "connect-src 'self' https://*.cloudinary.com https://api.cloudinary.com https://res.cloudinary.com https://soundpulse-backend-e0e2.onrender.com; " +
     "worker-src 'self' blob:; " +
-    "frame-ancestors 'none';"
+    "frame-ancestors 'self';"
   );
   next();
 });
