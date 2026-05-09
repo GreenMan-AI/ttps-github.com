@@ -46,6 +46,14 @@ const _bgSrc  = path.join(__dirname, 'bg.jpg');
 const _bgDest = path.join(__dirname, 'public', 'bg.jpg');
 if (fs.existsSync(_bgSrc)) fs.copyFileSync(_bgSrc, _bgDest);
 
+const _logoSrc  = path.join(__dirname, 'logo192.png');
+const _logoDest = path.join(__dirname, 'public', 'logo192.png');
+if (fs.existsSync(_logoSrc)) fs.copyFileSync(_logoSrc, _logoDest);
+
+const _faviconSrc  = path.join(__dirname, 'favicon.ico');
+const _faviconDest = path.join(__dirname, 'public', 'favicon.ico');
+if (fs.existsSync(_faviconSrc)) fs.copyFileSync(_faviconSrc, _faviconDest);
+
 // ── CORS ──────────────────────────────────────────────
 app.use((req, res, next) => {
   const origin = req.headers.origin || '';
@@ -69,7 +77,11 @@ app.use((req, res, next) => {
 });
 
 // ── Static files — PIRMS maršrutiem ──────────────────
-app.use(express.static('public', { maxAge: '1d' }));
+app.use(express.static('public', { maxAge: '1d', setHeaders: (res, path) => {
+  if (path.endsWith('.html')) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  }
+}}));
 
 // ══════════════════════════════════════════════════
 //  SECURITY HEADERS
@@ -88,7 +100,7 @@ app.use((req, res, next) => {
     "font-src 'self' https://fonts.gstatic.com data:; " +
     "img-src 'self' data: blob: https:; " +
     "media-src 'self' blob: https: https://*.cloudinary.com https://res.cloudinary.com; " +
-    "connect-src 'self' https://*.cloudinary.com https://api.cloudinary.com https://res.cloudinary.com https://soundpulse-backend-e0e2.onrender.com https://api.qrserver.com; " +
+    "connect-src 'self' https://*.cloudinary.com https://api.cloudinary.com https://res.cloudinary.com https://soundpulse-backend-e0e2.onrender.com https://greenman-ai.onrender.com https://api.qrserver.com; " +
     "worker-src 'self' blob:; " +
     "frame-ancestors 'self';"
   );
@@ -1306,8 +1318,8 @@ app.get('/manifest.json', (req, res) => {
     theme_color: '#00cfff',
     orientation: 'portrait-primary',
     icons: [
-      { src: 'https://i.pinimg.com/1200x/0c/f9/5a/0cf95a12ec2d42ef15df2727a16ef208.jpg', sizes: '192x192', type: 'image/jpeg', purpose: 'any maskable' },
-      { src: 'https://i.pinimg.com/1200x/0c/f9/5a/0cf95a12ec2d42ef15df2727a16ef208.jpg', sizes: '512x512', type: 'image/jpeg', purpose: 'any maskable' }
+      { src: '/logo192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+      { src: '/logo192.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
     ],
     categories: ['music','entertainment'],
     lang: 'lv'
@@ -1316,10 +1328,27 @@ app.get('/manifest.json', (req, res) => {
 app.get('/sw.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
   res.setHeader('Service-Worker-Allowed', '/');
-  const sw = `const CACHE='soundforge-v2';const STATIC=['/'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC).catch(()=>{})));self.skipWaiting();});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
-self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.pathname.startsWith('/api/')||u.pathname.match(/\\.(mp3|wav|ogg|flac|m4a|aac)$/i))return;e.respondWith(caches.match(e.request).then(cached=>{if(cached)return cached;return fetch(e.request).then(res=>{if(res&&res.status===200&&e.request.method==='GET'){const cl=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cl));}return res;}).catch(()=>caches.match('/index.html'));}));});`;
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  const sw = `const CACHE='soundpulse-v4';
+self.addEventListener('install',e=>{self.skipWaiting();});
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch',e=>{
+  if(e.request.url.indexOf(self.location.origin)!==0)return;
+  if(e.request.url.indexOf('/api/')!==-1)return;
+  if(/\\.(mp3|wav|ogg|flac|m4a|aac)$/i.test(e.request.url))return;
+  e.respondWith(
+    fetch(e.request).then(res=>{
+      if(res&&res.status===200&&e.request.method==='GET'){
+        const cl=res.clone();
+        caches.open(CACHE).then(c=>c.put(e.request,cl));
+      }
+      return res;
+    }).catch(()=>caches.match(e.request).then(c=>c||caches.match('/index.html')))
+  );
+});`;
   res.send(sw);
 });
 

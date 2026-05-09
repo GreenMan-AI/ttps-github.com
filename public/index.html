@@ -81,20 +81,7 @@
     </button>
   </div>
 
-  <div id="privacy-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,10,15,0.95); color:#e1eefa; z-index:10000; padding:20px; align-items:center; justify-content:center;">
-      <div style="background:#111118; border:1px solid #1565a0; border-radius:20px; padding:30px; max-width:500px; width:90%; max-height:80vh; overflow-y:auto; box-shadow:0 0 30px rgba(0,207,255,0.2);">
-          <button onclick="document.getElementById('privacy-overlay').style.display='none'" style="float:right; background:none; border:none; color:#ff2d55; font-size:20px; cursor:pointer; font-weight:bold;">✕</button>
-          <h2 style="color:#00ff88; margin-top:0;">Privātuma politika</h2>
-          <p style="font-size:13px; opacity:0.7;">Pēdējoreiz atjaunots: 01.05.2026.</p>
-          <div style="margin-top:20px; font-size:14px; line-height:1.5;">
-              <p><strong>SoundPulse</strong> (GreenMan-AI) ciena jūsu privātumu.</p>
-              <p>• <strong>Dati:</strong> Mēs saglabājam tikai jūsu lietotājvārdu un šifrētu paroli konta drošībai.<br>
-              • <strong>Piekļuve:</strong> Dati netiek nodoti trešajām personām.<br>
-              • <strong>Dzēšana:</strong> Lai dzēstu datus, rakstiet uz agniskreits@proton.me.</p>
-          </div>
-          <button onclick="document.getElementById('privacy-overlay').style.display='none'" style="width:100%; margin-top:20px; background:#1565a0; border:none; color:white; padding:10px; border-radius:10px; cursor:pointer; font-weight:bold;">SAPRATU</button>
-      </div>
-  </div>
+
 
   <div id="qr-box" style="display:none;margin-top:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:16px;max-width:240px;margin-left:auto;margin-right:auto;text-align:center">
     <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px;letter-spacing:2px">SKENĒ AR TELEFONU</div>
@@ -889,10 +876,11 @@ async function api(url, opts = {}) {
     } 
   });
 
-  // Ja serveris atsaka (401), mēs izmetam lietotāju
-  if (r.status === 401) {
-    const err = new Error('401');
-    err.status = 401;
+  // Ja serveris atgriež kļūdu — parādām ziņojumu
+  if (!r.ok) {
+    const err_data = await r.json().catch(() => ({}));
+    const err = new Error(err_data.error || 'Servera kļūda (' + r.status + ')');
+    err.status = r.status;
     throw err;
   }
 
@@ -914,7 +902,7 @@ async function init() {
       applyBg(S.bgUrl);
       // Personāži redzami īsumā arī pie pieslēgšanās
       setTimeout(()=>hideSplash(), 1800);
-    } catch(e) { if (e.status === 401) { clearSess(); } }
+    } catch(e) { if (e.status === 401 || e.status === 403) { clearSess(); } }
   }
   updateTopbar();
   await loadAll();
