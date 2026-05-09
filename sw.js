@@ -1,4 +1,4 @@
-const CACHE_NAME = 'soundpulse-v2';
+const CACHE_NAME = 'soundpulse-v3';
 const ASSETS = [
   '/',
   '/index.html',

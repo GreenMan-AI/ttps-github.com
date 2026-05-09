@@ -98,8 +98,7 @@
 
   <div id="qr-box" style="display:none;margin-top:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:16px;max-width:240px;margin-left:auto;margin-right:auto;text-align:center">
     <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px;letter-spacing:2px">SKENĒ AR TELEFONU</div>
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://greenman-ai.onrender.com&bgcolor=111118&color=00cfff&format=png&qzone=1" 
-         style="width:160px;height:160px;border-radius:8px" alt="QR kods"/>
+    <canvas id="qr-canvas" width="160" height="160" style="border-radius:8px;display:block;margin:0 auto"></canvas>
     <div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:8px;font-family:monospace">greenman-ai.onrender.com</div>
   </div>
   <div class="splash-note">Nepieciešams konts, lai piekļūtu mūzikai</div>
@@ -2855,7 +2854,43 @@ async function loadSharedPlaylist(username){
 // ── SoundPulse share functions ──
 function toggleQR() {
   const box = document.getElementById('qr-box');
-  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  const visible = box.style.display !== 'none';
+  box.style.display = visible ? 'none' : 'block';
+  if (!visible) drawQR();
+}
+function drawQR() {
+  const loadAndRender = () => {
+    let qrdiv = document.getElementById('qr-div');
+    if (!qrdiv) {
+      qrdiv = document.createElement('div');
+      qrdiv.id = 'qr-div';
+      qrdiv.style.cssText = 'display:inline-block;border-radius:8px;overflow:hidden;margin:0 auto';
+      const canvas = document.getElementById('qr-canvas');
+      if (canvas) canvas.parentNode.insertBefore(qrdiv, canvas);
+    }
+    qrdiv.innerHTML = '';
+    new QRCode(qrdiv, {
+      text: 'https://greenman-ai.onrender.com',
+      width: 160, height: 160,
+      colorDark: '#00cfff', colorLight: '#111118',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    const canvas = document.getElementById('qr-canvas');
+    if (canvas) canvas.style.display = 'none';
+  };
+  if (window.QRCode) { loadAndRender(); return; }
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  script.onload = loadAndRender;
+  script.onerror = () => {
+    const canvas = document.getElementById('qr-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#111118'; ctx.fillRect(0,0,160,160);
+    ctx.fillStyle = '#00cfff'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('greenman-ai.onrender.com', 80, 80);
+  };
+  document.head.appendChild(script);
 }
 
 function shareApp() {
