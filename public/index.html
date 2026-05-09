@@ -891,9 +891,9 @@ async function api(url, opts = {}) {
 
   // Ja serveris atsaka (401), mēs izmetam lietotāju
   if (r.status === 401) {
-    clearSess();
-    window.location.reload();
-    return;
+    const err = new Error('401');
+    err.status = 401;
+    throw err;
   }
 
   return await r.json();
@@ -914,7 +914,7 @@ async function init() {
       applyBg(S.bgUrl);
       // Personāži redzami īsumā arī pie pieslēgšanās
       setTimeout(()=>hideSplash(), 1800);
-    } catch(e) { clearSess(); }
+    } catch(e) { if (e.status === 401) { clearSess(); } }
   }
   updateTopbar();
   await loadAll();
@@ -1627,8 +1627,7 @@ document.getElementById('btn-login').addEventListener('click',async()=>{
     S.token=d.token; S.username=d.username; S.role=d.role; S.bgUrl=d.bgUrl||'';
     localStorage.setItem('sp_t',d.token); localStorage.setItem('sp_u',d.username); localStorage.setItem('sp_r',d.role); localStorage.setItem('sp_bg',d.bgUrl||'');
     applyBg(S.bgUrl);
-    const me=await api('/api/me'); S.favorites=me.favorites||[]; S.myPl=(me.myPlaylist||[]).map(String);
-    S.unreadNotif=me.unreadNotifications||0;
+    try { const me=await api('/api/me'); S.favorites=me.favorites||[]; S.myPl=(me.myPlaylist||[]).map(String); S.unreadNotif=me.unreadNotifications||0; } catch(me_err){}
     closeAuth(); hideSplash(); updateTopbar(); await loadAll(); renderSidebar();
     if(d.role==='admin'){ showView('home'); const h=document.querySelector('[data-v="home"]'); if(h) setSbActive(h); }
     else renderAllTracks();
