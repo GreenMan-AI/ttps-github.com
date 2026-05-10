@@ -2807,6 +2807,84 @@ async function deleteHAdById(id){
   }catch(e){ toast(e.message,'err'); }
 }
 
+
+// ════════════════════════════════════════
+//  AUTO-LOGOUT SISTĒMA
+// ════════════════════════════════════════
+(function(){
+  const IDLE_TIMEOUT = 30 * 60 * 1000; // 30 minūtes
+  let idleTimer = null;
+
+  function resetIdle(){
+    if(!S.token) return;
+    // Ja mūzika spēlē — neizlogo
+    const aud = document.getElementById('aud');
+    if(aud && !aud.paused) return;
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(()=>{
+      if(S.token){
+        // Vēlreiz pārbauda vai mūzika nav sākusies tikmēr
+        const a = document.getElementById('aud');
+        if(a && !a.paused) { resetIdle(); return; }
+        doLogout();
+        toast('Sesija beidzās — neaktivitātes dēļ izlogots', 'info');
+      }
+    }, IDLE_TIMEOUT);
+  }
+
+  // Klausās lietotāja aktivitāti
+  ['mousemove','keydown','mousedown','touchstart','scroll','click'].forEach(ev=>{
+    document.addEventListener(ev, resetIdle, { passive: true });
+  });
+
+  // Saglabā laiku kad aizver logu/tabu (bet ne ja spēlē mūzika)
+  window.addEventListener('beforeunload', ()=>{
+    if(S.token){
+      const aud = document.getElementById('aud');
+      if(aud && !aud.paused) return; // Mūzika spēlē — neizseko
+      localStorage.setItem('sp_left', Date.now());
+    }
+  });
+
+  // Pārbauda vai sesija novecoja kamēr logs bija aizvērts
+  window.addEventListener('load', ()=>{
+    const leftAt = parseInt(localStorage.getItem('sp_left') || '0');
+    if(leftAt && S.token){
+      const elapsed = Date.now() - leftAt;
+      if(elapsed > IDLE_TIMEOUT){
+        localStorage.removeItem('sp_left');
+        clearSess();
+        return;
+      }
+    }
+    localStorage.removeItem('sp_left');
+    resetIdle();
+  });
+
+  // Pārbauda kad logs atgūst fokusu (lietotājs atgriežas)
+  window.addEventListener('focus', ()=>{
+    const leftAt = parseInt(localStorage.getItem('sp_left') || '0');
+    if(leftAt && S.token){
+      const elapsed = Date.now() - leftAt;
+      if(elapsed > IDLE_TIMEOUT){
+        localStorage.removeItem('sp_left');
+        doLogout();
+        toast('Sesija beidzās — lūdzu ielogojies no jauna', 'info');
+        return;
+      }
+    }
+    resetIdle();
+  });
+
+  window.addEventListener('blur', ()=>{
+    if(S.token){
+      const aud = document.getElementById('aud');
+      if(aud && !aud.paused) return; // Mūzika spēlē — neizseko
+      localStorage.setItem('sp_left', Date.now());
+    }
+  });
+})();
+
 init().then(()=>{
   populateFolderSels(); loadSavedTheme(); initSortSel(); applyLang(); loadTicker();
   // Pārbaudīt vai URL satur ?shared=username — atvērt dalīto playlisti
