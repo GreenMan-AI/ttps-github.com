@@ -2288,7 +2288,7 @@ if(typeof LANGS !== 'undefined') {
   // Fallback ja i18n.js nav ielādēts
   var LANGS = _extraKeys;
 }
-let curLang = localStorage.getItem('sp_lang')||'lv';
+window.curLang = localStorage.getItem('sp_lang') || 'lv';
 function t(key){ return LANGS[curLang]?.[key] || LANGS.lv[key] || key; }
 function setLang(lang){
   curLang=lang; localStorage.setItem('sp_lang',lang);
