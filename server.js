@@ -54,10 +54,6 @@ const _faviconSrc  = path.join(__dirname, 'favicon.ico');
 const _faviconDest = path.join(__dirname, 'public', 'favicon.ico');
 if (fs.existsSync(_faviconSrc)) fs.copyFileSync(_faviconSrc, _faviconDest);
 
-const _i18nSrc  = path.join(__dirname, 'i18n.js');
-const _i18nDest = path.join(__dirname, 'public', 'i18n.js');
-if (fs.existsSync(_i18nSrc)) fs.copyFileSync(_i18nSrc, _i18nDest);
-
 // ── CORS ──────────────────────────────────────────────
 app.use((req, res, next) => {
   const origin = req.headers.origin || '';
