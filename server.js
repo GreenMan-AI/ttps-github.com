@@ -54,11 +54,16 @@ const _faviconSrc  = path.join(__dirname, 'favicon.ico');
 const _faviconDest = path.join(__dirname, 'public', 'favicon.ico');
 if (fs.existsSync(_faviconSrc)) fs.copyFileSync(_faviconSrc, _faviconDest);
 
+const _i18nSrc  = path.join(__dirname, 'i18n.js');
+const _i18nDest = path.join(__dirname, 'public', 'i18n.js');
+if (fs.existsSync(_i18nSrc)) fs.copyFileSync(_i18nSrc, _i18nDest);
+
 // ── CORS ──────────────────────────────────────────────
 app.use((req, res, next) => {
   const origin = req.headers.origin || '';
   const allowed = [
     'https://soundpulse-backend-e0e2.onrender.com',
+    'https://greenman-ai.onrender.com',
     'http://localhost:3000',
     'http://localhost:8081',
     'http://192.168.1',
@@ -1266,16 +1271,6 @@ app.post('/api/admin/ban/:username', requireAuth, requireAdmin, async (req, res)
 });
 
 // ── Admin: dzēst lietotāju ──
-app.delete('/api/admin/users/:username', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const user = await User.findOne({ username: req.params.username });
-    if (!user) return res.status(404).json({ error: 'Lietotājs nav atrasts' });
-    if (user.username === req.user.username) return res.status(400).json({ error: 'Nevar dzēst sevi' });
-    await User.deleteOne({ username: req.params.username });
-    await Session.deleteMany({ username: req.params.username });
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
 
 // ── Upload limits ──
 const UPLOAD_MAX_MB = 25;
