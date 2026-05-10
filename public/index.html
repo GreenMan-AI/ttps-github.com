@@ -14,14 +14,15 @@
 <link rel="icon" type="image/png" href="/logo192.png"/>
 <link rel="apple-touch-icon" href="/logo192.png"/>
 <link rel="stylesheet" href="/design.css"/>
+  <script src="/i18n.js"></script>
 </head>
 <body>
 <div id="bg-layer"></div>
   
 <div id="privacy-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#0a0a0f; color:#e1eefa; z-index:10000; padding:40px; overflow-y:auto; font-family:sans-serif; text-align:left;">
     <button onclick="document.getElementById('privacy-overlay').style.display='none'" style="float:right; background:#ff2d55; color:white; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:800; font-size:14px;">✕ AIZVĒRT</button>
-    <h1 style="color:#00ff88; font-size:28px; border-bottom:1px solid #1565a0; padding-bottom:10px;">SoundPulse Privātuma politika</h1>
-    <p style="opacity:0.6;">Pēdējoreiz atjaunots: 01.05.2026.</p>
+    <h1 style="color:#00ff88; font-size:28px; border-bottom:1px solid #1565a0; padding-bottom:10px;" data-i18n="privacy">SoundPulse Privātuma politika</h1>
+    <p style="opacity:0.6;" data-i18n="privacy_updated">Pēdējoreiz atjaunots: 01.05.2026.</p>
     <div style="background:rgba(21,101,160,0.1); padding:20px; border-radius:12px; margin:20px 0; border:1px solid rgba(21,101,160,0.3);">
         <h2 style="color:#00ccff; font-size:20px;">1. Datu pārzinis</h2>
         <p>Agnis, Pavilostas iela, Liepāja, Latvija.<br>E-pasts: <b>agniskreits@proton.me</b></p>
@@ -42,7 +43,7 @@
 <!-- ══ PWA INSTALL BAR ══ -->
 <div id="pwa-bar">
   <span class="pwa-icon">📱</span>
-  <div class="pwa-text">Instalē <span>SoundPulse</span> kā appu uz sava tālruņa vai datora!</div>
+  <div class="pwa-text"><span data-i18n="pwa_text">Instalē SoundPulse kā appu uz sava tālruņa vai datora!</span></div>
   <button id="btn-pwa-install">⬇ INSTALĒT</button>
   <button id="btn-pwa-dismiss">✕</button>
 </div>
@@ -59,13 +60,13 @@
     <div style="width:40px;height:12px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.3);border-radius:6px;position:relative;overflow:hidden"><div style="position:absolute;top:2px;width:8px;height:8px;background:linear-gradient(90deg,transparent,#00ff88,transparent);border-radius:4px;animation:beam 1.8s ease-in-out infinite"></div></div>
     <span style="font-family:var(--mono);font-size:14px;background:linear-gradient(90deg,#00ff88,#00ccff,#c084fc,#ffc400,#ff2d55,#00ff88);background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:hshift 3s linear infinite;letter-spacing:3px;font-weight:700">GreenMan-AI</span>
   </div>
-  <div class="splash-sub">MŪZIKAS STRAUMĒŠANAS PLATFORMA</div>
-  <button class="splash-btn" onclick="openAuthFromSplash()">IEIET / REĢISTRĒTIES</button>
+  <div class="splash-sub" class="splash-sub" data-i18n="splash_platform">MŪZIKAS STRAUMĒŠANAS PLATFORMA</div>
+  <button class="splash-btn" onclick="openAuthFromSplash()" data-i18n="splash_btn">IEIET / REĢISTRĒTIES</button>
   
   <div style="display:flex;gap:10px;margin-top:12px;justify-content:center;flex-wrap:wrap">
     <a href="https://github.com/GreenMan-AI/greenman-ai/releases/latest/download/SoundPulse.apk" 
        style="background:linear-gradient(135deg,#00cfff,#6366f1);color:#000;font-weight:800;font-size:12px;padding:8px 18px;border-radius:20px;text-decoration:none;display:flex;align-items:center;gap:6px;letter-spacing:1px">
-      📱 LEJUPIELĀDĒT APK
+      📱 <span data-i18n="download_apk">LEJUPIELĀDĒT APK</span>
     </a>
 
     <button onclick="document.getElementById('privacy-overlay').style.display='block'" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:12px;padding:8px 16px;border-radius:20px;cursor:pointer;letter-spacing:1px">
@@ -83,11 +84,11 @@
 
 
   <div id="qr-box" style="display:none;margin-top:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:16px;max-width:240px;margin-left:auto;margin-right:auto;text-align:center">
-    <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px;letter-spacing:2px">SKENĒ AR TELEFONU</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px;letter-spacing:2px" data-i18n="scan_phone">SKENĒ AR TELEFONU</div>
     <canvas id="qr-canvas" width="160" height="160" style="border-radius:8px;display:block;margin:0 auto"></canvas>
     <div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:8px;font-family:monospace">greenman-ai.onrender.com</div>
   </div>
-  <div class="splash-note">Nepieciešams konts, lai piekļūtu mūzikai</div>
+  <div class="splash-note" class="splash-note" data-i18n="splash_note">Nepieciešams konts, lai piekļūtu mūzikai</div>
 </div>
 
 <!-- ══ TOP ══ -->
@@ -131,26 +132,26 @@
   <div class="az-in">
     <div class="az-hd">⚙ ADMIN PANELIS</div>
     <div class="astats">
-      <div class="ast"><div class="ast-n" id="as-u">—</div><div class="ast-l">Lietotāji</div></div>
-      <div class="ast"><div class="ast-n" id="as-t">—</div><div class="ast-l">Dziesmas</div></div>
-      <div class="ast"><div class="ast-n" id="as-p">—</div><div class="ast-l">Atskaņojumi</div></div>
-      <div class="ast"><div class="ast-n" id="as-f">—</div><div class="ast-l">Mapes</div></div>
+      <div class="ast"><div class="ast-n" id="as-u">—</div><div class="ast-l" data-i18n="users_list">Lietotāji</div></div>
+      <div class="ast"><div class="ast-n" id="as-t">—</div><div class="ast-l" data-i18n="all_songs">Dziesmas</div></div>
+      <div class="ast"><div class="ast-n" id="as-p">—</div><div class="ast-l" data-i18n="plays_count">Atskaņojumi</div></div>
+      <div class="ast"><div class="ast-n" id="as-f">—</div><div class="ast-l" data-i18n="folders">Mapes</div></div>
     </div>
     <div class="atabs">
-      <button class="atab on" data-ap="upload">AUGŠUPIELĀDE</button>
-      <button class="atab" data-ap="multi">MULTI-UPLOAD</button>
+      <button class="atab on" data-ap="upload" data-i18n="upload">AUGŠUPIELĀDE</button>
+      <button class="atab" data-ap="multi" data-i18n="multi_upload">MULTI-UPLOAD</button>
       <button class="atab" data-ap="folders">MAPES</button>
-      <button class="atab" data-ap="users">LIETOTĀJI</button>
-      <button class="atab" data-ap="ads">REKLĀMAS</button>
+      <button class="atab" data-ap="users" data-i18n="users">LIETOTĀJI</button>
+      <button class="atab" data-ap="ads" data-i18n="ads">REKLĀMAS</button>
       <button class="atab" data-ap="ticker">📢 PAZIŅOJUMS</button>
     </div>
 
     <!-- Single upload -->
     <div class="apanel on" id="ap-upload">
       <div class="ug">
-        <div class="fg"><div class="fl">Nosaukums</div><input class="fi" id="up-title" placeholder="Dziesmas nosaukums"/></div>
-        <div class="fg"><div class="fl">Izpildītājs</div><input class="fi" id="up-artist" placeholder="Mākslinieks"/></div>
-        <div class="fg"><div class="fl">Mape</div><select class="fi" id="up-folder"><option value="">— Bez mapes —</option></select></div>
+        <div class="fg"><div class="fl" data-i18n="title">Nosaukums</div><input class="fi" id="up-title" placeholder="Dziesmas nosaukums" data-i18n-ph="title_ph"/></div>
+        <div class="fg"><div class="fl" data-i18n="artist">Izpildītājs</div><input class="fi" id="up-artist" placeholder="Mākslinieks" data-i18n-ph="artist_ph"/></div>
+        <div class="fg"><div class="fl" data-i18n="folder">Mape</div><select class="fi" id="up-folder"><option value="">— Bez mapes —</option></select></div>
         <div class="fg" style="justify-content:flex-end;align-items:flex-end">
           <span style="font-size:11px;color:var(--mut)">Viens fails, precīzi meta</span>
         </div>
@@ -162,7 +163,7 @@
         </div>
       </div>
       <div class="urow">
-        <button class="btn-up" id="btn-up1">AUGŠUPIELĀDĒT</button>
+        <button class="btn-up" id="btn-up1" data-i18n="upload_btn">AUGŠUPIELĀDĒT</button>
         <div class="pw" id="pw1"><div class="pf" id="pf1"></div></div>
         <div class="ust" id="ust1"></div>
       </div>
@@ -171,7 +172,7 @@
     <!-- Multi upload -->
     <div class="apanel" id="ap-multi">
       <div class="ug">
-        <div class="fg"><div class="fl">Mape visiem failiem</div><select class="fi" id="mu-folder"><option value="">— Bez mapes —</option></select></div>
+        <div class="fg"><div class="fl" data-i18n="folder_for_all">Mape visiem failiem</div><select class="fi" id="mu-folder"><option value="">— Bez mapes —</option></select></div>
         <div class="fg" style="justify-content:flex-end;align-items:flex-end">
           <span style="font-size:11px;color:var(--mut)">Nosaukumi ņemti no failu nosaukumiem</span>
         </div>
@@ -184,7 +185,7 @@
         </div>
       </div>
       <div class="urow">
-        <button class="btn-up" id="btn-multi">AUGŠUPIELĀDĒT VISUS</button>
+        <button class="btn-up" id="btn-multi" data-i18n="upload_all">AUGŠUPIELĀDĒT VISUS</button>
         <div class="pw" id="pw-m"><div class="pf" id="pf-m"></div></div>
         <div class="ust" id="ust-m"></div>
       </div>
@@ -194,7 +195,7 @@
     <!-- Folders -->
     <div class="apanel" id="ap-folders">
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
-        <input class="fi" id="fn" placeholder="Mapes nosaukums" style="flex:1;min-width:120px"/>
+        <input class="fi" id="fn" placeholder="Mapes nosaukums" data-i18n-ph="folder_ph" style="flex:1;min-width:120px"/>
         <div class="cpick-row" id="cprow">
           <div class="cp on" style="background:#00ccff" data-c="#00ccff"></div>
           <div class="cp" style="background:#00ff88" data-c="#00ff88"></div>
@@ -211,7 +212,7 @@
     <!-- Users -->
     <div class="apanel" id="ap-users">
       <table class="utbl">
-        <thead><tr><th>Lietotājvārds</th><th>Loma</th><th>Reģistrēts</th><th></th></tr></thead>
+        <thead><tr><th data-i18n="username">Lietotājvārds</th><th data-i18n="role">Loma</th><th data-i18n="registered">Reģistrēts</th><th></th></tr></thead>
         <tbody id="utbody"></tbody>
       </table>
     </div>
@@ -220,11 +221,11 @@
     <div class="apanel" id="ap-ticker">
       <div style="margin-bottom:10px;font-size:12px;color:var(--mut)">Slīdošs teksts rādīsies visiem lietotājiem visa ekrāna garumā.</div>
       <div class="fg" style="margin-bottom:10px">
-        <div class="fl">Paziņojuma teksts</div>
+        <div class="fl" data-i18n="notif_text">Paziņojuma teksts</div>
         <input class="fi" id="ticker-inp" placeholder="Piemēram: 🎵 Jauna dziesma pievienota! Klausies tūlīt!" style="margin-top:4px"/>
       </div>
       <div class="fg" style="margin-bottom:10px">
-        <div class="fl">Teksta krāsa</div>
+        <div class="fl" data-i18n="ticker_color">Teksta krāsa</div>
         <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap">
           <div class="ticker-cp on" data-tc="#0d47a1" style="width:24px;height:24px;border-radius:50%;background:#0d47a1;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 2px #0d47a1"></div>
           <div class="ticker-cp" data-tc="#ff2d55" style="width:24px;height:24px;border-radius:50%;background:#ff2d55;cursor:pointer;border:2px solid transparent"></div>
@@ -242,13 +243,13 @@
         <button class="btn red" onclick="clearTicker()">✕ IZSLĒGT</button>
       </div>
       <div id="ticker-status" style="font-size:11px;color:var(--g);margin-top:8px"></div>
-      <div style="margin-top:12px;font-size:11px;color:var(--mut)">Pašreizējais teksts: <span id="ticker-cur" style="color:var(--a);font-weight:600">—</span></div>
+      <div style="margin-top:12px;font-size:11px;color:var(--mut)"><span data-i18n="curr_ticker">Pašreizējais teksts: </span><span id="ticker-cur" style="color:var(--a);font-weight:600">—</span></div>
 
       <!-- Nosūtīt paziņojumu uz zvaniņu -->
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(21,101,160,.2)">
         <div class="az-hd" style="margin-bottom:10px">🔔 NOSŪTĪT PAZIŅOJUMU ZVANIŅĀ</div>
         <div class="fg" style="margin-bottom:10px">
-          <div class="fl">Paziņojuma teksts</div>
+          <div class="fl" data-i18n="notif_text">Paziņojuma teksts</div>
           <input class="fi" id="notif-send-inp" placeholder="Piemēram: ⚠️ Serveris restartēsies rīt!" style="margin-top:4px"/>
         </div>
         <div class="fg" style="margin-bottom:10px">
@@ -265,14 +266,14 @@
     <!-- Ads -->
     <div class="apanel" id="ap-ads">
       <div class="ad-form-row">
-        <input class="fi" id="ad-title" placeholder="Virsraksts *"/>
+        <input class="fi" id="ad-title" placeholder="Virsraksts *" data-i18n-ph="ad_title"/>
         <input class="fi" id="ad-link" placeholder="Saite (https://...)"/>
       </div>
       <div class="ad-form-row">
         <input class="fi" id="ad-img" placeholder="Attēla URL (pēc izvēles)"/>
-        <input class="fi" id="ad-text" placeholder="Apraksts"/>
+        <input class="fi" id="ad-text" placeholder="Apraksts" data-i18n-ph="description"/>
       </div>
-      <button class="btn g" id="btn-add-ad" style="margin-bottom:12px">+ PIEVIENOT REKLĀMU</button>
+      <button class="btn g" id="btn-add-ad" data-i18n="add_ad" style="margin-bottom:12px">+ PIEVIENOT REKLĀMU</button>
       <div id="ad-mgmt"></div>
     </div>
   </div>
@@ -283,17 +284,17 @@
   <div class="az-in">
     <div class="az-hd">＋ PIEVIENOT MŪZIKU</div>
     <div style="display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px;flex-wrap:wrap">
-      <button class="up-tab-btn" data-utab="single" style="background:rgba(21,101,160,.2);border:1px solid rgba(21,101,160,.5);color:#5bb8f5;padding:4px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;border-radius:var(--r6)">VIENA DZIESMA</button>
-      <button class="up-tab-btn" data-utab="umulti" style="background:none;border:1px solid var(--border);color:var(--mut);padding:4px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;border-radius:var(--r6)">VAIRĀKAS DZIESMAS</button>
-      <button class="up-tab-btn" data-utab="myfolders" style="background:none;border:1px solid var(--border);color:var(--mut);padding:4px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;border-radius:var(--r6)">MANAS MAPES</button>
+      <button class="up-tab-btn" data-utab="single" style="background:rgba(21,101,160,.2);border:1px solid rgba(21,101,160,.5);color:#5bb8f5;padding:4px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;border-radius:var(--r6)" data-i18n="upload_one">VIENA DZIESMA</button>
+      <button class="up-tab-btn" data-utab="umulti" style="background:none;border:1px solid var(--border);color:var(--mut);padding:4px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;border-radius:var(--r6)" data-i18n="upload_multi">VAIRĀKAS DZIESMAS</button>
+      <button class="up-tab-btn" data-utab="myfolders" style="background:none;border:1px solid var(--border);color:var(--mut);padding:4px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;border-radius:var(--r6)" data-i18n="my_folders">MANAS MAPES</button>
     </div>
 
     <!-- User single upload -->
     <div class="up-tab-panel" id="uap-single" style="display:block">
       <div class="ug">
-        <div class="fg"><div class="fl">Nosaukums</div><input class="fi" id="uup-title" placeholder="Dziesmas nosaukums"/></div>
-        <div class="fg"><div class="fl">Izpildītājs</div><input class="fi" id="uup-artist" placeholder="Mākslinieks"/></div>
-        <div class="fg"><div class="fl">Mape</div><select class="fi" id="uup-folder"><option value="">— Bez mapes —</option></select></div>
+        <div class="fg"><div class="fl" data-i18n="title">Nosaukums</div><input class="fi" id="uup-title" placeholder="Dziesmas nosaukums" data-i18n-ph="title_ph"/></div>
+        <div class="fg"><div class="fl" data-i18n="artist">Izpildītājs</div><input class="fi" id="uup-artist" placeholder="Mākslinieks" data-i18n-ph="artist_ph"/></div>
+        <div class="fg"><div class="fl" data-i18n="folder">Mape</div><select class="fi" id="uup-folder"><option value="">— Bez mapes —</option></select></div>
         <div class="fg" style="justify-content:flex-end;align-items:flex-end">
           <span style="font-size:11px;color:var(--mut)">MP3 WAV OGG FLAC M4A · līdz 100MB</span>
         </div>
@@ -305,7 +306,7 @@
         </div>
       </div>
       <div class="urow">
-        <button class="btn-up" id="ubtn-up1">AUGŠUPIELĀDĒT</button>
+        <button class="btn-up" id="ubtn-up1" data-i18n="upload_btn">AUGŠUPIELĀDĒT</button>
         <div class="pw" id="upw1"><div class="pf" id="upf1"></div></div>
         <div class="ust" id="uust1"></div>
       </div>
@@ -314,7 +315,7 @@
     <!-- User multi upload -->
     <div class="up-tab-panel" id="uap-umulti" style="display:none">
       <div class="ug">
-        <div class="fg"><div class="fl">Mape visiem failiem</div><select class="fi" id="umu-folder"><option value="">— Bez mapes —</option></select></div>
+        <div class="fg"><div class="fl" data-i18n="folder_for_all">Mape visiem failiem</div><select class="fi" id="umu-folder"><option value="">— Bez mapes —</option></select></div>
         <div class="fg" style="justify-content:flex-end;align-items:flex-end">
           <span style="font-size:11px;color:var(--mut)">Nosaukumi no failu nosaukumiem</span>
         </div>
@@ -327,7 +328,7 @@
         </div>
       </div>
       <div class="urow">
-        <button class="btn-up" id="ubtn-multi">AUGŠUPIELĀDĒT VISUS</button>
+        <button class="btn-up" id="ubtn-multi" data-i18n="upload_all">AUGŠUPIELĀDĒT VISUS</button>
         <div class="pw" id="upw-m"><div class="pf" id="upf-m"></div></div>
         <div class="ust" id="uust-m"></div>
       </div>
@@ -338,7 +339,7 @@
     <div class="up-tab-panel" id="uap-myfolders" style="display:none">
       <div style="font-size:11px;color:var(--mut);margin-bottom:10px;font-weight:600">🔒 Privātās mapes redzamas tikai tev</div>
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
-        <input class="fi" id="ufn" placeholder="Mapes nosaukums" style="flex:1;min-width:120px"/>
+        <input class="fi" id="ufn" placeholder="Mapes nosaukums" data-i18n-ph="folder_ph" style="flex:1;min-width:120px"/>
         <div class="cpick-row" id="ucprow">
           <div class="cp on" style="background:#00ccff" data-c="#00ccff"></div>
           <div class="cp" style="background:#00ff88" data-c="#00ff88"></div>
@@ -370,15 +371,15 @@
   <!-- SIDEBAR -->
   <div id="sb">
     <div class="sb-s">
-      <div class="sb-l">BIBLIOTĒKA</div>
-      <div class="sb-i" data-v="home"><span class="sb-ic">🏠</span><span>Sākums</span></div>
+      <div class="sb-l" data-i18n="library">BIBLIOTĒKA</div>
+      <div class="sb-i" data-v="home"><span class="sb-ic">🏠</span><span data-i18n="home">Sākums</span></div>
       <div class="sb-i on" data-v="all"><span class="sb-ic">🎵</span><span data-i18n="all_songs">Visas dziesmas</span><span class="sb-n" id="cnt-all">0</span></div>
       <div class="sb-i" data-v="trending"><span class="sb-ic">🔥</span><span data-i18n="trending">Trending</span></div>
       <div class="sb-i" data-v="feed"><span class="sb-ic">📰</span><span data-i18n="feed">Jaunumi</span></div>
       <div class="sb-i" data-v="playlist"><span class="sb-ic">📋</span><span data-i18n="playlist">Playliste</span><span class="sb-n" id="cnt-pl">0</span></div>
       <div class="sb-i" id="nav-fav" style="display:none" data-v="favs"><span class="sb-ic">⭐</span><span data-i18n="favorites">Favorīti</span><span class="sb-n" id="cnt-fav">0</span></div>
       <div class="sb-i" data-v="folders"><span class="sb-ic">📂</span><span data-i18n="folders">Mapes</span><span class="sb-n" id="cnt-f">0</span></div>
-      <div class="sb-i" id="nav-shared-pl" data-v="sharedpl"><span class="sb-ic">🔗</span><span>Dalītā playliste</span></div>
+      <div class="sb-i" id="nav-shared-pl" data-v="sharedpl"><span class="sb-ic">🔗</span><span data-i18n="shared_playlist">Dalītā playliste</span></div>
       <div class="sb-i" id="nav-stats" style="display:none" data-v="stats"><span class="sb-ic">📊</span><span data-i18n="my_stats">Mana statistika</span></div>
       <div class="sb-i" id="nav-profile" style="display:none" data-v="profile"><span class="sb-ic">👤</span><span data-i18n="my_profile">Mans profils</span><span onclick="event.stopPropagation();var t=document.getElementById('sb-help-tip');t.style.display=t.style.display==='none'?'block':'none'" style="margin-left:auto;width:16px;height:16px;border-radius:50%;background:rgba(21,101,160,.2);color:var(--a);font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">?</span></div>
       <div id="sb-help-tip" style="display:none;background:rgba(225,238,250,.97);border:1px solid rgba(21,101,160,.3);border-radius:8px;padding:10px 12px;margin:2px 8px 8px;font-size:11px;color:#1a3a58;line-height:1.7">
@@ -399,11 +400,11 @@
       </div>
     </div>
     <div class="sb-s" id="sb-fs" style="display:none">
-      <div class="sb-l">MAPES</div>
+      <div class="sb-l" data-i18n="folders_title">MAPES</div>
       <div id="sb-fl"></div>
     </div>
     <div class="sb-s" id="sb-myfs" style="display:none">
-      <div class="sb-l">MANAS MAPES 🔒</div>
+      <div class="sb-l" data-i18n="my_folders_lock">MANAS MAPES 🔒</div>
       <div id="sb-myfl"></div>
     </div>
   </div>
@@ -415,7 +416,7 @@
     <div class="view" id="v-home">
       <div style="text-align:center;padding:30px 0 20px">
         <div style="font-family:var(--mono);font-size:42px;color:#1565a0;letter-spacing:6px;text-shadow:0 0 30px rgba(21,101,160,.3)">Music<b style="color:#00ff88">Box</b></div>
-        <div style="font-size:12px;color:#1a3a5a;letter-spacing:3px;margin-top:6px;font-weight:700">TAVA MŪZIKAS PLATFORMA</div>
+        <div style="font-size:12px;color:#1a3a5a;letter-spacing:3px;margin-top:6px;font-weight:700"><span data-i18n="splash_platform_short">TAVA MŪZIKAS PLATFORMA</span></div>
       </div>
 
       <!-- REKLĀMU ZONE -->
@@ -582,7 +583,7 @@
       </div>
       <div class="fg"><div class="fl">Sociālā saite (pēc izvēles)</div><input class="fi" id="prof-social" placeholder="https://..."/></div>
       <div class="m-ok" id="prof-ok"></div>
-      <button class="btn g" id="btn-save-profile">SAGLABĀT PROFILU</button>
+      <button class="btn g" id="btn-save-profile" data-i18n="save_profile">SAGLABĀT PROFILU</button>
     </div>
   </div>
 </div>
@@ -603,9 +604,9 @@
     <div class="modal-title">✏️ REDIĢĒT DZIESMU</div>
     <input type="hidden" id="edit-id"/>
     <div class="mf">
-      <div class="fg"><div class="fl">Nosaukums</div><input class="fi" id="edit-title" placeholder="Dziesmas nosaukums"/></div>
-      <div class="fg"><div class="fl">Izpildītājs</div><input class="fi" id="edit-artist" placeholder="Mākslinieks"/></div>
-      <div class="fg"><div class="fl">Mape</div><select class="fi" id="edit-folder"><option value="">— Bez mapes —</option></select></div>
+      <div class="fg"><div class="fl" data-i18n="title">Nosaukums</div><input class="fi" id="edit-title" placeholder="Dziesmas nosaukums" data-i18n-ph="title_ph"/></div>
+      <div class="fg"><div class="fl" data-i18n="artist">Izpildītājs</div><input class="fi" id="edit-artist" placeholder="Mākslinieks" data-i18n-ph="artist_ph"/></div>
+      <div class="fg"><div class="fl" data-i18n="folder">Mape</div><select class="fi" id="edit-folder"><option value="">— Bez mapes —</option></select></div>
       <div class="fg"><div class="fl">Albuma vāks</div>
         <div class="dz" id="edit-cover-dz" style="padding:10px">
           <input type="file" id="edit-cover-file" accept="image/*"/>
@@ -617,7 +618,7 @@
       <div class="fg"><div class="fl">Teksts (Lyrics)</div><textarea class="fi" id="edit-lyrics" placeholder="Dziesmas teksts..." style="height:100px;resize:vertical;font-size:12px"></textarea></div>
       <div class="m-err" id="edit-err"></div>
       <div class="m-ok" id="edit-ok"></div>
-      <button class="btn g" id="btn-do-edit">SAGLABĀT</button>
+      <button class="btn g" id="btn-do-edit" data-i18n="save">SAGLABĀT</button>
     </div>
   </div>
 </div>
@@ -659,8 +660,8 @@
           <div class="dz-n" id="bg-fn"></div>
         </div>
         <div class="urow" style="margin-top:10px">
-          <button class="btn g" id="btn-set-bg">SAGLABĀT FONU</button>
-          <button class="btn red" id="btn-del-bg" style="display:none">NOŅEMT FONU</button>
+          <button class="btn g" id="btn-set-bg" data-i18n="save_bg">SAGLABĀT FONU</button>
+          <button class="btn red" id="btn-del-bg" style="display:none" data-i18n="remove_bg">NOŅEMT FONU</button>
           <div class="ust" id="bg-st"></div>
         </div>
       </div>
@@ -671,7 +672,7 @@
         </div>
         <button class="btn" id="btn-preview-bg-url" onclick="previewBgUrl()" style="font-size:11px;margin-bottom:8px">👁 Priekšskatījums</button>
         <div class="urow" style="margin-top:6px">
-          <button class="btn g" id="btn-set-bg-url" onclick="setBgFromUrl()">IESTATĪT FONU</button>
+          <button class="btn g" id="btn-set-bg-url" onclick="setBgFromUrl()" data-i18n="set_bg">IESTATĪT FONU</button>
           <div class="ust" id="bg-url-st"></div>
         </div>
         <div style="font-size:10px;color:var(--mut);margin-top:6px">Padoms: izmanto tiešas bilžu saites (beigšas ar .jpg .png .webp)</div>
@@ -724,7 +725,7 @@
         <div style="position:relative"><input id="pw-rep" type="password" placeholder="Atkārtot jauno paroli" style="padding-right:40px"/><button type="button" onclick="togglePw('pw-rep',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#1565a0">👁</button></div>
         <div class="m-err" id="pw-err"></div>
         <div class="m-ok" id="pw-ok"></div>
-        <button class="btn g" id="btn-chpw">MAINĪT PAROLI</button>
+        <button class="btn g" id="btn-chpw" data-i18n="change_pass">MAINĪT PAROLI</button>
       </div>
     </div>
     <div id="mt-profset" style="display:none">
@@ -745,7 +746,7 @@
         </div>
         <div class="fg"><div class="fl">Sociālā saite</div><input class="fi" id="sett-social" placeholder="https://..."/></div>
         <div class="m-ok" id="sett-prof-ok"></div>
-        <button class="btn g" id="btn-save-sett-profile">SAGLABĀT PROFILU</button>
+        <button class="btn g" id="btn-save-sett-profile" data-i18n="save_profile">SAGLABĀT PROFILU</button>
       </div>
     </div>
   </div>
@@ -761,7 +762,7 @@
       <input id="reset-pw-val" type="text" placeholder="Jaunā parole (min. 6)"/>
       <div class="m-err" id="reset-err"></div>
       <div class="m-ok" id="reset-ok"></div>
-      <button class="btn g" id="btn-do-reset">ATIESTATĪT</button>
+      <button class="btn g" id="btn-do-reset" data-i18n="reset_btn">ATIESTATĪT</button>
     </div>
   </div>
 </div>
@@ -794,8 +795,8 @@
     <button class="auth-close" onclick="closeAuth()">✕</button>
     <div class="auth-logo" style="line-height:1.3">SoundPulse<br><span style="font-size:11px;background:linear-gradient(90deg,#00ff88,#00ccff,#c084fc,#ffc400,#00ff88);background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:hshift 3s linear infinite;letter-spacing:3px;display:inline-block;margin-top:3px">GreenMan-AI</span></div>
     <div class="auth-tabs">
-      <button class="auth-tab on" data-af="l">IEIET</button>
-      <button class="auth-tab" data-af="r">REĢISTRĒTIES</button>
+      <button class="auth-tab on" data-af="l" data-i18n="login">IEIET</button>
+      <button class="auth-tab" data-af="r" data-i18n="register">REĢISTRĒTIES</button>
     </div>
     <div id="af-l" class="auth-f">
       <input id="l-u" type="text" placeholder="Lietotājvārds" autocomplete="username"/>
@@ -804,7 +805,7 @@
         <button type="button" onclick="togglePw('l-p',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#1565a0">👁</button>
       </div>
       <div class="aerr" id="l-err"></div>
-      <button class="auth-submit" id="btn-login" >IEIET</button>
+      <button class="auth-submit" id="btn-login"  data-i18n="login">IEIET</button>
     </div>
     <div id="af-r" class="auth-f" style="display:none">
       <input id="r-u" type="text" placeholder="Lietotājvārds (min. 3)" autocomplete="username"/>
@@ -813,7 +814,7 @@
         <button type="button" onclick="togglePw('r-p',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#1565a0">👁</button>
       </div>
       <div class="aerr" id="r-err"></div>
-      <button class="auth-submit" id="btn-reg">REĢISTRĒTIES</button>
+      <button class="auth-submit" id="btn-reg" data-i18n="register">REĢISTRĒTIES</button>
     </div>
     <div class="auth-note">Mūziku var klausīties bez konta</div>
   </div>
@@ -1619,7 +1620,7 @@ document.getElementById('btn-login').addEventListener('click',async()=>{
     closeAuth(); hideSplash(); updateTopbar(); await loadAll(); renderSidebar();
     if(d.role==='admin'){ showView('home'); const h=document.querySelector('[data-v="home"]'); if(h) setSbActive(h); }
     else renderAllTracks();
-    toast('Sveicināts, '+d.username+'!','ok');
+    toast(t('welcome')+', '+d.username+'!','ok');
   }catch(e){document.getElementById('l-err').textContent=e.message;}
 });
 document.getElementById('btn-reg').addEventListener('click',async()=>{
@@ -1632,7 +1633,7 @@ document.getElementById('btn-reg').addEventListener('click',async()=>{
     localStorage.setItem('sp_t',d.token); localStorage.setItem('sp_u',d.username); localStorage.setItem('sp_r',d.role);
     S.favorites=[]; S.myPl=[]; S.unreadNotif=0;
     closeAuth(); hideSplash(); updateTopbar(); await loadAll(); renderSidebar(); renderAllTracks();
-    toast('Konts izveidots!','ok');
+    toast(t('account_created'),'ok');
   }catch(e){document.getElementById('r-err').textContent=e.message;}
 });
 ['l-u','l-p'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-login').click();}));
@@ -1722,7 +1723,7 @@ function renderAllTracks(){
 function renderPlaylist(){
   const tracks=S.myPl.map(id=>S.tracks.find(t=>String(t._id)===String(id))).filter(Boolean);
   if(!tracks.length){
-    document.getElementById('tl-pl').innerHTML='<div class="empty"><div class="empty-i">📋</div>Playliste ir tukša!<br><span style="font-size:11px;color:var(--mut)">Nospied ＋ pie jebkuras dziesmas lai pievienotu</span></div>';
+    document.getElementById('tl-pl').innerHTML=`<div class="empty"><div class="empty-i">📋</div>${t('playlist_empty')}<br><span style="font-size:11px;color:var(--mut)">${t('playlist_empty_hint')}</span></div>`;
     document.getElementById('btn-clear-pl').style.display='none';
     return;
   }
@@ -1738,7 +1739,7 @@ function renderFavs(){
 function renderFolderGrid(){
   const c=document.getElementById('fgrid');
   const allFolders=[...S.folders,...(S.myFolders||[])];
-  if (!allFolders.length){c.innerHTML='<div class="empty"><div class="empty-i">📂</div>Nav nevienas mapes</div>';return;}
+  if (!allFolders.length){c.innerHTML=`<div class="empty"><div class="empty-i">📂</div>${t('no_folders')}</div>`;return;}
   c.innerHTML=allFolders.map(f=>{
     const cnt=S.tracks.filter(t=>String(t.folderId)===String(f._id)).length;
     return `<div class="fcard" onclick="openFolder('${f._id}')" style="border-left:3px solid ${f.color}">
@@ -1792,7 +1793,7 @@ document.getElementById('btn-clear-pl').addEventListener('click',async()=>{
 //  TRACK ROW RENDERER
 // ════════════════════════════════════════
 function renderTList(container, tracks, ctx){
-  if (!tracks.length){container.innerHTML='<div class="empty"><div class="empty-i">🎵</div>Nav ierakstu</div>';return;}
+  if (!tracks.length){container.innerHTML=`<div class="empty"><div class="empty-i">🎵</div>${t('no_tracks')}</div>`;return;}
   const curId=String(S.queue[S.qi]?._id||'');
   const allFolders=[...S.folders,...(S.myFolders||[])];
   const fmap={}; allFolders.forEach(f=>fmap[String(f._id)]=f);
@@ -2071,7 +2072,7 @@ async function renderStats(){
       tr.appendChild(tl);
       renderTList(tl,myTracks,'stats');
     } else {
-      tr.innerHTML='<div class="empty"><div class="empty-i">🎵</div>Tu vēl neesi augšupielādējis nevienu dziesmu</div>';
+      tr.innerHTML=`<div class="empty"><div class="empty-i">🎵</div>${t('no_songs_uploaded')}</div>`;
     }
   }catch(e){c.innerHTML='<div style="color:var(--r)">Kļūda</div>';}
 }
@@ -2239,7 +2240,7 @@ function applyLang(){
 // ════════════════════════════════════════
 async function renderTrending(){
   const c=document.getElementById('tl-trending');
-  c.innerHTML='<div style="color:var(--mut);font-size:12px;padding:20px 0">Ielādē...</div>';
+  c.innerHTML=`<div style="color:var(--mut);font-size:12px;padding:20px 0">${t('loading')}</div>`;
   try{
     const d=await api('/api/trending');
     if(!d.tracks.length){c.innerHTML=`<div class="empty"><div class="empty-i">🔥</div>${t('no_tracks')}</div>`;return;}
@@ -2267,7 +2268,7 @@ async function renderTrending(){
 async function renderFeed(){
   const c=document.getElementById('feed-list');
   const adZ=document.getElementById('ad-zone');
-  c.innerHTML='<div style="color:var(--mut);font-size:12px;padding:20px 0">Ielādē...</div>';
+  c.innerHTML=`<div style="color:var(--mut);font-size:12px;padding:20px 0">${t('loading')}</div>`;
   try{
     const [feedD, adsD] = await Promise.all([
       api('/api/feed').catch(()=>({feed:[]})),
@@ -2363,7 +2364,7 @@ async function deleteAd(id){
 // ════════════════════════════════════════
 async function renderMyProfile(){
   const c=document.getElementById('profile-content');
-  c.innerHTML='<div style="color:var(--mut);font-size:12px;padding:20px 0">Ielādē...</div>';
+  c.innerHTML=`<div style="color:var(--mut);font-size:12px;padding:20px 0">${t('loading')}</div>`;
   try{
     const d=await api('/api/profiles/'+S.username);
     const p=d.profile;
