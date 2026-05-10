@@ -2201,112 +2201,43 @@ function initDragDrop(container, tracks){
 }
 
 // ════════════════════════════════════════
-//  i18n — VALODU SISTĒMA (izmanto i18n.js)
+//  i18n — izmanto i18n.js (LANGS, t, setLang)
 // ════════════════════════════════════════
-// Papildu atslēgas kas nav i18n.js — apvieno ar esošo LANGS
-const _extraKeys = {
-  lv: {
-    all_songs:'Visas dziesmas',playlist:'Playliste',favorites:'Favorīti',
-    folders:'Mapes',my_stats:'Mana statistika',my_profile:'Mans profils',
-    trending:'Trending',feed:'Jaunumi',
-    trending_sub:'Populārākās dziesmas pēc atskaņojumiem',
-    search_ph:'Meklēt dziesmas...',
-    login:'IEIET',register:'REĢISTRĒTIES',logout:'IZIET',
-    add:'＋ PIEVIENOT',play_all:'▶ ATSKAŅOT VISU',
-    uploaded_by:'Augšupielādēja',plays:'atskaņojumi',
-    stats:'Mana statistika',no_tracks:'Nav ierakstu',
-    splash_sub:'TAVA MŪZIKAS PASAULE UN MŪZIKAS VALSTĪBA',splash_btn:'IEIET / REĢISTRĒTIES',
-    splash_note:'Nepieciešams konts, lai piekļūtu mūzikai',
-    no_songs_uploaded:'Vēl nav augšupielādētu dziesmu',
-    loading:'Ielādē...',
-    playlist_empty:'Playliste ir tukša',
-    playlist_empty_hint:'Nospied ＋ pie dziesmas lai pievienotu',
-    no_folders:'Nav mapju',
-    welcome:'Sveiks',
-    account_created:'Konts izveidots!',
-    shared_playlist:'Dalītā playliste',
-    library:'BIBLIOTĒKA',
-    home:'Sākums',
-    folders_title:'MAPES',my_folders_lock:'MANAS MAPES 🔒',
-    splash_platform_short:'TAVA MŪZIKAS PLATFORMA',
-  },
-  en: {
-    all_songs:'All Songs',playlist:'Playlist',favorites:'Favorites',
-    folders:'Folders',my_stats:'My Stats',my_profile:'My Profile',
-    trending:'Trending',feed:'Feed',
-    trending_sub:'Most played tracks',
-    search_ph:'Search songs...',
-    login:'LOGIN',register:'REGISTER',logout:'LOGOUT',
-    add:'＋ ADD',play_all:'▶ PLAY ALL',
-    uploaded_by:'Uploaded by',plays:'plays',
-    stats:'My Statistics',no_tracks:'No tracks',
-    splash_sub:'YOUR MUSIC LIBRARY',splash_btn:'LOGIN / REGISTER',
-    splash_note:'Account required to access music',
-    no_songs_uploaded:'No songs uploaded yet',
-    loading:'Loading...',
-    playlist_empty:'Playlist is empty',
-    playlist_empty_hint:'Press ＋ next to a song to add it',
-    no_folders:'No folders',
-    welcome:'Welcome',
-    account_created:'Account created!',
-    shared_playlist:'Shared Playlist',
-    library:'LIBRARY',
-    home:'Home',
-    folders_title:'FOLDERS',my_folders_lock:'MY FOLDERS 🔒',
-    splash_platform_short:'YOUR MUSIC PLATFORM',
-  },
-  ru: {
-    all_songs:'Все песни',playlist:'Плейлист',favorites:'Избранное',
-    folders:'Папки',my_stats:'Моя статистика',my_profile:'Мой профиль',
-    trending:'Тренды',feed:'Лента',
-    trending_sub:'Самые популярные треки',
-    search_ph:'Поиск песен...',
-    login:'ВОЙТИ',register:'РЕГИСТРАЦИЯ',logout:'ВЫЙТИ',
-    add:'＋ ДОБАВИТЬ',play_all:'▶ ИГРАТЬ ВСЁ',
-    uploaded_by:'Загрузил',plays:'прослушиваний',
-    stats:'Моя статистика',no_tracks:'Нет треков',
-    splash_sub:'ТВОЯ МУЗЫКАЛЬНАЯ БИБЛИОТЕКА',splash_btn:'ВОЙТИ / ЗАРЕГИСТРИРОВАТЬСЯ',
-    splash_note:'Для доступа к музыке нужен аккаунт',
-    no_songs_uploaded:'Треков ещё нет',
-    loading:'Загрузка...',
-    playlist_empty:'Плейлист пуст',
-    playlist_empty_hint:'Нажмите ＋ у трека чтобы добавить',
-    no_folders:'Нет папок',
-    welcome:'Добро пожаловать',
-    account_created:'Аккаунт создан!',
-    shared_playlist:'Общий плейлист',
-    library:'БИБЛИОТЕКА',
-    home:'Главная',
-    folders_title:'ПАПКИ',my_folders_lock:'МОИ ПАПКИ 🔒',
-    splash_platform_short:'ТВОЯ МУЗЫКАЛЬНАЯ ПЛАТФОРМА',
-  }
-};
-// Apvieno i18n.js LANGS ar papildu atslēgām
-if(typeof LANGS !== 'undefined') {
-  ['lv','en','ru'].forEach(l=>{ if(LANGS[l]) Object.assign(LANGS[l], _extraKeys[l]); });
-} else {
-  // Fallback ja i18n.js nav ielādēts
-  var LANGS = _extraKeys;
-}
-// Ja i18n.js nedefinēja t() — definē to šeit (fallback)
-if(typeof t !== 'function') {
-  window.curLang = localStorage.getItem('sp_lang') || 'lv';
-  window.t = function(key){ return LANGS[curLang]?.[key] || LANGS.lv[key] || key; };
-  window.setLang = function(lang){
-    curLang=lang; localStorage.setItem('sp_lang',lang);
-    document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('on',b.textContent===lang.toUpperCase()));
-    applyLang();
-  };
-}
 function applyLang(){
-  document.querySelectorAll('[data-i18n]').forEach(el=>{ const k=el.dataset.i18n; if(LANGS[curLang]?.[k]) el.textContent=LANGS[curLang][k]; });
-  const s=document.getElementById('srch'); if(s) s.placeholder=t('search_ph');
+  // data-i18n atribūti
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k=el.dataset.i18n;
+    const v=LANGS[curLang]?.[k];
+    if(v) el.textContent=v;
+  });
+  // data-i18n-ph placeholders
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{
+    const k=el.dataset.i18nPh;
+    const v=LANGS[curLang]?.[k];
+    if(v) el.placeholder=v;
+  });
+  // Meklēšana
+  const srch=document.getElementById('srch'); if(srch) srch.placeholder=t('search_ph');
+  // Splash
   const sb=document.querySelector('.splash-sub'); if(sb) sb.textContent=t('splash_sub');
   const sbtn=document.querySelector('.splash-btn'); if(sbtn) sbtn.textContent=t('splash_btn');
   const sn=document.querySelector('.splash-note'); if(sn) sn.textContent=t('splash_note');
+  // Pogas
   const bl=document.getElementById('btn-logout'); if(bl) bl.textContent=t('logout');
-  const bup=document.getElementById('btn-user-panel');
-  if(bup && S.role!=='admin') bup.textContent=t('add');
+  const bup=document.getElementById('btn-user-panel'); if(bup&&S.role!=='admin') bup.textContent=t('add');
+  const btnLogin=document.getElementById('btn-login'); if(btnLogin) btnLogin.textContent=t('login');
+  const btnReg=document.getElementById('btn-reg'); if(btnReg) btnReg.textContent=t('register');
+  // Auth tabs
+  const tabs=document.querySelectorAll('.auth-tab');
+  if(tabs[0]) tabs[0].textContent=t('login');
+  if(tabs[1]) tabs[1].textContent=t('register');
+  // Login/register inputs
+  const lu=document.getElementById('l-u'); if(lu) lu.placeholder=t('username_ph');
+  const lp=document.getElementById('l-p'); if(lp) lp.placeholder=t('password_ph');
+  const ru=document.getElementById('r-u'); if(ru) ru.placeholder=t('username_ph');
+  const rp=document.getElementById('r-p'); if(rp) rp.placeholder=t('password_ph');
+  // Play all
+  const bpa=document.getElementById('btn-play-all'); if(bpa) bpa.textContent=t('play_all');
 }
 
 
