@@ -921,6 +921,10 @@ async function init() {
       // Personāži redzami īsumā arī pie pieslēgšanās
       setTimeout(()=>hideSplash(), 1800);
     } catch(e) { if (e.status === 401 || e.status === 403) { clearSess(); } }
+  } else {
+    // Nav tokena — pēc 2 sek automātiski paslēpj splash
+    // Lietotājs var nospiest pogu jebkurā laikā
+    setTimeout(()=>hideSplash(), 2000);
   }
   updateTopbar();
   await loadAll();
@@ -960,7 +964,12 @@ async function init() {
     }
   }catch(e){}
 }
-function openAuthFromSplash(){const o=document.getElementById('auth-ov');o.style.display='flex';o.classList.add('on');}
+function openAuthFromSplash(){
+  hideSplash();
+  const o=document.getElementById('auth-ov');
+  o.style.display='flex';
+  o.classList.add('on');
+}
 function hideSplash(){
   const s=document.getElementById('splash');
   s.style.transition='opacity .6s ease';
