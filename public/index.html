@@ -38,6 +38,13 @@
     function checkPrivacy() { if(window.location.hash === '#privacy') { document.getElementById('privacy-overlay').style.display = 'block'; } }
     window.addEventListener('hashchange', checkPrivacy);
     window.addEventListener('load', checkPrivacy);
+
+    function openAuthFromSplash(){
+      var s=document.getElementById('splash');
+      if(s){s.style.transition='opacity .4s ease';s.style.opacity='0';setTimeout(function(){s.classList.add('off');},400);}
+      var o=document.getElementById('auth-ov');
+      if(o){o.style.display='flex';o.classList.add('on');}
+    }
 </script>
 
 <!-- ══ PWA INSTALL BAR ══ -->
@@ -963,12 +970,6 @@ async function init() {
       }
     }
   }catch(e){}
-}
-function openAuthFromSplash(){
-  hideSplash();
-  const o=document.getElementById('auth-ov');
-  o.style.display='flex';
-  o.classList.add('on');
 }
 function hideSplash(){
   const s=document.getElementById('splash');
