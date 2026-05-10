@@ -922,17 +922,14 @@ async function init() {
       S.username=m.username; S.role=m.role;
       S.bgUrl=m.bgUrl||''; S.favorites=m.favorites||[];
       S.myPl=(m.myPlaylist||[]).map(String);
+      localStorage.setItem('sp_u',m.username);
       localStorage.setItem('sp_r',m.role);
       localStorage.setItem('sp_bg',m.bgUrl||'');
       applyBg(S.bgUrl);
-      // Personāži redzami īsumā arī pie pieslēgšanās
+      updateTopbar();
       setTimeout(()=>hideSplash(), 1800);
     } catch(e) { if (e.status === 401 || e.status === 403) { clearSess(); } }
-  } else {
-    // Nav tokena — pēc 2 sek automātiski paslēpj splash
-    // Lietotājs var nospiest pogu jebkurā laikā
-    setTimeout(()=>hideSplash(), 2000);
-  }
+  } // Nav tokena — paliek uz splash
   updateTopbar();
   await loadAll();
   renderSidebar();
