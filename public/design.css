@@ -297,15 +297,31 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 #toast.warn{border-color:var(--y);color:var(--y)}
 
 /* ══ SPLASH ══ */
-/* cleaned up duplicates */
-
 #splash{
   position:fixed;inset:0;z-index:900;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,rgba(180,215,245,.97) 0%,rgba(200,228,250,.98) 100%);
+  background:linear-gradient(135deg,rgba(180,215,245,.92) 0%,rgba(200,228,250,.95) 100%);
   backdrop-filter:blur(20px);
 }
 #splash.off{display:none}
+#splash::before{
+  content:'';position:absolute;inset:0;z-index:0;
+  background:linear-gradient(45deg,
+    rgba(0,255,136,.18) 0%,
+    rgba(0,204,255,.22) 20%,
+    rgba(192,132,252,.2) 40%,
+    rgba(255,196,0,.15) 60%,
+    rgba(255,45,85,.15) 80%,
+    rgba(0,255,136,.18) 100%);
+  background-size:400% 400%;
+  animation:hc 6s ease infinite;
+}
+#splash>*:not(.chars){position:relative;z-index:2}
+@keyframes hc{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
 .splash-logo{
   font-family:var(--mono);font-size:52px;color:var(--a);
   letter-spacing:8px;text-shadow:0 0 40px rgba(21,101,160,.3);
@@ -342,8 +358,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
   from { opacity: 0; transform: scale(1.05); }
   to { opacity: 1; transform: scale(1); }
 }
-
-/* ══ SPLASH CHARS ══ */
 .chars{position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none}
 .char{position:absolute;display:flex;flex-direction:column;align-items:center;gap:0;user-select:none;animation:walk linear infinite;z-index:2}
 .char.rev{animation:walkR linear infinite}
@@ -366,29 +380,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 @keyframes headbang{0%,100%{transform:rotate(0deg)}50%{transform:rotate(28deg)}}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
-/* cleaned up duplicates */
-
-#splash{
-  background:linear-gradient(135deg,rgba(180,215,245,.92) 0%,rgba(200,228,250,.95) 100%) !important;
-}
-#splash::before{
-  content:'';position:absolute;inset:0;z-index:0;
-  background:linear-gradient(45deg,
-    rgba(0,255,136,.18) 0%,
-    rgba(0,204,255,.22) 20%,
-    rgba(192,132,252,.2) 40%,
-    rgba(255,196,0,.15) 60%,
-    rgba(255,45,85,.15) 80%,
-    rgba(0,255,136,.18) 100%);
-  background-size:400% 400%;
-  animation:hc 6s ease infinite;
-}
-#splash>*:not(.chars){position:relative;z-index:2}
-@keyframes hc{
-  0%{background-position:0% 50%}
-  50%{background-position:100% 50%}
-  100%{background-position:0% 50%}
-}
 /* ══ HOME ADS GRID ══ */
 .home-ad-card{
   background:rgba(255,255,255,.92);border:1px solid rgba(21,101,160,.2);
