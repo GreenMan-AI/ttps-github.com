@@ -894,8 +894,8 @@ async function api(url, opts = {}) {
     } 
   });
 
-  // Ja serveris atgriež 401 — izmet lietotāju
-  if (r.status === 401) {
+  // Ja serveris atgriež 401 — izmet lietotāju (bet NE login/register maršrutiem!)
+  if (r.status === 401 && !url.includes('/api/login') && !url.includes('/api/register')) {
     clearSess();
     window.location.reload();
     return;
@@ -1088,18 +1088,18 @@ function toggleUserPanel(){
   panel.style.display=isOpen?'none':'block';
   if (!isOpen){ populateUserFolderSels(); renderUserFMgmt(); }
 }
-document.querySelectorAll('.up-tab-btn').forEach(t=>{
-  t.addEventListener('click',()=>{
+document.querySelectorAll('.up-tab-btn').forEach(el=>{
+  el.addEventListener('click',()=>{
     document.querySelectorAll('.up-tab-btn').forEach(x=>{
       x.style.background='none';
       x.style.borderColor='var(--border)';
       x.style.color='var(--mut)';
     });
-    t.style.background='rgba(21,101,160,.2)';
-    t.style.borderColor='rgba(21,101,160,.5)';
-    t.style.color='#5bb8f5';
+    el.style.background='rgba(21,101,160,.2)';
+    el.style.borderColor='rgba(21,101,160,.5)';
+    el.style.color='#5bb8f5';
     document.querySelectorAll('.up-tab-panel').forEach(x=>x.style.display='none');
-    document.getElementById('uap-'+t.dataset.utab).style.display='block';
+    document.getElementById('uap-'+el.dataset.utab).style.display='block';
   });
 });
 
@@ -1213,12 +1213,12 @@ document.getElementById('ubtn-multi').addEventListener('click',async()=>{
   }catch(e){ust.textContent='✗ '+e.message;toast(e.message,'err');}
   finally{btn.disabled=false;setTimeout(()=>{pw.style.display='none';ust.textContent='';},5000);}
 });
-document.querySelectorAll('.atab').forEach(t=>{
-  t.addEventListener('click',()=>{
+document.querySelectorAll('.atab').forEach(el=>{
+  el.addEventListener('click',()=>{
     document.querySelectorAll('.atab').forEach(x=>x.classList.remove('on'));
     document.querySelectorAll('.apanel').forEach(x=>x.classList.remove('on'));
-    t.classList.add('on');
-    document.getElementById('ap-'+t.dataset.ap).classList.add('on');
+    el.classList.add('on');
+    document.getElementById('ap-'+el.dataset.ap).classList.add('on');
   });
 });
 async function loadStats(){
@@ -1495,16 +1495,16 @@ function openSettings(){
 }
 function closeSettings(){ document.getElementById('settings-ov').classList.remove('on'); }
 
-document.querySelectorAll('.modal-tab').forEach(t=>{
-  t.addEventListener('click',()=>{
+document.querySelectorAll('.modal-tab').forEach(el=>{
+  el.addEventListener('click',()=>{
     document.querySelectorAll('.modal-tab').forEach(x=>x.classList.remove('on'));
-    t.classList.add('on');
-    document.getElementById('mt-bg').style.display=t.dataset.mt==='bg'?'block':'none';
-    document.getElementById('mt-theme').style.display=t.dataset.mt==='theme'?'block':'none';
-    document.getElementById('mt-pw').style.display=t.dataset.mt==='pw'?'block':'none';
-    document.getElementById('mt-profset').style.display=t.dataset.mt==='profset'?'block':'none';
-    if(t.dataset.mt==='theme') loadThemeUI();
-    if(t.dataset.mt==='profset') loadSettProfile();
+    el.classList.add('on');
+    document.getElementById('mt-bg').style.display=el.dataset.mt==='bg'?'block':'none';
+    document.getElementById('mt-theme').style.display=el.dataset.mt==='theme'?'block':'none';
+    document.getElementById('mt-pw').style.display=el.dataset.mt==='pw'?'block':'none';
+    document.getElementById('mt-profset').style.display=el.dataset.mt==='profset'?'block':'none';
+    if(el.dataset.mt==='theme') loadThemeUI();
+    if(el.dataset.mt==='profset') loadSettProfile();
   });
 });
 
@@ -1625,12 +1625,12 @@ document.getElementById('btn-chpw').addEventListener('click',async()=>{
 // ════════════════════════════════════════
 function openAuth(){const o=document.getElementById('auth-ov');o.style.display='flex';o.classList.add('on');}
 function closeAuth(){const o=document.getElementById('auth-ov');o.style.display='none';o.classList.remove('on');}
-document.querySelectorAll('.auth-tab').forEach(t=>{
-  t.addEventListener('click',()=>{
+document.querySelectorAll('.auth-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
     document.querySelectorAll('.auth-tab').forEach(x=>x.classList.remove('on'));
-    t.classList.add('on');
-    document.getElementById('af-l').style.display=t.dataset.af==='l'?'flex':'none';
-    document.getElementById('af-r').style.display=t.dataset.af==='r'?'flex':'none';
+    tab.classList.add('on');
+    document.getElementById('af-l').style.display=tab.dataset.af==='l'?'flex':'none';
+    document.getElementById('af-r').style.display=tab.dataset.af==='r'?'flex':'none';
     document.getElementById('l-err').textContent=''; document.getElementById('r-err').textContent='';
   });
 });
@@ -2288,12 +2288,15 @@ if(typeof LANGS !== 'undefined') {
   // Fallback ja i18n.js nav ielādēts
   var LANGS = _extraKeys;
 }
-window.curLang = localStorage.getItem('sp_lang') || 'lv';
-function t(key){ return LANGS[curLang]?.[key] || LANGS.lv[key] || key; }
-function setLang(lang){
-  curLang=lang; localStorage.setItem('sp_lang',lang);
-  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('on',b.textContent===lang.toUpperCase()));
-  applyLang();
+// Ja i18n.js nedefinēja t() — definē to šeit (fallback)
+if(typeof t !== 'function') {
+  window.curLang = localStorage.getItem('sp_lang') || 'lv';
+  window.t = function(key){ return LANGS[curLang]?.[key] || LANGS.lv[key] || key; };
+  window.setLang = function(lang){
+    curLang=lang; localStorage.setItem('sp_lang',lang);
+    document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('on',b.textContent===lang.toUpperCase()));
+    applyLang();
+  };
 }
 function applyLang(){
   document.querySelectorAll('[data-i18n]').forEach(el=>{ const k=el.dataset.i18n; if(LANGS[curLang]?.[k]) el.textContent=LANGS[curLang][k]; });
@@ -2504,8 +2507,8 @@ document.getElementById('btn-save-sett-profile').addEventListener('click',async(
 });
 
 // Load ads mgmt when admin opens ads tab
-document.querySelectorAll('.atab').forEach(t=>{
-  if(t.dataset.ap==='ads') t.addEventListener('click',loadAdMgmt);
+document.querySelectorAll('.atab').forEach(el=>{
+  if(el.dataset.ap==='ads') el.addEventListener('click',loadAdMgmt);
 });
 
 // ════════════════════════════════════════
@@ -2679,8 +2682,8 @@ async function sendAdminNotif(){
   }catch(e){toast(e.message,'err');}
 }
 // Load notif targets when admin opens ticker tab
-document.querySelectorAll('.atab').forEach(t=>{
-  if(t.dataset.ap==='ticker') t.addEventListener('click',loadNotifTargets);
+document.querySelectorAll('.atab').forEach(el=>{
+  if(el.dataset.ap==='ticker') el.addEventListener('click',loadNotifTargets);
 });
 
 // ════════════════════════════════════════

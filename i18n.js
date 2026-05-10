@@ -775,7 +775,7 @@ function t(key) {
 
 /** Maina valodu un atjauno visu lapu */
 function setLang(lang) {
-  LANGS[curLang]
+  curLang = lang;
   localStorage.setItem('sp_lang', lang);
   document.querySelectorAll('.lang-btn').forEach(b =>
     b.classList.toggle('on', b.textContent === lang.toUpperCase())
