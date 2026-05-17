@@ -63,6 +63,7 @@ app.use((req, res, next) => {
   const origin = req.headers.origin || '';
   const allowed = [
     'https://ttps-github-com-y7ex.onrender.com',
+    'https://soundpulse-backend-e0e2.onrender.com',
     'https://greenman-ai.onrender.com',
     'http://localhost:3000',
     'http://localhost:8081',
@@ -105,7 +106,7 @@ app.use((req, res, next) => {
     "font-src 'self' https://fonts.gstatic.com data:; " +
     "img-src 'self' data: blob: https:; " +
     "media-src 'self' blob: https: https://*.cloudinary.com https://res.cloudinary.com; " +
-    "connect-src 'self' https://*.cloudinary.com https://api.cloudinary.com https://res.cloudinary.com https://ttps-github-com-y7ex.onrender.com https://greenman-ai.onrender.com https://api.qrserver.com; " +
+    "connect-src 'self' https://*.cloudinary.com https://api.cloudinary.com https://res.cloudinary.com https://ttps-github-com-y7ex.onrender.com https://soundpulse-backend-e0e2.onrender.com https://greenman-ai.onrender.com https://api.qrserver.com; " +
     "worker-src 'self' blob:; " +
     "frame-ancestors 'self';"
   );
