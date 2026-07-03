@@ -92,16 +92,61 @@ section h2::before{content:'';width:4px;height:20px;background:var(--accent);bor
 
 #player-bar{
   position:sticky;bottom:0;z-index:150;
-  background:rgba(15,15,22,.95);backdrop-filter:blur(14px);
+  background:rgba(13,13,20,.97);backdrop-filter:blur(18px);
   border-top:1px solid var(--border);padding:10px 24px;
-  display:none;align-items:center;gap:14px;
+  display:none;align-items:center;gap:24px;
 }
 #player-bar.show{display:flex}
-#player-bar .cover{width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0}
-#player-bar .info{min-width:120px}
-#player-bar .info .t{font-size:13px;font-weight:600}
-#player-bar .info .a{font-size:11px;color:var(--mut)}
-#player-bar audio{flex:1;height:32px}
+
+.pb-track-info{display:flex;align-items:center;gap:12px;min-width:180px;flex-shrink:0}
+#player-bar .cover{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;
+  box-shadow:0 0 0 1px var(--border), 0 4px 14px rgba(0,207,255,.15)}
+.pb-track-info .info{min-width:0}
+.pb-track-info .info .t{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.pb-track-info .info .a{font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+
+.pb-center{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.pb-controls{display:flex;align-items:center;gap:16px}
+.pb-btn{
+  background:none;border:none;color:var(--txt);font-size:16px;cursor:pointer;
+  padding:4px;line-height:1;transition:.15s;opacity:.85;
+}
+.pb-btn:hover{opacity:1;color:var(--accent)}
+.pb-btn.pb-play{
+  width:34px;height:34px;border-radius:50%;background:var(--accent);color:#001018;
+  display:flex;align-items:center;justify-content:center;font-size:14px;opacity:1;
+}
+.pb-btn.pb-play:hover{background:#33d9ff;color:#001018}
+
+.pb-seek-row{display:flex;align-items:center;gap:8px;width:100%;max-width:520px}
+.pb-time{font-size:11px;color:var(--mut);font-variant-numeric:tabular-nums;width:34px;flex-shrink:0}
+#pb-duration{text-align:right}
+.pb-progress{
+  flex:1;height:4px;background:var(--card2);border-radius:2px;position:relative;cursor:pointer;
+}
+.pb-progress-fill{position:absolute;left:0;top:0;height:100%;background:var(--accent);border-radius:2px;width:0%}
+.pb-progress-handle{
+  position:absolute;top:50%;left:0%;width:11px;height:11px;border-radius:50%;
+  background:var(--accent);transform:translate(-50%,-50%);box-shadow:0 0 6px rgba(0,207,255,.6);
+  opacity:0;transition:opacity .15s;
+}
+.pb-progress:hover .pb-progress-handle{opacity:1}
+
+.pb-volume{display:flex;align-items:center;gap:6px;flex-shrink:0;min-width:110px}
+.pb-volume span{font-size:14px}
+#pb-volume-slider{
+  width:80px;accent-color:var(--accent);height:4px;cursor:pointer;
+}
+
+@media(max-width:820px){
+  .pb-track-info{min-width:0}
+  .pb-track-info .info .t,.pb-track-info .info .a{max-width:110px}
+  .pb-volume{display:none}
+}
+@media(max-width:640px){
+  #player-bar{gap:12px}
+  .pb-track-info .info{display:none}
+}
 
 /* ══ CHAT ══ */
 #chat-box{
@@ -159,6 +204,25 @@ section h2::before{content:'';width:4px;height:20px;background:var(--accent);bor
 .admin-edit{border:1px dashed var(--border2);border-radius:var(--r-sm);padding:4px}
 
 footer{text-align:center;padding:30px;color:var(--mut);font-size:12px;border-top:1px solid var(--border)}
+
+/* ══ TOAST ══ */
+#toast-container{position:fixed;top:70px;right:20px;z-index:600;display:flex;flex-direction:column;gap:8px;max-width:320px}
+.toast{
+  background:var(--card2);border:1px solid var(--border2);border-left:3px solid var(--accent);
+  border-radius:var(--r-sm);padding:12px 16px;font-size:13px;color:var(--txt);
+  box-shadow:0 8px 24px rgba(0,0,0,.4);animation:toast-in .2s ease-out;
+}
+.toast.err{border-left-color:var(--danger)}
+.toast.ok{border-left-color:var(--accent2)}
+.toast.fade{animation:toast-out .3s ease-in forwards}
+@keyframes toast-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toast-out{to{opacity:0;transform:translateX(20px)}}
+
+/* ══ MISC ══ */
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+#bulk-progress{font-size:12px;color:var(--mut);margin-bottom:8px;max-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
+#bulk-progress .line-ok{color:var(--accent2)}
+#bulk-progress .line-err{color:var(--danger)}
 
 @media(max-width:640px){
   header{padding:12px 14px;flex-wrap:wrap}

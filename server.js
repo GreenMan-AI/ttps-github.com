@@ -253,6 +253,43 @@ app.post('/api/admin/logout', requireAdmin, (req, res) => {
 
 app.get('/api/admin/check', requireAdmin, (req, res) => res.json({ ok: true }));
 
+// Vienreizējs admin rīks — salabo jau esošos sabojātos LV burtus/emocijzīmes
+// datubāzē, izsaucot to tieši caur serveri (apiet lokālas DNS problēmas).
+app.post('/api/admin/fix-encoding', requireAdmin, async (req, res) => {
+  try {
+    let fixedCount = 0;
+    const changes = [];
+
+    const tracks = await Track.find({});
+    for (const tr of tracks) {
+      const newTitle = fixMojibake(tr.title);
+      const newArtist = fixMojibake(tr.artist);
+      if (newTitle !== tr.title || newArtist !== tr.artist) {
+        changes.push({ before: tr.title, after: newTitle });
+        tr.title = newTitle;
+        tr.artist = newArtist;
+        await tr.save();
+        fixedCount++;
+      }
+    }
+
+    const images = await GalleryImage.find({});
+    for (const img of images) {
+      const newCaption = fixMojibake(img.caption);
+      const newCategory = fixMojibake(img.category);
+      if (newCaption !== img.caption || newCategory !== img.category) {
+        changes.push({ before: img.caption, after: newCaption });
+        img.caption = newCaption;
+        img.category = newCategory;
+        await img.save();
+        fixedCount++;
+      }
+    }
+
+    res.json({ ok: true, fixedCount, changes });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ══════════════════════════════════════════════════
 //  SATURS (teksti mājas lapā)
 // ══════════════════════════════════════════════════
