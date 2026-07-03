@@ -1,7 +1,7 @@
 {
-  "name": "soundpulse-server",
-  "version": "2.0.0",
-  "description": "SoundPulse — Mūzikas platforma serveris",
+  "name": "soundpulse-simple",
+  "version": "1.0.0",
+  "description": "SoundPulse — vienkārša mājas lapa ar 1 admin kontu (teksts, bildes, mūzika, čats)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

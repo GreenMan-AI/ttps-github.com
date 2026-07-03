@@ -7,8 +7,7 @@ package-lock.json
 .env.local
 .env.production
 
-# ══ Serveris ══
-public/
+# ══ Logi ══
 *.log
 npm-debug.*
 
@@ -16,15 +15,5 @@ npm-debug.*
 .DS_Store
 *.pem
 
-# ══ Expo (ja vienā repo) ══
-.expo/
-dist/
-web-build/
-/ios
-/android
-.kotlin/
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+# PIEZĪME: "public/" ŠOREIZ NAV jāignorē! Tur atrodas mūsu
+# index.html / design.css / app.js pirmkods, nevis auto-ģenerēti faili.

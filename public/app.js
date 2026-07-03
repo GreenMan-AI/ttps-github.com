@@ -1,0 +1,431 @@
+// ══════════════════════════════════════════════════
+//  SoundPulse — vienkāršā versija — klienta JS
+// ══════════════════════════════════════════════════
+const API = ''; // tukšs, jo lapa un API ir vienā domēnā
+let adminToken = localStorage.getItem('sp_admin_token') || null;
+let currentLang = localStorage.getItem('sp_lang') || 'lv';
+let currentCategory = 'all';
+
+function authHeaders() {
+  return adminToken ? { 'Authorization': 'Bearer ' + adminToken } : {};
+}
+
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+// ══════════════════════════════════════════════════
+//  I18N — statiskie lapas teksti (LV/EN)
+// ══════════════════════════════════════════════════
+const I18N = {
+  lv: {
+    nav_about: 'Par mani', nav_gallery: 'Bildes', nav_music: 'Mūzika', nav_chat: 'Čats',
+    admin_bar: '🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot bildes un mūziku',
+    logout: 'Iziet', edit_text: '✏️ Rediģēt tekstu', about_title: 'Par mani',
+    gallery_title: 'Bildes', add_image: '➕ Pievienot bildi',
+    music_title: 'Mūzika', add_track: '➕ Pievienot dziesmu',
+    drag_hint: 'Padoms: adminā vari dziesmas pārkārtot, velkot aiz ⠿ ikonas.',
+    chat_title: 'Čats', chat_send: 'Sūtīt', chat_name_ph: 'Tavs vārds', chat_text_ph: 'Raksti ziņu...',
+    clear_chat: '🗑️ Notīrīt čatu',
+    login_title: 'Admin ielogošanās', login_user: 'Lietotājvārds', login_pass: 'Parole',
+    cancel: 'Atcelt', login_btn: 'Ielogoties',
+    edit_content_title: 'Rediģēt lapas tekstu', site_title_label: 'Lapas nosaukums',
+    contact_email_label: 'Kontakta e-pasts', social_link_label: 'Sociālo tīklu saite',
+    close: 'Aizvērt', save: 'Saglabāt',
+    add_image_title: 'Pievienot bildi', image_label: 'Bilde', category_label: 'Kategorija',
+    caption_label: 'Paraksts (nav obligāts)', upload: 'Augšupielādēt',
+    add_track_title: 'Pievienot dziesmu', title_label: 'Nosaukums', artist_label: 'Izpildītājs (nav obligāts)',
+    audio_file_label: 'Audio fails (MP3, WAV, OGG...)', cover_label: 'Vāciņa bilde (nav obligāta)',
+    gallery_empty: 'Vēl nav pievienotu bilžu.', music_empty: 'Vēl nav pievienotu dziesmu.',
+    filter_all: 'Visas',
+  },
+  en: {
+    nav_about: 'About', nav_gallery: 'Gallery', nav_music: 'Music', nav_chat: 'Chat',
+    admin_bar: '🔧 Admin mode on — you can edit content, add photos and music',
+    logout: 'Log out', edit_text: '✏️ Edit text', about_title: 'About me',
+    gallery_title: 'Gallery', add_image: '➕ Add photo',
+    music_title: 'Music', add_track: '➕ Add track',
+    drag_hint: 'Tip: as admin you can reorder tracks by dragging the ⠿ handle.',
+    chat_title: 'Chat', chat_send: 'Send', chat_name_ph: 'Your name', chat_text_ph: 'Type a message...',
+    clear_chat: '🗑️ Clear chat',
+    login_title: 'Admin login', login_user: 'Username', login_pass: 'Password',
+    cancel: 'Cancel', login_btn: 'Log in',
+    edit_content_title: 'Edit page text', site_title_label: 'Site name',
+    contact_email_label: 'Contact email', social_link_label: 'Social media link',
+    close: 'Close', save: 'Save',
+    add_image_title: 'Add photo', image_label: 'Image', category_label: 'Category',
+    caption_label: 'Caption (optional)', upload: 'Upload',
+    add_track_title: 'Add track', title_label: 'Title', artist_label: 'Artist (optional)',
+    audio_file_label: 'Audio file (MP3, WAV, OGG...)', cover_label: 'Cover image (optional)',
+    gallery_empty: 'No photos yet.', music_empty: 'No tracks yet.',
+    filter_all: 'All',
+  },
+};
+
+function t(key) { return (I18N[currentLang] && I18N[currentLang][key]) || I18N.lv[key] || key; }
+
+function applyStaticI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.getElementById('lang-toggle').textContent = currentLang === 'lv' ? 'EN' : 'LV';
+  document.documentElement.lang = currentLang;
+}
+
+function toggleLang() {
+  currentLang = currentLang === 'lv' ? 'en' : 'lv';
+  localStorage.setItem('sp_lang', currentLang);
+  applyStaticI18n();
+  applyContentForLang();
+  renderCatTabs();
+  renderGallery();
+}
+
+// ── ADMIN UI toggle ──
+function setAdminUI(isAdmin) {
+  document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
+  document.getElementById('admin-bar').classList.toggle('show', isAdmin);
+  document.getElementById('admin-fab').style.display = isAdmin ? 'none' : 'flex';
+}
+
+async function checkAdmin() {
+  if (!adminToken) { setAdminUI(false); return; }
+  try {
+    const r = await fetch(API + '/api/admin/check', { headers: authHeaders() });
+    if (r.ok) setAdminUI(true);
+    else { adminToken = null; localStorage.removeItem('sp_admin_token'); setAdminUI(false); }
+  } catch (e) { setAdminUI(false); }
+}
+
+function openLoginModal() { document.getElementById('login-err').textContent = ''; showModal('login-modal'); }
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-err');
+  errEl.textContent = '';
+  try {
+    const r = await fetch(API + '/api/admin/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await r.json();
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; return; }
+    adminToken = data.token;
+    localStorage.setItem('sp_admin_token', adminToken);
+    closeModal('login-modal');
+    setAdminUI(true);
+    await loadGallery();
+    await loadTracks();
+  } catch (e) { errEl.textContent = 'Servera kļūda'; }
+});
+
+async function adminLogout() {
+  try { await fetch(API + '/api/admin/logout', { method: 'POST', headers: authHeaders() }); } catch (e) {}
+  adminToken = null;
+  localStorage.removeItem('sp_admin_token');
+  setAdminUI(false);
+}
+
+// ══════════════════════════════════════════════════
+//  SATURS (teksti mājas lapā)
+// ══════════════════════════════════════════════════
+async function loadContent() {
+  const r = await fetch(API + '/api/content');
+  window._content = await r.json();
+  document.getElementById('page-title').textContent = window._content.siteTitle;
+  document.getElementById('logo-text').textContent = window._content.siteTitle;
+  applyContentForLang();
+}
+
+function applyContentForLang() {
+  const c = window._content || {};
+  const L = currentLang;
+  document.getElementById('hero-title').textContent = c['heroTitle_' + L] || c.heroTitle_lv || '';
+  document.getElementById('hero-subtitle').textContent = c['heroSubtitle_' + L] || c.heroSubtitle_lv || '';
+  document.getElementById('about-text').textContent = c['aboutText_' + L] || c.aboutText_lv || '';
+  const tagline = c['tagline_' + L] || c.tagline_lv || '';
+  document.getElementById('footer-text').textContent = '© ' + new Date().getFullYear() + ' ' + c.siteTitle + (tagline ? ' — ' + tagline : '');
+}
+
+function openContentModal() {
+  const c = window._content || {};
+  document.getElementById('f-siteTitle').value = c.siteTitle || '';
+  ['tagline', 'heroTitle', 'heroSubtitle', 'aboutText'].forEach(key => {
+    document.getElementById('f-' + key + '_lv').value = c[key + '_lv'] || '';
+    document.getElementById('f-' + key + '_en').value = c[key + '_en'] || '';
+  });
+  document.getElementById('f-contactEmail').value = c.contactEmail || '';
+  document.getElementById('f-socialLink').value = c.socialLink || '';
+  document.getElementById('content-err').textContent = '';
+  document.getElementById('content-ok').textContent = '';
+  showModal('content-modal');
+}
+
+document.getElementById('content-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById('content-err');
+  const okEl = document.getElementById('content-ok');
+  errEl.textContent = ''; okEl.textContent = '';
+  const body = {
+    siteTitle: document.getElementById('f-siteTitle').value,
+    contactEmail: document.getElementById('f-contactEmail').value,
+    socialLink: document.getElementById('f-socialLink').value,
+  };
+  ['tagline', 'heroTitle', 'heroSubtitle', 'aboutText'].forEach(key => {
+    body[key + '_lv'] = document.getElementById('f-' + key + '_lv').value;
+    body[key + '_en'] = document.getElementById('f-' + key + '_en').value;
+  });
+  try {
+    const r = await fetch(API + '/api/content', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; return; }
+    okEl.textContent = currentLang === 'lv' ? 'Saglabāts!' : 'Saved!';
+    await loadContent();
+  } catch (e) { errEl.textContent = 'Servera kļūda'; }
+});
+
+// ══════════════════════════════════════════════════
+//  GALERIJA (bildes + kategorijas)
+// ══════════════════════════════════════════════════
+let galleryItems = [];
+
+async function loadGallery() {
+  const r = await fetch(API + '/api/gallery');
+  const data = await r.json();
+  galleryItems = data.items || [];
+  renderCatTabs();
+  renderGallery();
+}
+
+function renderCatTabs() {
+  const tabsEl = document.getElementById('cat-tabs');
+  const cats = [...new Set(galleryItems.map(it => it.category || 'Citas'))];
+  if (!cats.length) { tabsEl.innerHTML = ''; return; }
+  const allLabel = t('filter_all');
+  let html = `<button class="cat-tab ${currentCategory === 'all' ? 'active' : ''}" onclick="setCategory('all')">${escapeHtml(allLabel)}</button>`;
+  html += cats.map(c => `<button class="cat-tab ${currentCategory === c ? 'active' : ''}" onclick="setCategory('${escapeAttr(c)}')">${escapeHtml(c)}</button>`).join('');
+  tabsEl.innerHTML = html;
+  // atjauno kategoriju sarakstu augšupielādes formā
+  document.getElementById('cat-list').innerHTML = cats.map(c => `<option value="${escapeAttr(c)}">`).join('');
+}
+
+function setCategory(cat) { currentCategory = cat; renderCatTabs(); renderGallery(); }
+
+function renderGallery() {
+  const grid = document.getElementById('gallery-grid');
+  const items = currentCategory === 'all' ? galleryItems : galleryItems.filter(it => (it.category || 'Citas') === currentCategory);
+  if (!items.length) { grid.innerHTML = `<p class="empty-msg">${escapeHtml(t('gallery_empty'))}</p>`; return; }
+  grid.innerHTML = items.map(it => `
+    <div class="gallery-item">
+      <img src="${it.url}" alt="${escapeAttr(it.caption)}" loading="lazy">
+      ${it.caption ? `<div class="cap">${escapeHtml(it.caption)}</div>` : ''}
+      <button class="btn sm danger del admin-only" style="display:none" onclick="deleteGalleryItem('${it._id}')">✕</button>
+    </div>
+  `).join('');
+  if (adminToken) document.querySelectorAll('#gallery-grid .admin-only').forEach(el => el.style.display = '');
+}
+
+function openGalleryModal() {
+  document.getElementById('gallery-form').reset();
+  document.getElementById('gallery-err').textContent = '';
+  showModal('gallery-modal');
+}
+
+document.getElementById('gallery-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById('gallery-err');
+  errEl.textContent = '';
+  const file = document.getElementById('g-file').files[0];
+  if (!file) { errEl.textContent = 'Izvēlies bildi'; return; }
+  const fd = new FormData();
+  fd.append('image', file);
+  fd.append('caption', document.getElementById('g-caption').value);
+  fd.append('category', document.getElementById('g-category').value);
+  try {
+    const r = await fetch(API + '/api/gallery', { method: 'POST', headers: authHeaders(), body: fd });
+    const data = await r.json();
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; return; }
+    closeModal('gallery-modal');
+    await loadGallery();
+  } catch (e) { errEl.textContent = 'Servera kļūda'; }
+});
+
+async function deleteGalleryItem(id) {
+  if (!confirm('Dzēst šo bildi?')) return;
+  await fetch(API + '/api/gallery/' + id, { method: 'DELETE', headers: authHeaders() });
+  await loadGallery();
+}
+
+// ══════════════════════════════════════════════════
+//  MŪZIKA (+ drag & drop secības maiņa)
+// ══════════════════════════════════════════════════
+let draggedId = null;
+
+async function loadTracks() {
+  const r = await fetch(API + '/api/tracks');
+  const { tracks } = await r.json();
+  window._tracks = tracks;
+  renderTracks();
+}
+
+function renderTracks() {
+  const tracks = window._tracks || [];
+  const list = document.getElementById('track-list');
+  const isAdmin = !!adminToken;
+  document.getElementById('drag-hint').style.display = isAdmin ? '' : 'none';
+  if (!tracks.length) { list.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`; return; }
+  list.innerHTML = tracks.map(t2 => `
+    <div class="track" data-id="${t2._id}" draggable="${isAdmin}" onclick="playTrack('${t2._id}')">
+      ${isAdmin ? '<span class="drag-handle">⠿</span>' : ''}
+      <img class="cover" src="${t2.coverUrl || ''}" onerror="this.style.visibility='hidden'" alt="">
+      <div class="meta">
+        <div class="t">${escapeHtml(t2.title)}</div>
+        <div class="a">${escapeHtml(t2.artist || '')}</div>
+      </div>
+      <span class="play-ic">▶</span>
+      <button class="btn sm danger del admin-only" style="display:none" onclick="event.stopPropagation();deleteTrack('${t2._id}')">✕</button>
+    </div>
+  `).join('');
+  if (isAdmin) {
+    document.querySelectorAll('#track-list .admin-only').forEach(el => el.style.display = '');
+    attachDragHandlers();
+  }
+}
+
+function attachDragHandlers() {
+  const items = document.querySelectorAll('#track-list .track');
+  items.forEach(el => {
+    el.addEventListener('dragstart', () => { draggedId = el.dataset.id; el.classList.add('dragging'); });
+    el.addEventListener('dragend', () => { el.classList.remove('dragging'); document.querySelectorAll('.track').forEach(x => x.classList.remove('drag-over')); });
+    el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('drag-over'); });
+    el.addEventListener('dragleave', () => { el.classList.remove('drag-over'); });
+    el.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      el.classList.remove('drag-over');
+      const targetId = el.dataset.id;
+      if (!draggedId || draggedId === targetId) return;
+      const tracks = window._tracks;
+      const fromIdx = tracks.findIndex(x => x._id === draggedId);
+      const toIdx = tracks.findIndex(x => x._id === targetId);
+      if (fromIdx < 0 || toIdx < 0) return;
+      const [moved] = tracks.splice(fromIdx, 1);
+      tracks.splice(toIdx, 0, moved);
+      renderTracks();
+      try {
+        await fetch(API + '/api/tracks/reorder', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ order: tracks.map(x => x._id) }),
+        });
+      } catch (e2) {}
+    });
+  });
+}
+
+function playTrack(id) {
+  const track = (window._tracks || []).find(t2 => t2._id === id);
+  if (!track) return;
+  document.querySelectorAll('.track').forEach(el => el.classList.toggle('playing', el.dataset.id === id));
+  const bar = document.getElementById('player-bar');
+  bar.classList.add('show');
+  document.getElementById('pb-title').textContent = track.title;
+  document.getElementById('pb-artist').textContent = track.artist || '';
+  document.getElementById('pb-cover').src = track.coverUrl || '';
+  const audio = document.getElementById('pb-audio');
+  audio.src = track.cloudUrl;
+  audio.play().catch(() => {});
+}
+
+function openTrackModal() {
+  document.getElementById('track-form').reset();
+  document.getElementById('track-err').textContent = '';
+  showModal('track-modal');
+}
+
+document.getElementById('track-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById('track-err');
+  errEl.textContent = '';
+  const audioFile = document.getElementById('t-audio').files[0];
+  if (!audioFile) { errEl.textContent = 'Izvēlies audio failu'; return; }
+  const fd = new FormData();
+  fd.append('title', document.getElementById('t-title').value);
+  fd.append('artist', document.getElementById('t-artist').value);
+  fd.append('audio', audioFile);
+  const coverFile = document.getElementById('t-cover').files[0];
+  if (coverFile) fd.append('cover', coverFile);
+  try {
+    const r = await fetch(API + '/api/tracks', { method: 'POST', headers: authHeaders(), body: fd });
+    const data = await r.json();
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; return; }
+    closeModal('track-modal');
+    await loadTracks();
+  } catch (e) { errEl.textContent = 'Servera kļūda'; }
+});
+
+async function deleteTrack(id) {
+  if (!confirm('Dzēst šo dziesmu?')) return;
+  await fetch(API + '/api/tracks/' + id, { method: 'DELETE', headers: authHeaders() });
+  await loadTracks();
+}
+
+// ══════════════════════════════════════════════════
+//  ČATS
+// ══════════════════════════════════════════════════
+const socket = io();
+const chatMsgsEl = document.getElementById('chat-msgs');
+
+function renderChatMsg(m) {
+  const div = document.createElement('div');
+  div.className = 'chat-line';
+  div.innerHTML = `<b>${escapeHtml(m.name)}:</b> ${escapeHtml(m.text)}`;
+  chatMsgsEl.appendChild(div);
+  chatMsgsEl.scrollTop = chatMsgsEl.scrollHeight;
+}
+
+socket.on('chat-history', (history) => {
+  chatMsgsEl.innerHTML = '';
+  history.forEach(renderChatMsg);
+});
+socket.on('chat-msg', renderChatMsg);
+socket.on('chat-cleared', () => { chatMsgsEl.innerHTML = ''; });
+
+document.getElementById('chat-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const nameEl = document.getElementById('chat-name');
+  const textEl = document.getElementById('chat-text');
+  const name = nameEl.value.trim();
+  const text = textEl.value.trim();
+  if (!name || !text) return;
+  localStorage.setItem('sp_chat_name', name);
+  socket.emit('chat-msg', { name, text });
+  textEl.value = '';
+});
+
+async function clearChat() {
+  if (!confirm('Notīrīt visu čata vēsturi visiem apmeklētājiem?')) return;
+  socket.emit('chat-clear', adminToken);
+}
+
+// ── palīgfunkcijas ──
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+function escapeAttr(str) { return escapeHtml(str).replace(/"/g, '&quot;'); }
+
+// ══════════════════════════════════════════════════
+//  START
+// ══════════════════════════════════════════════════
+(async function init() {
+  const savedName = localStorage.getItem('sp_chat_name');
+  if (savedName) document.getElementById('chat-name').value = savedName;
+  applyStaticI18n();
+  await checkAdmin();
+  await loadContent();
+  await loadGallery();
+  await loadTracks();
+})();
