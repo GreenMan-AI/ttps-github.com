@@ -198,7 +198,7 @@ async function seedContent() {
 //  ADMIN AUTH — viens vienīgs admin konts (no .env)
 // ══════════════════════════════════════════════════
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'Draconball1';
 
 // tokens glabājas atmiņā — pietiek, jo admin ir tikai viens
 const sessions = new Map(); // token -> expiresAt
