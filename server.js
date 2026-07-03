@@ -198,7 +198,7 @@ async function seedContent() {
 //  ADMIN AUTH — viens vienīgs admin konts (no .env)
 // ══════════════════════════════════════════════════
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'Draconball1';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
 
 // tokens glabājas atmiņā — pietiek, jo admin ir tikai viens
 const sessions = new Map(); // token -> expiresAt
@@ -220,6 +220,19 @@ setInterval(() => { const now = Date.now(); for (const [t, exp] of sessions) if 
 
 function sanitize(str) {
   return String(str || '').replace(/<[^>]*>/g, '').trim().slice(0, 2000);
+}
+
+// Multer/busboy multipart teksta laukus pēc noklusējuma atkodē kā "latin1",
+// kas latviešu burtus (ā,č,ē,ģ,ī,ķ,ļ,ņ,š,ū,ž) un emocijzīmes sabojā ("mojibake").
+// Šī funkcija UTF-8 baitus, kas kļūdaini nolasīti kā Latin-1, pārkodē pareizi.
+function fixMojibake(str) {
+  if (typeof str !== 'string' || !str) return str;
+  try {
+    const fixed = Buffer.from(str, 'latin1').toString('utf8');
+    // ja pārkodējot rodas "replacement char" (U+FFFD), oriģināls droši vien
+    // jau bija pareizs UTF-8 — tad paturam sākotnējo vērtību
+    return fixed.includes('\uFFFD') ? str : fixed;
+  } catch (e) { return str; }
 }
 
 app.post('/api/admin/login', authLimiter, (req, res) => {
@@ -283,8 +296,8 @@ app.post('/api/gallery', requireAdmin, uploadLimiter, (req, res) => {
       const item = await GalleryImage.create({
         url: req.file.path,
         publicId: req.file.filename,
-        caption: sanitize(req.body?.caption || ''),
-        category: sanitize(req.body?.category || '') || 'Citas',
+        caption: sanitize(fixMojibake(req.body?.caption || '')),
+        category: sanitize(fixMojibake(req.body?.category || '')) || 'Citas',
       });
       res.status(201).json({ item });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -320,8 +333,8 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       const { title, artist } = req.body || {};
       if (!title?.trim()) return res.status(400).json({ error: 'Nosaukums obligāts' });
       const track = await Track.create({
-        title: sanitize(title),
-        artist: sanitize(artist || ''),
+        title: sanitize(fixMojibake(title)),
+        artist: sanitize(fixMojibake(artist || '')),
         cloudUrl: audioFile.path,
         publicId: audioFile.filename,
         coverUrl: coverFile?.path || '',
