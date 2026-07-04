@@ -9,6 +9,10 @@
 </head>
 <body>
 
+<div id="site-bg"></div>
+<div id="site-bg-overlay"></div>
+
+
 <header>
   <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" id="logo-text">SoundPulse</div>
   <nav>
@@ -22,7 +26,10 @@
 
 <div id="admin-bar">
   <span data-i18n="admin_bar">🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot bildes un mūziku</span>
-  <button class="btn sm danger" onclick="adminLogout()" data-i18n="logout">Iziet</button>
+  <div style="display:flex;gap:8px">
+    <button class="btn sm" onclick="runFixEncoding()" title="Salabo esošos sabojātos LV burtus/emocijzīmes datubāzē">🛠 Salabot kodējumu</button>
+    <button class="btn sm danger" onclick="adminLogout()" data-i18n="logout">Iziet</button>
+  </div>
 </div>
 
 <section class="hero">
@@ -45,7 +52,10 @@
 
 <section id="music">
   <h2 data-i18n="music_title">Mūzika</h2>
-  <button class="btn sm admin-only" style="display:none;margin-bottom:14px" onclick="openTrackModal()" data-i18n="add_track">➕ Pievienot dziesmu</button>
+  <div class="btn-row admin-only" style="display:none;margin-bottom:14px">
+    <button class="btn sm" onclick="openTrackModal()" data-i18n="add_track">➕ Pievienot dziesmu</button>
+    <button class="btn sm" onclick="openBulkModal()" data-i18n="add_bulk">📦 Pievienot vairākas uzreiz</button>
+  </div>
   <p class="hint admin-only" id="drag-hint" style="display:none" data-i18n="drag_hint">Padoms: adminā vari dziesmas pārkārtot, velkot aiz ⠿ ikonas.</p>
   <div class="track-list" id="track-list"></div>
 </section>
@@ -66,12 +76,36 @@
 <footer id="footer-text">SoundPulse</footer>
 
 <div id="player-bar">
-  <img id="pb-cover" class="cover" src="" alt="">
-  <div class="info">
-    <div class="t" id="pb-title">—</div>
-    <div class="a" id="pb-artist"></div>
+  <div class="pb-track-info">
+    <img id="pb-cover" class="cover" src="" alt="">
+    <div class="info">
+      <div class="t" id="pb-title">—</div>
+      <div class="a" id="pb-artist"></div>
+    </div>
   </div>
-  <audio id="pb-audio" controls></audio>
+
+  <div class="pb-center">
+    <div class="pb-controls">
+      <button class="pb-btn" id="pb-prev" title="Iepriekšējā">⏮</button>
+      <button class="pb-btn pb-play" id="pb-playpause" title="Atskaņot/Pauze">▶</button>
+      <button class="pb-btn" id="pb-next" title="Nākamā">⏭</button>
+    </div>
+    <div class="pb-seek-row">
+      <span class="pb-time" id="pb-current">0:00</span>
+      <div class="pb-progress" id="pb-progress">
+        <div class="pb-progress-fill" id="pb-progress-fill"></div>
+        <div class="pb-progress-handle" id="pb-progress-handle"></div>
+      </div>
+      <span class="pb-time" id="pb-duration">0:00</span>
+    </div>
+  </div>
+
+  <div class="pb-volume">
+    <span id="pb-vol-icon">🔊</span>
+    <input type="range" id="pb-volume-slider" min="0" max="1" step="0.01" value="1">
+  </div>
+
+  <audio id="pb-audio"></audio>
 </div>
 
 <!-- Admin login FAB -->
@@ -105,6 +139,17 @@
     <h3 data-i18n="edit_content_title">Rediģēt lapas tekstu</h3>
     <form id="content-form">
       <div class="field"><label data-i18n="site_title_label">Lapas nosaukums</label><input id="f-siteTitle"></div>
+
+      <div class="lang-row">
+        <div class="field"><label>Virsraksta krāsa (hero)</label><input type="color" id="f-heroTitleColor" value="#eef2f7"></div>
+        <div class="field"><label>Apakšvirsraksta krāsa (hero)</label><input type="color" id="f-heroSubtitleColor" value="#9aa4b2"></div>
+      </div>
+      <div class="field">
+        <label data-i18n="bg_image_label">Fona bilde (parādās aiz visas lapas)</label>
+        <input type="file" id="f-bgImage" accept="image/*">
+        <div id="bg-current-preview" style="margin-top:8px"></div>
+        <button type="button" class="btn sm danger" id="bg-remove-btn" style="margin-top:6px;display:none" onclick="markRemoveBg()" data-i18n="bg_remove">🗑️ Noņemt fona bildi</button>
+      </div>
 
       <div class="lang-row">
         <div class="field"><label>Sauklis 🇱🇻 (LV)</label><input id="f-tagline_lv"></div>
@@ -169,6 +214,33 @@
     </form>
   </div>
 </div>
+
+<!-- Bulk track upload modal -->
+<div class="modal-overlay" id="bulk-modal">
+  <div class="modal">
+    <h3 data-i18n="add_bulk_title">Pievienot vairākas dziesmas uzreiz</h3>
+    <form id="bulk-form">
+      <div class="field">
+        <label data-i18n="audio_files_label">Audio faili (vari izvēlēties vairākus)</label>
+        <input type="file" id="b-files" accept="audio/*" multiple required>
+      </div>
+      <div class="field">
+        <label data-i18n="artist_label">Izpildītājs visām (nav obligāts)</label>
+        <input id="b-artist">
+      </div>
+      <p class="hint" data-i18n="bulk_hint">Nosaukumi tiks ņemti no failu nosaukumiem — pēc tam tos vari rediģēt atsevišķi.</p>
+      <div id="bulk-progress"></div>
+      <div class="msg-err" id="bulk-err"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal('bulk-modal')" data-i18n="close">Aizvērt</button>
+        <button type="submit" class="btn primary" id="bulk-submit-btn" data-i18n="upload">Augšupielādēt</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast paziņojumi -->
+<div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/app.js"></script>

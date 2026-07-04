@@ -14,6 +14,21 @@ function showModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
 // ══════════════════════════════════════════════════
+//  TOAST paziņojumi
+// ══════════════════════════════════════════════════
+function toast(msg, type = 'ok') {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('fade');
+    setTimeout(() => el.remove(), 300);
+  }, 3500);
+}
+
+// ══════════════════════════════════════════════════
 //  I18N — statiskie lapas teksti (LV/EN)
 // ══════════════════════════════════════════════════
 const I18N = {
@@ -37,6 +52,10 @@ const I18N = {
     audio_file_label: 'Audio fails (MP3, WAV, OGG...)', cover_label: 'Vāciņa bilde (nav obligāta)',
     gallery_empty: 'Vēl nav pievienotu bilžu.', music_empty: 'Vēl nav pievienotu dziesmu.',
     filter_all: 'Visas',
+    add_bulk: '📦 Pievienot vairākas uzreiz', add_bulk_title: 'Pievienot vairākas dziesmas uzreiz',
+    audio_files_label: 'Audio faili (vari izvēlēties vairākus)',
+    bulk_hint: 'Nosaukumi tiks ņemti no failu nosaukumiem — pēc tam tos vari rediģēt atsevišķi.',
+    bg_image_label: 'Fona bilde (parādās aiz visas lapas)', bg_remove: '🗑️ Noņemt fona bildi',
   },
   en: {
     nav_about: 'About', nav_gallery: 'Gallery', nav_music: 'Music', nav_chat: 'Chat',
@@ -58,6 +77,10 @@ const I18N = {
     audio_file_label: 'Audio file (MP3, WAV, OGG...)', cover_label: 'Cover image (optional)',
     gallery_empty: 'No photos yet.', music_empty: 'No tracks yet.',
     filter_all: 'All',
+    add_bulk: '📦 Add multiple at once', add_bulk_title: 'Add multiple tracks at once',
+    audio_files_label: 'Audio files (you can select several)',
+    bulk_hint: 'Titles are taken from file names — you can edit them individually afterwards.',
+    bg_image_label: 'Background image (shows behind the whole page)', bg_remove: '🗑️ Remove background image',
   },
 };
 
@@ -126,6 +149,20 @@ async function adminLogout() {
   setAdminUI(false);
 }
 
+async function runFixEncoding() {
+  if (!confirm(currentLang === 'lv'
+    ? 'Salabot sabojātos latviešu burtus/emocijzīmes esošajos ierakstos?'
+    : 'Fix corrupted Latvian letters/emoji in existing records?')) return;
+  try {
+    const r = await fetch(API + '/api/admin/fix-encoding', { method: 'POST', headers: authHeaders() });
+    const data = await r.json();
+    if (!r.ok) { toast(data.error || 'Kļūda', 'err'); return; }
+    toast((currentLang === 'lv' ? 'Salaboti ieraksti: ' : 'Records fixed: ') + data.fixedCount, 'ok');
+    await loadGallery();
+    await loadTracks();
+  } catch (e) { toast('Servera kļūda', 'err'); }
+}
+
 // ══════════════════════════════════════════════════
 //  SATURS (teksti mājas lapā)
 // ══════════════════════════════════════════════════
@@ -140,16 +177,47 @@ async function loadContent() {
 function applyContentForLang() {
   const c = window._content || {};
   const L = currentLang;
-  document.getElementById('hero-title').textContent = c['heroTitle_' + L] || c.heroTitle_lv || '';
-  document.getElementById('hero-subtitle').textContent = c['heroSubtitle_' + L] || c.heroSubtitle_lv || '';
+  const heroTitleEl = document.getElementById('hero-title');
+  const heroSubtitleEl = document.getElementById('hero-subtitle');
+  heroTitleEl.textContent = c['heroTitle_' + L] || c.heroTitle_lv || '';
+  heroSubtitleEl.textContent = c['heroSubtitle_' + L] || c.heroSubtitle_lv || '';
+  heroTitleEl.style.color = c.heroTitleColor || '';
+  heroTitleEl.style.background = c.heroTitleColor ? 'none' : '';
+  heroTitleEl.style.webkitTextFillColor = c.heroTitleColor || '';
+  heroSubtitleEl.style.color = c.heroSubtitleColor || '';
   document.getElementById('about-text').textContent = c['aboutText_' + L] || c.aboutText_lv || '';
   const tagline = c['tagline_' + L] || c.tagline_lv || '';
   document.getElementById('footer-text').textContent = '© ' + new Date().getFullYear() + ' ' + c.siteTitle + (tagline ? ' — ' + tagline : '');
+
+  const bgEl = document.getElementById('site-bg');
+  const overlayEl = document.getElementById('site-bg-overlay');
+  if (c.bgImageUrl) {
+    bgEl.style.backgroundImage = `url('${c.bgImageUrl}')`;
+    overlayEl.classList.add('show');
+  } else {
+    bgEl.style.backgroundImage = '';
+    overlayEl.classList.remove('show');
+  }
 }
+
+let bgRemoveFlag = false;
 
 function openContentModal() {
   const c = window._content || {};
+  bgRemoveFlag = false;
   document.getElementById('f-siteTitle').value = c.siteTitle || '';
+  document.getElementById('f-heroTitleColor').value = c.heroTitleColor || '#eef2f7';
+  document.getElementById('f-heroSubtitleColor').value = c.heroSubtitleColor || '#9aa4b2';
+  document.getElementById('f-bgImage').value = '';
+  const preview = document.getElementById('bg-current-preview');
+  const removeBtn = document.getElementById('bg-remove-btn');
+  if (c.bgImageUrl) {
+    preview.innerHTML = `<img src="${c.bgImageUrl}" alt="fona bilde">`;
+    removeBtn.style.display = '';
+  } else {
+    preview.innerHTML = '';
+    removeBtn.style.display = 'none';
+  }
   ['tagline', 'heroTitle', 'heroSubtitle', 'aboutText'].forEach(key => {
     document.getElementById('f-' + key + '_lv').value = c[key + '_lv'] || '';
     document.getElementById('f-' + key + '_en').value = c[key + '_en'] || '';
@@ -161,30 +229,41 @@ function openContentModal() {
   showModal('content-modal');
 }
 
+function markRemoveBg() {
+  bgRemoveFlag = true;
+  document.getElementById('bg-current-preview').innerHTML = '';
+  document.getElementById('bg-remove-btn').style.display = 'none';
+}
+
 document.getElementById('content-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const errEl = document.getElementById('content-err');
   const okEl = document.getElementById('content-ok');
   errEl.textContent = ''; okEl.textContent = '';
-  const body = {
-    siteTitle: document.getElementById('f-siteTitle').value,
-    contactEmail: document.getElementById('f-contactEmail').value,
-    socialLink: document.getElementById('f-socialLink').value,
-  };
+  const fd = new FormData();
+  fd.append('siteTitle', document.getElementById('f-siteTitle').value);
+  fd.append('heroTitleColor', document.getElementById('f-heroTitleColor').value);
+  fd.append('heroSubtitleColor', document.getElementById('f-heroSubtitleColor').value);
+  fd.append('contactEmail', document.getElementById('f-contactEmail').value);
+  fd.append('socialLink', document.getElementById('f-socialLink').value);
   ['tagline', 'heroTitle', 'heroSubtitle', 'aboutText'].forEach(key => {
-    body[key + '_lv'] = document.getElementById('f-' + key + '_lv').value;
-    body[key + '_en'] = document.getElementById('f-' + key + '_en').value;
+    fd.append(key + '_lv', document.getElementById('f-' + key + '_lv').value);
+    fd.append(key + '_en', document.getElementById('f-' + key + '_en').value);
   });
+  const bgFile = document.getElementById('f-bgImage').files[0];
+  if (bgFile) fd.append('bgImage', bgFile);
+  if (bgRemoveFlag) fd.append('removeBg', '1');
   try {
     const r = await fetch(API + '/api/content', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(body),
+      method: 'PUT', headers: authHeaders(),
+      body: fd,
     });
     const data = await r.json();
-    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; return; }
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
     okEl.textContent = currentLang === 'lv' ? 'Saglabāts!' : 'Saved!';
+    toast(currentLang === 'lv' ? '✅ Teksts saglabāts!' : '✅ Text saved!', 'ok');
     await loadContent();
-  } catch (e) { errEl.textContent = 'Servera kļūda'; }
+  } catch (e) { errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
 });
 
 // ══════════════════════════════════════════════════
@@ -247,15 +326,17 @@ document.getElementById('gallery-form').addEventListener('submit', async (e) => 
   try {
     const r = await fetch(API + '/api/gallery', { method: 'POST', headers: authHeaders(), body: fd });
     const data = await r.json();
-    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; return; }
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
     closeModal('gallery-modal');
+    toast(currentLang === 'lv' ? '✅ Bilde pievienota!' : '✅ Photo added!', 'ok');
     await loadGallery();
-  } catch (e) { errEl.textContent = 'Servera kļūda'; }
+  } catch (e) { errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
 });
 
 async function deleteGalleryItem(id) {
   if (!confirm('Dzēst šo bildi?')) return;
   await fetch(API + '/api/gallery/' + id, { method: 'DELETE', headers: authHeaders() });
+  toast(currentLang === 'lv' ? '🗑️ Bilde dzēsta' : '🗑️ Photo deleted', 'ok');
   await loadGallery();
 }
 
@@ -263,6 +344,7 @@ async function deleteGalleryItem(id) {
 //  MŪZIKA (+ drag & drop secības maiņa)
 // ══════════════════════════════════════════════════
 let draggedId = null;
+let currentTrackId = null;
 
 async function loadTracks() {
   const r = await fetch(API + '/api/tracks');
@@ -278,14 +360,14 @@ function renderTracks() {
   document.getElementById('drag-hint').style.display = isAdmin ? '' : 'none';
   if (!tracks.length) { list.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`; return; }
   list.innerHTML = tracks.map(t2 => `
-    <div class="track" data-id="${t2._id}" draggable="${isAdmin}" onclick="playTrack('${t2._id}')">
+    <div class="track ${t2._id === currentTrackId ? 'playing' : ''}" data-id="${t2._id}" draggable="${isAdmin}" onclick="playTrack('${t2._id}')">
       ${isAdmin ? '<span class="drag-handle">⠿</span>' : ''}
       <img class="cover" src="${t2.coverUrl || ''}" onerror="this.style.visibility='hidden'" alt="">
       <div class="meta">
         <div class="t">${escapeHtml(t2.title)}</div>
         <div class="a">${escapeHtml(t2.artist || '')}</div>
       </div>
-      <span class="play-ic">▶</span>
+      <span class="play-ic">${t2._id === currentTrackId ? '⏸' : '▶'}</span>
       <button class="btn sm danger del admin-only" style="display:none" onclick="event.stopPropagation();deleteTrack('${t2._id}')">✕</button>
     </div>
   `).join('');
@@ -325,9 +407,16 @@ function attachDragHandlers() {
 }
 
 function playTrack(id) {
-  const track = (window._tracks || []).find(t2 => t2._id === id);
+  const tracks = window._tracks || [];
+  const track = tracks.find(t2 => t2._id === id);
   if (!track) return;
-  document.querySelectorAll('.track').forEach(el => el.classList.toggle('playing', el.dataset.id === id));
+  currentTrackId = id;
+  document.querySelectorAll('.track').forEach(el => {
+    const isThis = el.dataset.id === id;
+    el.classList.toggle('playing', isThis);
+    const icon = el.querySelector('.play-ic');
+    if (icon) icon.textContent = isThis ? '⏸' : '▶';
+  });
   const bar = document.getElementById('player-bar');
   bar.classList.add('show');
   document.getElementById('pb-title').textContent = track.title;
@@ -337,6 +426,86 @@ function playTrack(id) {
   audio.src = track.cloudUrl;
   audio.play().catch(() => {});
 }
+
+function playAdjacentTrack(dir) {
+  const tracks = window._tracks || [];
+  if (!tracks.length || !currentTrackId) return;
+  const idx = tracks.findIndex(t2 => t2._id === currentTrackId);
+  if (idx < 0) return;
+  const nextIdx = (idx + dir + tracks.length) % tracks.length;
+  playTrack(tracks[nextIdx]._id);
+}
+
+// ── Custom player vadība ──
+const pbAudio = document.getElementById('pb-audio');
+const pbPlayBtn = document.getElementById('pb-playpause');
+const pbProgress = document.getElementById('pb-progress');
+const pbProgressFill = document.getElementById('pb-progress-fill');
+const pbProgressHandle = document.getElementById('pb-progress-handle');
+const pbCurrentEl = document.getElementById('pb-current');
+const pbDurationEl = document.getElementById('pb-duration');
+const pbVolumeSlider = document.getElementById('pb-volume-slider');
+const pbVolIcon = document.getElementById('pb-vol-icon');
+
+function formatTime(sec) {
+  if (!isFinite(sec) || sec < 0) return '0:00';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+pbPlayBtn.addEventListener('click', () => {
+  if (pbAudio.paused) pbAudio.play().catch(() => {});
+  else pbAudio.pause();
+});
+document.getElementById('pb-prev').addEventListener('click', () => playAdjacentTrack(-1));
+document.getElementById('pb-next').addEventListener('click', () => playAdjacentTrack(1));
+
+pbAudio.addEventListener('play', () => {
+  pbPlayBtn.textContent = '⏸';
+  const el = document.querySelector(`.track[data-id="${currentTrackId}"] .play-ic`);
+  if (el) el.textContent = '⏸';
+});
+pbAudio.addEventListener('pause', () => {
+  pbPlayBtn.textContent = '▶';
+  const el = document.querySelector(`.track[data-id="${currentTrackId}"] .play-ic`);
+  if (el) el.textContent = '▶';
+});
+pbAudio.addEventListener('ended', () => playAdjacentTrack(1));
+
+pbAudio.addEventListener('loadedmetadata', () => {
+  pbDurationEl.textContent = formatTime(pbAudio.duration);
+});
+pbAudio.addEventListener('timeupdate', () => {
+  if (!pbAudio.duration) return;
+  const pct = (pbAudio.currentTime / pbAudio.duration) * 100;
+  pbProgressFill.style.width = pct + '%';
+  pbProgressHandle.style.left = pct + '%';
+  pbCurrentEl.textContent = formatTime(pbAudio.currentTime);
+});
+
+let isSeeking = false;
+function seekFromEvent(e) {
+  const rect = pbProgress.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const pct = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+  if (pbAudio.duration) {
+    pbAudio.currentTime = pct * pbAudio.duration;
+    pbProgressFill.style.width = (pct * 100) + '%';
+    pbProgressHandle.style.left = (pct * 100) + '%';
+  }
+}
+pbProgress.addEventListener('mousedown', (e) => { isSeeking = true; seekFromEvent(e); });
+window.addEventListener('mousemove', (e) => { if (isSeeking) seekFromEvent(e); });
+window.addEventListener('mouseup', () => { isSeeking = false; });
+pbProgress.addEventListener('touchstart', (e) => { isSeeking = true; seekFromEvent(e); });
+pbProgress.addEventListener('touchmove', (e) => { if (isSeeking) seekFromEvent(e); });
+pbProgress.addEventListener('touchend', () => { isSeeking = false; });
+
+pbVolumeSlider.addEventListener('input', () => {
+  pbAudio.volume = pbVolumeSlider.value;
+  pbVolIcon.textContent = pbAudio.volume == 0 ? '🔇' : pbAudio.volume < 0.5 ? '🔉' : '🔊';
+});
 
 function openTrackModal() {
   document.getElementById('track-form').reset();
@@ -359,17 +528,85 @@ document.getElementById('track-form').addEventListener('submit', async (e) => {
   try {
     const r = await fetch(API + '/api/tracks', { method: 'POST', headers: authHeaders(), body: fd });
     const data = await r.json();
-    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; return; }
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
     closeModal('track-modal');
+    toast(currentLang === 'lv' ? '✅ Dziesma pievienota!' : '✅ Track added!', 'ok');
     await loadTracks();
-  } catch (e) { errEl.textContent = 'Servera kļūda'; }
+  } catch (e) { errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
 });
 
 async function deleteTrack(id) {
   if (!confirm('Dzēst šo dziesmu?')) return;
   await fetch(API + '/api/tracks/' + id, { method: 'DELETE', headers: authHeaders() });
+  toast(currentLang === 'lv' ? '🗑️ Dziesma dzēsta' : '🗑️ Track deleted', 'ok');
   await loadTracks();
 }
+
+// ── Vairāku dziesmu augšupielāde uzreiz ──
+function openBulkModal() {
+  document.getElementById('bulk-form').reset();
+  document.getElementById('bulk-err').textContent = '';
+  document.getElementById('bulk-progress').innerHTML = '';
+  document.getElementById('bulk-submit-btn').disabled = false;
+  showModal('bulk-modal');
+}
+
+function filenameToTitle(name) {
+  return name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim();
+}
+
+document.getElementById('bulk-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById('bulk-err');
+  const progressEl = document.getElementById('bulk-progress');
+  const submitBtn = document.getElementById('bulk-submit-btn');
+  errEl.textContent = '';
+  progressEl.innerHTML = '';
+  const files = Array.from(document.getElementById('b-files').files);
+  if (!files.length) { errEl.textContent = 'Izvēlies vismaz vienu failu'; return; }
+  const artist = document.getElementById('b-artist').value;
+
+  submitBtn.disabled = true;
+  let okCount = 0, errCount = 0;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const title = filenameToTitle(file.name);
+    const line = document.createElement('div');
+    line.textContent = `⏳ (${i + 1}/${files.length}) ${title}...`;
+    progressEl.appendChild(line);
+    progressEl.scrollTop = progressEl.scrollHeight;
+
+    const fd = new FormData();
+    fd.append('title', title);
+    fd.append('artist', artist);
+    fd.append('audio', file);
+    try {
+      const r = await fetch(API + '/api/tracks', { method: 'POST', headers: authHeaders(), body: fd });
+      const data = await r.json();
+      if (r.ok) {
+        line.textContent = `✅ ${title}`;
+        line.className = 'line-ok';
+        okCount++;
+      } else {
+        line.textContent = `❌ ${title} — ${data.error || 'kļūda'}`;
+        line.className = 'line-err';
+        errCount++;
+      }
+    } catch (err) {
+      line.textContent = `❌ ${title} — servera kļūda`;
+      line.className = 'line-err';
+      errCount++;
+    }
+  }
+
+  submitBtn.disabled = false;
+  await loadTracks();
+  const summary = currentLang === 'lv'
+    ? `Pievienotas ${okCount} dziesmas` + (errCount ? `, ${errCount} neizdevās` : '')
+    : `Added ${okCount} tracks` + (errCount ? `, ${errCount} failed` : '');
+  toast((errCount ? '⚠️ ' : '✅ ') + summary, errCount ? 'err' : 'ok');
+});
 
 // ══════════════════════════════════════════════════
 //  ČATS

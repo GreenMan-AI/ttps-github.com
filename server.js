@@ -52,9 +52,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Static files
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d', setHeaders: (res, p) => {
-  if (p.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+// Static files — no-cache priekš CSS/JS/HTML, lai pēc katra deploy pārlūks
+// vienmēr paņem jaunāko versiju (nevis veco no kešatmiņas)
+app.use(express.static(path.join(__dirname, 'public'), { setHeaders: (res) => {
+  res.setHeader('Cache-Control', 'no-cache, must-revalidate');
 }}));
 
 // ══════════════════════════════════════════════════
@@ -125,12 +126,22 @@ const audioStorage = new CloudinaryStorage({
     public_id: 'track_' + Date.now() + '_' + crypto.randomBytes(6).toString('hex'),
   }),
 });
+const bgStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async () => ({
+    folder: 'SoundPulse/background',
+    resource_type: 'image',
+    public_id: 'bg_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
+    transformation: [{ width: 1920, height: 1920, crop: 'limit', quality: 'auto' }],
+  }),
+});
 
 const uploadGalleryImg = multer({ storage: galleryStorage, fileFilter: imageFilter, limits: { fileSize: 10 * 1024 * 1024 } });
 const uploadTrackFiles = multer({ storage: audioStorage, fileFilter: (req, file, cb) => {
   if (file.fieldname === 'cover') return imageFilter(req, file, cb);
   return audioFilter(req, file, cb);
 }, limits: { fileSize: 30 * 1024 * 1024 } });
+const uploadBgImg = multer({ storage: bgStorage, fileFilter: imageFilter, limits: { fileSize: 12 * 1024 * 1024 } });
 
 // ══════════════════════════════════════════════════
 //  MONGODB
@@ -186,6 +197,10 @@ const DEFAULT_CONTENT = {
   aboutText_en: 'A story about me and my music will go here.',
   contactEmail: '',
   socialLink: '',
+  bgImageUrl: '',
+  bgImagePublicId: '',
+  heroTitleColor: '',
+  heroSubtitleColor: '',
 };
 
 async function seedContent() {
@@ -222,6 +237,19 @@ function sanitize(str) {
   return String(str || '').replace(/<[^>]*>/g, '').trim().slice(0, 2000);
 }
 
+// Multer/busboy multipart teksta laukus pēc noklusējuma atkodē kā "latin1",
+// kas latviešu burtus (ā,č,ē,ģ,ī,ķ,ļ,ņ,š,ū,ž) un emocijzīmes sabojā ("mojibake").
+// Šī funkcija UTF-8 baitus, kas kļūdaini nolasīti kā Latin-1, pārkodē pareizi.
+function fixMojibake(str) {
+  if (typeof str !== 'string' || !str) return str;
+  try {
+    const fixed = Buffer.from(str, 'latin1').toString('utf8');
+    // ja pārkodējot rodas "replacement char" (U+FFFD), oriģināls droši vien
+    // jau bija pareizs UTF-8 — tad paturam sākotnējo vērtību
+    return fixed.includes('\uFFFD') ? str : fixed;
+  } catch (e) { return str; }
+}
+
 app.post('/api/admin/login', authLimiter, (req, res) => {
   const { username, password } = req.body || {};
   if (username === ADMIN_USER && password === ADMIN_PASS) {
@@ -240,6 +268,43 @@ app.post('/api/admin/logout', requireAdmin, (req, res) => {
 
 app.get('/api/admin/check', requireAdmin, (req, res) => res.json({ ok: true }));
 
+// Vienreizējs admin rīks — salabo jau esošos sabojātos LV burtus/emocijzīmes
+// datubāzē, izsaucot to tieši caur serveri (apiet lokālas DNS problēmas).
+app.post('/api/admin/fix-encoding', requireAdmin, async (req, res) => {
+  try {
+    let fixedCount = 0;
+    const changes = [];
+
+    const tracks = await Track.find({});
+    for (const tr of tracks) {
+      const newTitle = fixMojibake(tr.title);
+      const newArtist = fixMojibake(tr.artist);
+      if (newTitle !== tr.title || newArtist !== tr.artist) {
+        changes.push({ before: tr.title, after: newTitle });
+        tr.title = newTitle;
+        tr.artist = newArtist;
+        await tr.save();
+        fixedCount++;
+      }
+    }
+
+    const images = await GalleryImage.find({});
+    for (const img of images) {
+      const newCaption = fixMojibake(img.caption);
+      const newCategory = fixMojibake(img.category);
+      if (newCaption !== img.caption || newCategory !== img.category) {
+        changes.push({ before: img.caption, after: newCaption });
+        img.caption = newCaption;
+        img.category = newCategory;
+        await img.save();
+        fixedCount++;
+      }
+    }
+
+    res.json({ ok: true, fixedCount, changes });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ══════════════════════════════════════════════════
 //  SATURS (teksti mājas lapā)
 // ══════════════════════════════════════════════════
@@ -252,17 +317,38 @@ app.get('/api/content', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/content', requireAdmin, async (req, res) => {
-  try {
-    const body = req.body || {};
-    const allowedKeys = Object.keys(DEFAULT_CONTENT);
-    for (const key of allowedKeys) {
-      if (typeof body[key] === 'string') {
-        await Content.findOneAndUpdate({ key }, { value: sanitize(body[key]) }, { upsert: true });
+app.put('/api/content', requireAdmin, uploadLimiter, (req, res) => {
+  uploadBgImg.single('bgImage')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      const body = req.body || {};
+      // teksta lauki (fona bildes laukus ignorējam — tos pārvalda faila loģika zemāk)
+      const textKeys = Object.keys(DEFAULT_CONTENT).filter(k => k !== 'bgImageUrl' && k !== 'bgImagePublicId');
+      for (const key of textKeys) {
+        if (typeof body[key] === 'string') {
+          await Content.findOneAndUpdate({ key }, { value: sanitize(fixMojibake(body[key])) }, { upsert: true });
+        }
       }
-    }
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+
+      // fona bildes noņemšana
+      if (body.removeBg === '1') {
+        const old = await Content.findOne({ key: 'bgImagePublicId' });
+        if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
+        await Content.findOneAndUpdate({ key: 'bgImageUrl' }, { value: '' }, { upsert: true });
+        await Content.findOneAndUpdate({ key: 'bgImagePublicId' }, { value: '' }, { upsert: true });
+      }
+
+      // jauna fona bilde
+      if (req.file) {
+        const old = await Content.findOne({ key: 'bgImagePublicId' });
+        if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
+        await Content.findOneAndUpdate({ key: 'bgImageUrl' }, { value: req.file.path }, { upsert: true });
+        await Content.findOneAndUpdate({ key: 'bgImagePublicId' }, { value: req.file.filename }, { upsert: true });
+      }
+
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
 });
 
 // ══════════════════════════════════════════════════
@@ -283,8 +369,8 @@ app.post('/api/gallery', requireAdmin, uploadLimiter, (req, res) => {
       const item = await GalleryImage.create({
         url: req.file.path,
         publicId: req.file.filename,
-        caption: sanitize(req.body?.caption || ''),
-        category: sanitize(req.body?.category || '') || 'Citas',
+        caption: sanitize(fixMojibake(req.body?.caption || '')),
+        category: sanitize(fixMojibake(req.body?.category || '')) || 'Citas',
       });
       res.status(201).json({ item });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -320,8 +406,8 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       const { title, artist } = req.body || {};
       if (!title?.trim()) return res.status(400).json({ error: 'Nosaukums obligāts' });
       const track = await Track.create({
-        title: sanitize(title),
-        artist: sanitize(artist || ''),
+        title: sanitize(fixMojibake(title)),
+        artist: sanitize(fixMojibake(artist || '')),
         cloudUrl: audioFile.path,
         publicId: audioFile.filename,
         coverUrl: coverFile?.path || '',
