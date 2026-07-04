@@ -1,6 +1,20 @@
 // ══════════════════════════════════════════════════
 //  SoundPulse — vienkāršā versija — klienta JS
 // ══════════════════════════════════════════════════
+
+// Izslēdz jebkuru VECU Service Worker (no laika, kad lapai bija PWA/offline
+// atbalsts) — tas var rādīt seno, saglabāto lapas versiju, apejot servera
+// kešatmiņas iestatījumus pilnībā. Jaunajai vienkāršotajai versijai Service
+// Worker vairs nav vajadzīgs.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(reg => reg.unregister());
+  }).catch(() => {});
+  if (window.caches) {
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k))).catch(() => {});
+  }
+}
+
 const API = ''; // tukšs, jo lapa un API ir vienā domēnā
 let adminToken = localStorage.getItem('sp_admin_token') || null;
 let currentLang = localStorage.getItem('sp_lang') || 'lv';
