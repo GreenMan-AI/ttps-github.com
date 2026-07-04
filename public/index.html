@@ -154,9 +154,12 @@
       <div class="field">
         <label data-i18n="bg_image_label">Fona bilde (parādās aiz visas lapas)</label>
         <input type="file" id="f-bgImage" accept="image/*">
+        <button type="button" class="btn sm primary" id="bg-upload-btn" style="margin-top:8px" onclick="uploadBgImage()" data-i18n="bg_upload">⬆️ Augšupielādēt un uzstādīt fonu</button>
+        <div class="msg-err" id="bg-err"></div>
         <div id="bg-current-preview" style="margin-top:8px"></div>
-        <button type="button" class="btn sm danger" id="bg-remove-btn" style="margin-top:6px;display:none" onclick="markRemoveBg()" data-i18n="bg_remove">🗑️ Noņemt fona bildi</button>
+        <button type="button" class="btn sm danger" id="bg-remove-btn" style="margin-top:6px;display:none" onclick="removeBgImage()" data-i18n="bg_remove">🗑️ Noņemt fona bildi</button>
       </div>
+      <p class="hint" data-i18n="bg_hint">Fona bilde saglabājas uzreiz pēc augšupielādes (neatkarīgi no "Saglabāt" pogas apakšā).</p>
 
       <div class="lang-row">
         <div class="field"><label>Sauklis 🇱🇻 (LV)</label><input id="f-tagline_lv"></div>

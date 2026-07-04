@@ -56,6 +56,8 @@ const I18N = {
     audio_files_label: 'Audio faili (vari izvēlēties vairākus)',
     bulk_hint: 'Nosaukumi tiks ņemti no failu nosaukumiem — pēc tam tos vari rediģēt atsevišķi.',
     bg_image_label: 'Fona bilde (parādās aiz visas lapas)', bg_remove: '🗑️ Noņemt fona bildi',
+    bg_upload: '⬆️ Augšupielādēt un uzstādīt fonu',
+    bg_hint: 'Fona bilde saglabājas uzreiz pēc augšupielādes (neatkarīgi no "Saglabāt" pogas apakšā).',
     new_this_week: '🆕 Šīs nedēļas jaunumi', all_tracks: '🎵 Visas dziesmas',
   },
   en: {
@@ -82,6 +84,8 @@ const I18N = {
     audio_files_label: 'Audio files (you can select several)',
     bulk_hint: 'Titles are taken from file names — you can edit them individually afterwards.',
     bg_image_label: 'Background image (shows behind the whole page)', bg_remove: '🗑️ Remove background image',
+    bg_upload: '⬆️ Upload and set background',
+    bg_hint: 'The background image saves immediately on upload (independent of the "Save" button below).',
     new_this_week: '🆕 New this week', all_tracks: '🎵 All tracks',
   },
 };
@@ -210,24 +214,14 @@ function applyContentForLang() {
   if (overlayEl) overlayEl.style.display = 'none';
 }
 
-let bgRemoveFlag = false;
-
 function openContentModal() {
   const c = window._content || {};
-  bgRemoveFlag = false;
   document.getElementById('f-siteTitle').value = c.siteTitle || '';
   document.getElementById('f-heroTitleColor').value = c.heroTitleColor || '#eef2f7';
   document.getElementById('f-heroSubtitleColor').value = c.heroSubtitleColor || '#9aa4b2';
   document.getElementById('f-bgImage').value = '';
-  const preview = document.getElementById('bg-current-preview');
-  const removeBtn = document.getElementById('bg-remove-btn');
-  if (c.bgImageUrl) {
-    preview.innerHTML = `<img src="${c.bgImageUrl}" alt="fona bilde">`;
-    removeBtn.style.display = '';
-  } else {
-    preview.innerHTML = '';
-    removeBtn.style.display = 'none';
-  }
+  document.getElementById('bg-err').textContent = '';
+  refreshBgPreview(c);
   ['tagline', 'heroTitle', 'heroSubtitle', 'aboutText'].forEach(key => {
     document.getElementById('f-' + key + '_lv').value = c[key + '_lv'] || '';
     document.getElementById('f-' + key + '_en').value = c[key + '_en'] || '';
@@ -239,10 +233,49 @@ function openContentModal() {
   showModal('content-modal');
 }
 
-function markRemoveBg() {
-  bgRemoveFlag = true;
-  document.getElementById('bg-current-preview').innerHTML = '';
-  document.getElementById('bg-remove-btn').style.display = 'none';
+function refreshBgPreview(c) {
+  const preview = document.getElementById('bg-current-preview');
+  const removeBtn = document.getElementById('bg-remove-btn');
+  if (c.bgImageUrl) {
+    preview.innerHTML = `<img src="${c.bgImageUrl}" alt="fona bilde">`;
+    removeBtn.style.display = '';
+  } else {
+    preview.innerHTML = '';
+    removeBtn.style.display = 'none';
+  }
+}
+
+async function uploadBgImage() {
+  const errEl = document.getElementById('bg-err');
+  errEl.textContent = '';
+  const file = document.getElementById('f-bgImage').files[0];
+  if (!file) { errEl.textContent = currentLang === 'lv' ? 'Vispirms izvēlies failu' : 'Choose a file first'; return; }
+  const fd = new FormData();
+  fd.append('bgImage', file);
+  const btn = document.getElementById('bg-upload-btn');
+  btn.disabled = true;
+  try {
+    const r = await fetch(API + '/api/content/background', { method: 'POST', headers: authHeaders(), body: fd });
+    const data = await r.json();
+    btn.disabled = false;
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    toast(currentLang === 'lv' ? '✅ Fona bilde uzstādīta!' : '✅ Background image set!', 'ok');
+    document.getElementById('f-bgImage').value = '';
+    await loadContent();
+    refreshBgPreview(window._content || {});
+  } catch (e) { btn.disabled = false; errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
+}
+
+async function removeBgImage() {
+  if (!confirm(currentLang === 'lv' ? 'Noņemt fona bildi?' : 'Remove background image?')) return;
+  try {
+    const r = await fetch(API + '/api/content/background', { method: 'DELETE', headers: authHeaders() });
+    const data = await r.json();
+    if (!r.ok) { toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    toast(currentLang === 'lv' ? '🗑️ Fona bilde noņemta' : '🗑️ Background image removed', 'ok');
+    await loadContent();
+    refreshBgPreview(window._content || {});
+  } catch (e) { toast('❌ Servera kļūda', 'err'); }
 }
 
 document.getElementById('content-form').addEventListener('submit', async (e) => {
@@ -250,23 +283,21 @@ document.getElementById('content-form').addEventListener('submit', async (e) => 
   const errEl = document.getElementById('content-err');
   const okEl = document.getElementById('content-ok');
   errEl.textContent = ''; okEl.textContent = '';
-  const fd = new FormData();
-  fd.append('siteTitle', document.getElementById('f-siteTitle').value);
-  fd.append('heroTitleColor', document.getElementById('f-heroTitleColor').value);
-  fd.append('heroSubtitleColor', document.getElementById('f-heroSubtitleColor').value);
-  fd.append('contactEmail', document.getElementById('f-contactEmail').value);
-  fd.append('socialLink', document.getElementById('f-socialLink').value);
+  const body = {
+    siteTitle: document.getElementById('f-siteTitle').value,
+    heroTitleColor: document.getElementById('f-heroTitleColor').value,
+    heroSubtitleColor: document.getElementById('f-heroSubtitleColor').value,
+    contactEmail: document.getElementById('f-contactEmail').value,
+    socialLink: document.getElementById('f-socialLink').value,
+  };
   ['tagline', 'heroTitle', 'heroSubtitle', 'aboutText'].forEach(key => {
-    fd.append(key + '_lv', document.getElementById('f-' + key + '_lv').value);
-    fd.append(key + '_en', document.getElementById('f-' + key + '_en').value);
+    body[key + '_lv'] = document.getElementById('f-' + key + '_lv').value;
+    body[key + '_en'] = document.getElementById('f-' + key + '_en').value;
   });
-  const bgFile = document.getElementById('f-bgImage').files[0];
-  if (bgFile) fd.append('bgImage', bgFile);
-  if (bgRemoveFlag) fd.append('removeBg', '1');
   try {
     const r = await fetch(API + '/api/content', {
-      method: 'PUT', headers: authHeaders(),
-      body: fd,
+      method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(body),
     });
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }

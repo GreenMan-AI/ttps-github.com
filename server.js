@@ -317,38 +317,44 @@ app.get('/api/content', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/content', requireAdmin, uploadLimiter, (req, res) => {
-  uploadBgImg.single('bgImage')(req, res, async (err) => {
-    if (err) return res.status(400).json({ error: err.message });
+app.put('/api/content', requireAdmin, (req, res) => {
+  (async () => {
     try {
       const body = req.body || {};
-      // teksta lauki (fona bildes laukus ignorējam — tos pārvalda faila loģika zemāk)
       const textKeys = Object.keys(DEFAULT_CONTENT).filter(k => k !== 'bgImageUrl' && k !== 'bgImagePublicId');
       for (const key of textKeys) {
         if (typeof body[key] === 'string') {
           await Content.findOneAndUpdate({ key }, { value: sanitize(body[key]) }, { upsert: true });
         }
       }
-
-      // fona bildes noņemšana
-      if (body.removeBg === '1') {
-        const old = await Content.findOne({ key: 'bgImagePublicId' });
-        if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
-        await Content.findOneAndUpdate({ key: 'bgImageUrl' }, { value: '' }, { upsert: true });
-        await Content.findOneAndUpdate({ key: 'bgImagePublicId' }, { value: '' }, { upsert: true });
-      }
-
-      // jauna fona bilde
-      if (req.file) {
-        const old = await Content.findOne({ key: 'bgImagePublicId' });
-        if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
-        await Content.findOneAndUpdate({ key: 'bgImageUrl' }, { value: req.file.path }, { upsert: true });
-        await Content.findOneAndUpdate({ key: 'bgImagePublicId' }, { value: req.file.filename }, { upsert: true });
-      }
-
       res.json({ ok: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
+  })();
+});
+
+// Fona bilde — atsevišķa, tūlītēja darbība (ne daļa no lielā teksta saglabāšanas)
+app.post('/api/content/background', requireAdmin, uploadLimiter, (req, res) => {
+  uploadBgImg.single('bgImage')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
+      const old = await Content.findOne({ key: 'bgImagePublicId' });
+      if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
+      await Content.findOneAndUpdate({ key: 'bgImageUrl' }, { value: req.file.path }, { upsert: true });
+      await Content.findOneAndUpdate({ key: 'bgImagePublicId' }, { value: req.file.filename }, { upsert: true });
+      res.json({ ok: true, bgImageUrl: req.file.path });
+    } catch (e) { res.status(500).json({ error: e.message }); }
   });
+});
+
+app.delete('/api/content/background', requireAdmin, async (req, res) => {
+  try {
+    const old = await Content.findOne({ key: 'bgImagePublicId' });
+    if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
+    await Content.findOneAndUpdate({ key: 'bgImageUrl' }, { value: '' }, { upsert: true });
+    await Content.findOneAndUpdate({ key: 'bgImagePublicId' }, { value: '' }, { upsert: true });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ══════════════════════════════════════════════════
