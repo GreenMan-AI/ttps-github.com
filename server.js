@@ -326,7 +326,7 @@ app.put('/api/content', requireAdmin, uploadLimiter, (req, res) => {
       const textKeys = Object.keys(DEFAULT_CONTENT).filter(k => k !== 'bgImageUrl' && k !== 'bgImagePublicId');
       for (const key of textKeys) {
         if (typeof body[key] === 'string') {
-          await Content.findOneAndUpdate({ key }, { value: sanitize(fixMojibake(body[key])) }, { upsert: true });
+          await Content.findOneAndUpdate({ key }, { value: sanitize(body[key]) }, { upsert: true });
         }
       }
 
@@ -369,8 +369,8 @@ app.post('/api/gallery', requireAdmin, uploadLimiter, (req, res) => {
       const item = await GalleryImage.create({
         url: req.file.path,
         publicId: req.file.filename,
-        caption: sanitize(fixMojibake(req.body?.caption || '')),
-        category: sanitize(fixMojibake(req.body?.category || '')) || 'Citas',
+        caption: sanitize(req.body?.caption || ''),
+        category: sanitize(req.body?.category || '') || 'Citas',
       });
       res.status(201).json({ item });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -406,8 +406,8 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       const { title, artist } = req.body || {};
       if (!title?.trim()) return res.status(400).json({ error: 'Nosaukums obligāts' });
       const track = await Track.create({
-        title: sanitize(fixMojibake(title)),
-        artist: sanitize(fixMojibake(artist || '')),
+        title: sanitize(title),
+        artist: sanitize(artist || ''),
         cloudUrl: audioFile.path,
         publicId: audioFile.filename,
         coverUrl: coverFile?.path || '',
