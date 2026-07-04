@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="page-title">SoundPulse</title>
 <link rel="icon" href="/favicon.ico">
-<link rel="stylesheet" href="/design.css">
+<!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
+     tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
+<link rel="stylesheet" href="/design.css?v=6">
 </head>
 <body>
 
@@ -266,6 +268,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js"></script>
+<script src="/app.js?v=6"></script>
 </body>
 </html>
