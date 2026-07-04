@@ -52,9 +52,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Static files
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d', setHeaders: (res, p) => {
-  if (p.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+// Static files — no-cache priekš CSS/JS/HTML, lai pēc katra deploy pārlūks
+// vienmēr paņem jaunāko versiju (nevis veco no kešatmiņas)
+app.use(express.static(path.join(__dirname, 'public'), { setHeaders: (res) => {
+  res.setHeader('Cache-Control', 'no-cache, must-revalidate');
 }}));
 
 // ══════════════════════════════════════════════════
