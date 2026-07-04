@@ -13,10 +13,11 @@ body{
   background:var(--bg);color:var(--txt);font-family:var(--font);
   min-height:100vh;line-height:1.5;
 }
-#site-bg{
+.site-bg-layer{
   position:fixed;inset:0;z-index:-2;background-size:cover;background-position:center;
-  background-repeat:no-repeat;display:none;
+  background-repeat:no-repeat;opacity:0;transition:opacity 1.5s ease;
 }
+.site-bg-layer.active{opacity:1}
 #site-bg-overlay{
   position:fixed;inset:0;z-index:-1;background:rgba(6,6,10,.4);display:none;
 }
@@ -215,6 +216,11 @@ section h2::before{content:'';width:4px;height:20px;background:var(--accent);bor
 .msg-err{color:var(--danger);font-size:13px;margin-top:8px}
 .msg-ok{color:var(--accent2);font-size:13px;margin-top:8px}
 #bg-current-preview img{width:100%;max-height:120px;object-fit:cover;border-radius:var(--r-sm);border:1px solid var(--border)}
+.bg-slides-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-top:6px}
+.bg-slide-item{position:relative;aspect-ratio:1;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border)}
+.bg-slide-item img{width:100%;height:100%;object-fit:cover}
+.bg-slide-item button{position:absolute;top:2px;right:2px;width:20px;height:20px;padding:0;font-size:11px;line-height:1;border-radius:50%}
+#bg-upload-progress{font-size:12px;color:var(--mut);margin:6px 0}
 
 #admin-bar{
   display:none;position:sticky;top:53px;z-index:190;

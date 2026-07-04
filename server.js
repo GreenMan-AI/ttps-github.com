@@ -179,9 +179,16 @@ const TrackSchema = new mongoose.Schema({
   order: { type: Number, default: 0 },
 }, { timestamps: true });
 
+const BgSlideSchema = new mongoose.Schema({
+  url: { type: String, required: true },
+  publicId: { type: String, required: true },
+  order: { type: Number, default: 0 },
+}, { timestamps: true });
+
 const Content = mongoose.model('Content', ContentSchema);
 const GalleryImage = mongoose.model('GalleryImage', GalleryImageSchema);
 const Track = mongoose.model('Track', TrackSchema);
+const BgSlide = mongoose.model('BgSlide', BgSlideSchema);
 
 // Noklusējuma satura lauki — admins tos var mainīt no admin paneļa.
 // Tulkojamie lauki tiek glabāti divreiz — ar _lv un _en galotni.
@@ -202,6 +209,7 @@ const DEFAULT_CONTENT = {
   bgPosition: 'center',
   bgSize: 'cover',
   bgOverlayOpacity: '0.4',
+  bgSlideInterval: '6',
   heroTitleColor: '',
   heroSubtitleColor: '',
 };
@@ -336,47 +344,60 @@ app.put('/api/content', requireAdmin, (req, res) => {
 });
 
 // Fona bilde — atsevišķa, tūlītēja darbība (ne daļa no lielā teksta saglabāšanas)
-app.post('/api/content/background', requireAdmin, uploadLimiter, (req, res) => {
-  uploadBgImg.single('bgImage')(req, res, async (err) => {
+// ── Fona bildes iestatījumi (pozīcija, izmērs, tumšums, intervāls) ──
+app.put('/api/content/bg-settings', requireAdmin, async (req, res) => {
+  try {
+    const { position, size, overlayOpacity, interval } = req.body || {};
+    const allowedPositions = ['center', 'top', 'bottom', 'left', 'right', 'top left', 'top right', 'bottom left', 'bottom right'];
+    const allowedSizes = ['cover', 'contain'];
+
+    if (position && allowedPositions.includes(position)) {
+      await Content.findOneAndUpdate({ key: 'bgPosition' }, { value: position }, { upsert: true });
+    }
+    if (size && allowedSizes.includes(size)) {
+      await Content.findOneAndUpdate({ key: 'bgSize' }, { value: size }, { upsert: true });
+    }
+    if (overlayOpacity !== undefined) {
+      const num = parseFloat(overlayOpacity);
+      if (!isNaN(num) && num >= 0 && num <= 0.9) {
+        await Content.findOneAndUpdate({ key: 'bgOverlayOpacity' }, { value: String(num) }, { upsert: true });
+      }
+    }
+    if (interval !== undefined) {
+      const num = parseInt(interval, 10);
+      if (!isNaN(num) && num >= 2 && num <= 60) {
+        await Content.findOneAndUpdate({ key: 'bgSlideInterval' }, { value: String(num) }, { upsert: true });
+      }
+    }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Fona bilžu slaidrāde (var būt 1 vai vairākas bildes) ──
+app.get('/api/content/bg-slides', async (req, res) => {
+  try {
+    const slides = await BgSlide.find().sort({ order: 1, createdAt: 1 }).lean();
+    res.json({ slides });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/content/bg-slides', requireAdmin, uploadLimiter, (req, res) => {
+  uploadBgImg.single('image')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     try {
-      const position = req.body?.position;
-      const size = req.body?.size;
-      const overlayOpacity = req.body?.overlayOpacity;
-      const allowedPositions = ['center', 'top', 'bottom', 'left', 'right', 'top left', 'top right', 'bottom left', 'bottom right'];
-      const allowedSizes = ['cover', 'contain'];
-
-      if (!req.file && !position && !size && !overlayOpacity) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
-
-      if (req.file) {
-        const old = await Content.findOne({ key: 'bgImagePublicId' });
-        if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
-        await Content.findOneAndUpdate({ key: 'bgImageUrl' }, { value: req.file.path }, { upsert: true });
-        await Content.findOneAndUpdate({ key: 'bgImagePublicId' }, { value: req.file.filename }, { upsert: true });
-      }
-      if (position && allowedPositions.includes(position)) {
-        await Content.findOneAndUpdate({ key: 'bgPosition' }, { value: position }, { upsert: true });
-      }
-      if (size && allowedSizes.includes(size)) {
-        await Content.findOneAndUpdate({ key: 'bgSize' }, { value: size }, { upsert: true });
-      }
-      if (overlayOpacity !== undefined) {
-        const num = parseFloat(overlayOpacity);
-        if (!isNaN(num) && num >= 0 && num <= 0.9) {
-          await Content.findOneAndUpdate({ key: 'bgOverlayOpacity' }, { value: String(num) }, { upsert: true });
-        }
-      }
-      res.json({ ok: true });
+      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
+      const count = await BgSlide.countDocuments();
+      const slide = await BgSlide.create({ url: req.file.path, publicId: req.file.filename, order: count });
+      res.status(201).json({ slide });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 });
 
-app.delete('/api/content/background', requireAdmin, async (req, res) => {
+app.delete('/api/content/bg-slides/:id', requireAdmin, async (req, res) => {
   try {
-    const old = await Content.findOne({ key: 'bgImagePublicId' });
-    if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
-    await Content.findOneAndUpdate({ key: 'bgImageUrl' }, { value: '' }, { upsert: true });
-    await Content.findOneAndUpdate({ key: 'bgImagePublicId' }, { value: '' }, { upsert: true });
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Nederīgs ID' });
+    const slide = await BgSlide.findByIdAndDelete(req.params.id);
+    if (slide?.publicId) { try { await cloudinary.uploader.destroy(slide.publicId, { resource_type: 'image' }); } catch (e) {} }
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

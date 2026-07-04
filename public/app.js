@@ -75,6 +75,8 @@ const I18N = {
     bg_position_label: 'Bildes novietojums (centrējums)',
     bg_size_label: 'Bildes izmērs', size_cover: 'Aizpildīt ekrānu (var apgriezt malas)', size_contain: 'Rādīt visu bildi (var būt tukšas malas)',
     bg_overlay_label: 'Tumšuma pārklājums (lai teksts būtu salasāms)',
+    bg_add_label: 'Pievienot bildi(-es) fonam', bg_current_label: 'Pašreizējās fona bildes',
+    bg_interval_label: 'Nomaiņas intervāls (sekundēs, ja vairākas bildes)',
     pos_center: 'Centrā', pos_top: 'Augšā', pos_bottom: 'Apakšā', pos_left: 'Kreisajā pusē', pos_right: 'Labajā pusē',
     pos_top_left: 'Augšā kreisi', pos_top_right: 'Augšā labi', pos_bottom_left: 'Apakšā kreisi', pos_bottom_right: 'Apakšā labi',
     new_this_week: '🆕 Šīs nedēļas jaunumi', all_tracks: '🎵 Visas dziesmas',
@@ -108,6 +110,8 @@ const I18N = {
     bg_position_label: 'Image position (alignment)',
     bg_size_label: 'Image size', size_cover: 'Fill screen (may crop edges)', size_contain: 'Show full image (may leave empty margins)',
     bg_overlay_label: 'Darkness overlay (for text readability)',
+    bg_add_label: 'Add image(s) for background', bg_current_label: 'Current background images',
+    bg_interval_label: 'Change interval (seconds, if multiple images)',
     pos_center: 'Center', pos_top: 'Top', pos_bottom: 'Bottom', pos_left: 'Left', pos_right: 'Right',
     pos_top_left: 'Top left', pos_top_right: 'Top right', pos_bottom_left: 'Bottom left', pos_bottom_right: 'Bottom right',
     new_this_week: '🆕 New this week', all_tracks: '🎵 All tracks',
@@ -219,29 +223,8 @@ function applyContentForLang() {
   const tagline = c['tagline_' + L] || c.tagline_lv || '';
   document.getElementById('footer-text').textContent = '© ' + new Date().getFullYear() + ' ' + c.siteTitle + (tagline ? ' — ' + tagline : '');
 
-  const bgEl = document.getElementById('site-bg');
-  const overlayEl = document.getElementById('site-bg-overlay');
-  if (c.bgImageUrl) {
-    if (bgEl) {
-      bgEl.style.backgroundImage = `url('${c.bgImageUrl}')`;
-      bgEl.style.backgroundPosition = c.bgPosition || 'center';
-      bgEl.style.backgroundSize = c.bgSize || 'cover';
-      bgEl.style.display = 'block';
-    }
-    if (overlayEl) {
-      const opacity = c.bgOverlayOpacity !== undefined && c.bgOverlayOpacity !== '' ? c.bgOverlayOpacity : '0.4';
-      overlayEl.style.background = `rgba(6,6,10,${opacity})`;
-      overlayEl.style.display = 'block';
-    }
-  } else {
-    if (bgEl) { bgEl.style.backgroundImage = ''; bgEl.style.display = 'none'; }
-    if (overlayEl) overlayEl.style.display = 'none';
-  }
-  document.body.style.backgroundImage = '';
-  document.body.style.backgroundSize = '';
-  document.body.style.backgroundPosition = '';
-  document.body.style.backgroundAttachment = '';
-  document.body.style.backgroundRepeat = '';
+  // Fona bilde tagad tiek pārvaldīta atsevišķi caur loadBgSlideshow() /
+  // startBgSlideshow() (skat. zemāk) — atbalsta gan 1, gan vairākas bildes.
 }
 
 function openContentModal() {
@@ -268,61 +251,163 @@ function openBgModal() {
   const ov = c.bgOverlayOpacity !== undefined && c.bgOverlayOpacity !== '' ? c.bgOverlayOpacity : '0.4';
   document.getElementById('f-bgOverlay').value = ov;
   document.getElementById('bg-overlay-val').textContent = Math.round(ov * 100) + '%';
+  document.getElementById('f-bgInterval').value = c.bgSlideInterval || '6';
   document.getElementById('bg-err').textContent = '';
-  refreshBgPreview(c);
+  document.getElementById('bg-settings-ok').textContent = '';
+  document.getElementById('bg-upload-progress').innerHTML = '';
+  renderBgSlidesAdmin();
   showModal('bg-modal');
 }
 
-function refreshBgPreview(c) {
-  const preview = document.getElementById('bg-current-preview');
-  const removeBtn = document.getElementById('bg-remove-btn');
-  if (c.bgImageUrl) {
-    preview.innerHTML = `<img src="${c.bgImageUrl}" alt="fona bilde">`;
-    removeBtn.style.display = '';
-  } else {
-    preview.innerHTML = '';
-    removeBtn.style.display = 'none';
+async function renderBgSlidesAdmin() {
+  const listEl = document.getElementById('bg-slides-list');
+  listEl.innerHTML = currentLang === 'lv' ? 'Ielādē...' : 'Loading...';
+  try {
+    const r = await fetch(API + '/api/content/bg-slides');
+    const { slides } = await r.json();
+    window._bgSlides = slides;
+    if (!slides.length) {
+      listEl.innerHTML = `<p class="empty-msg">${currentLang === 'lv' ? 'Vēl nav pievienota neviena fona bilde.' : 'No background images added yet.'}</p>`;
+      return;
+    }
+    listEl.innerHTML = slides.map(s => `
+      <div class="bg-slide-item">
+        <img src="${s.url}" alt="">
+        <button class="btn danger" onclick="deleteBgSlide('${s._id}')">✕</button>
+      </div>
+    `).join('');
+  } catch (e) { listEl.innerHTML = ''; }
+}
+
+async function uploadBgSlides() {
+  const errEl = document.getElementById('bg-err');
+  errEl.textContent = '';
+  const files = Array.from(document.getElementById('f-bgImage').files);
+  if (!files.length) { errEl.textContent = currentLang === 'lv' ? 'Izvēlies vismaz vienu bildi' : 'Choose at least one image'; return; }
+  const progressEl = document.getElementById('bg-upload-progress');
+  progressEl.innerHTML = '';
+  const btn = document.getElementById('bg-upload-btn');
+  btn.disabled = true;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const line = document.createElement('div');
+    line.textContent = `⏳ (${i + 1}/${files.length}) ${file.name}...`;
+    progressEl.appendChild(line);
+    const fd = new FormData();
+    fd.append('image', file);
+    try {
+      const r = await fetch(API + '/api/content/bg-slides', { method: 'POST', headers: authHeaders(), body: fd });
+      const data = await r.json();
+      line.textContent = r.ok ? `✅ ${file.name}` : `❌ ${file.name} — ${data.error || 'kļūda'}`;
+    } catch (e) { line.textContent = `❌ ${file.name} — servera kļūda`; }
+  }
+
+  btn.disabled = false;
+  document.getElementById('f-bgImage').value = '';
+  await renderBgSlidesAdmin();
+  await loadBgSlideshow();
+  toast(currentLang === 'lv' ? '✅ Fona bildes atjauninātas!' : '✅ Background images updated!', 'ok');
+}
+
+async function deleteBgSlide(id) {
+  if (!confirm(currentLang === 'lv' ? 'Dzēst šo fona bildi?' : 'Delete this background image?')) return;
+  await fetch(API + '/api/content/bg-slides/' + id, { method: 'DELETE', headers: authHeaders() });
+  await renderBgSlidesAdmin();
+  await loadBgSlideshow();
+}
+
+async function saveBgSettings() {
+  const okEl = document.getElementById('bg-settings-ok');
+  const errEl = document.getElementById('bg-err');
+  okEl.textContent = ''; errEl.textContent = '';
+  const body = {
+    position: document.getElementById('f-bgPosition').value,
+    size: document.getElementById('f-bgSize').value,
+    overlayOpacity: document.getElementById('f-bgOverlay').value,
+    interval: document.getElementById('f-bgInterval').value,
+  };
+  try {
+    const r = await fetch(API + '/api/content/bg-settings', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    okEl.textContent = currentLang === 'lv' ? 'Saglabāts!' : 'Saved!';
+    toast(currentLang === 'lv' ? '✅ Fona iestatījumi saglabāti!' : '✅ Background settings saved!', 'ok');
+    await loadContent();
+    await loadBgSlideshow();
+  } catch (e) { errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
+}
+
+// ══════════════════════════════════════════════════
+//  FONA SLAIDRĀDE (publiskā puse — 1 vai vairākas bildes ar crossfade)
+// ══════════════════════════════════════════════════
+let bgSlideTimer = null;
+let bgSlideIndex = 0;
+let bgActiveLayer = 'a';
+
+async function loadBgSlideshow() {
+  try {
+    const r = await fetch(API + '/api/content/bg-slides');
+    const { slides } = await r.json();
+    window._bgSlides = slides || [];
+    startBgSlideshow();
+  } catch (e) {}
+}
+
+function applyBgLayerStyle(el) {
+  const c = window._content || {};
+  el.style.backgroundSize = c.bgSize || 'cover';
+  el.style.backgroundPosition = c.bgPosition || 'center';
+}
+
+function startBgSlideshow() {
+  const layerA = document.getElementById('site-bg-a');
+  const layerB = document.getElementById('site-bg-b');
+  const overlayEl = document.getElementById('site-bg-overlay');
+  const slides = window._bgSlides || [];
+
+  if (bgSlideTimer) { clearInterval(bgSlideTimer); bgSlideTimer = null; }
+
+  if (!slides.length) {
+    layerA.classList.remove('active');
+    layerB.classList.remove('active');
+    overlayEl.classList.remove('show');
+    return;
+  }
+
+  const c = window._content || {};
+  const opacity = c.bgOverlayOpacity !== undefined && c.bgOverlayOpacity !== '' ? c.bgOverlayOpacity : '0.4';
+  overlayEl.style.background = `rgba(6,6,10,${opacity})`;
+  overlayEl.classList.add('show');
+
+  bgSlideIndex = 0;
+  bgActiveLayer = 'a';
+  applyBgLayerStyle(layerA);
+  applyBgLayerStyle(layerB);
+  layerA.style.backgroundImage = `url('${slides[0].url}')`;
+  layerA.classList.add('active');
+  layerB.classList.remove('active');
+
+  if (slides.length > 1) {
+    const seconds = parseInt(c.bgSlideInterval, 10) || 6;
+    bgSlideTimer = setInterval(() => advanceBgSlide(), seconds * 1000);
   }
 }
 
-async function uploadBgImage() {
-  const errEl = document.getElementById('bg-err');
-  errEl.textContent = '';
-  const file = document.getElementById('f-bgImage').files[0];
-  const position = document.getElementById('f-bgPosition').value;
-  const size = document.getElementById('f-bgSize').value;
-  const overlayOpacity = document.getElementById('f-bgOverlay').value;
-  const hasExisting = !!(window._content && window._content.bgImageUrl);
-  if (!file && !hasExisting) { errEl.textContent = currentLang === 'lv' ? 'Vispirms izvēlies failu' : 'Choose a file first'; return; }
-  const fd = new FormData();
-  if (file) fd.append('bgImage', file);
-  fd.append('position', position);
-  fd.append('size', size);
-  fd.append('overlayOpacity', overlayOpacity);
-  const btn = document.getElementById('bg-upload-btn');
-  btn.disabled = true;
-  try {
-    const r = await fetch(API + '/api/content/background', { method: 'POST', headers: authHeaders(), body: fd });
-    const data = await r.json();
-    btn.disabled = false;
-    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
-    toast(currentLang === 'lv' ? '✅ Fona bilde uzstādīta!' : '✅ Background image set!', 'ok');
-    document.getElementById('f-bgImage').value = '';
-    await loadContent();
-    refreshBgPreview(window._content || {});
-  } catch (e) { btn.disabled = false; errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
-}
-
-async function removeBgImage() {
-  if (!confirm(currentLang === 'lv' ? 'Noņemt fona bildi?' : 'Remove background image?')) return;
-  try {
-    const r = await fetch(API + '/api/content/background', { method: 'DELETE', headers: authHeaders() });
-    const data = await r.json();
-    if (!r.ok) { toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
-    toast(currentLang === 'lv' ? '🗑️ Fona bilde noņemta' : '🗑️ Background image removed', 'ok');
-    await loadContent();
-    refreshBgPreview(window._content || {});
-  } catch (e) { toast('❌ Servera kļūda', 'err'); }
+function advanceBgSlide() {
+  const slides = window._bgSlides || [];
+  if (!slides.length) return;
+  bgSlideIndex = (bgSlideIndex + 1) % slides.length;
+  const showingEl = document.getElementById(bgActiveLayer === 'a' ? 'site-bg-b' : 'site-bg-a');
+  const hidingEl = document.getElementById(bgActiveLayer === 'a' ? 'site-bg-a' : 'site-bg-b');
+  applyBgLayerStyle(showingEl);
+  showingEl.style.backgroundImage = `url('${slides[bgSlideIndex].url}')`;
+  showingEl.classList.add('active');
+  hidingEl.classList.remove('active');
+  bgActiveLayer = bgActiveLayer === 'a' ? 'b' : 'a';
 }
 
 document.getElementById('content-form').addEventListener('submit', async (e) => {
@@ -788,6 +873,7 @@ function scrollToTop() {
   applyStaticI18n();
   await checkAdmin();
   await loadContent();
+  await loadBgSlideshow();
   await loadGallery();
   await loadTracks();
 })();

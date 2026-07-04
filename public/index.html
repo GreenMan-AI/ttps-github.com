@@ -7,11 +7,12 @@
 <link rel="icon" href="/favicon.ico">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=10">
+<link rel="stylesheet" href="/design.css?v=11">
 </head>
 <body>
 
-<div id="site-bg"></div>
+<div id="site-bg-a" class="site-bg-layer"></div>
+<div id="site-bg-b" class="site-bg-layer"></div>
 <div id="site-bg-overlay"></div>
 
 
@@ -191,11 +192,21 @@
 <div class="modal-overlay" id="bg-modal">
   <div class="modal">
     <h3 data-i18n="edit_bg_title">Fona bilde</h3>
-    <p class="hint" data-i18n="bg_hint">Fona bilde parādās aiz visas lapas un saglabājas uzreiz pēc augšupielādes.</p>
+    <p class="hint" data-i18n="bg_hint">Vari pievienot vienu bildi vai vairākas — ja ir vairākas, tās automātiski mainīsies aiz visas lapas.</p>
+
     <div class="field">
-      <label data-i18n="image_label">Bilde</label>
-      <input type="file" id="f-bgImage" accept="image/*">
+      <label data-i18n="bg_add_label">Pievienot bildi(-es) fonam</label>
+      <input type="file" id="f-bgImage" accept="image/*" multiple>
+      <button type="button" class="btn sm primary" id="bg-upload-btn" style="margin-top:8px" onclick="uploadBgSlides()" data-i18n="bg_upload">⬆️ Augšupielādēt</button>
     </div>
+    <div id="bg-upload-progress"></div>
+    <div class="msg-err" id="bg-err"></div>
+
+    <div class="field">
+      <label data-i18n="bg_current_label">Pašreizējās fona bildes</label>
+      <div id="bg-slides-list" class="bg-slides-grid"></div>
+    </div>
+
     <div class="field">
       <label data-i18n="bg_size_label">Bildes izmērs</label>
       <select id="f-bgSize">
@@ -222,14 +233,15 @@
       <input type="range" id="f-bgOverlay" min="0" max="0.85" step="0.05" value="0.4" oninput="document.getElementById('bg-overlay-val').textContent = Math.round(this.value*100)+'%'">
       <span id="bg-overlay-val" style="font-size:12px;color:var(--mut)">40%</span>
     </div>
-    <div id="bg-current-preview" style="margin-bottom:10px"></div>
-    <div class="msg-err" id="bg-err"></div>
-    <div class="modal-actions" style="justify-content:space-between">
-      <button type="button" class="btn sm danger" id="bg-remove-btn" style="display:none" onclick="removeBgImage()" data-i18n="bg_remove">🗑️ Noņemt fona bildi</button>
-      <div style="display:flex;gap:10px">
-        <button type="button" class="btn" onclick="closeModal('bg-modal')" data-i18n="close">Aizvērt</button>
-        <button type="button" class="btn primary" id="bg-upload-btn" onclick="uploadBgImage()" data-i18n="bg_upload">⬆️ Augšupielādēt un uzstādīt fonu</button>
-      </div>
+    <div class="field">
+      <label data-i18n="bg_interval_label">Nomaiņas intervāls (sekundēs, ja vairākas bildes)</label>
+      <input type="number" id="f-bgInterval" min="2" max="60" value="6">
+    </div>
+
+    <div class="msg-ok" id="bg-settings-ok"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn" onclick="closeModal('bg-modal')" data-i18n="close">Aizvērt</button>
+      <button type="button" class="btn primary" onclick="saveBgSettings()" data-i18n="save">Saglabāt</button>
     </div>
   </div>
 </div>
@@ -297,6 +309,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=10"></script>
+<script src="/app.js?v=11"></script>
 </body>
 </html>
