@@ -36,6 +36,7 @@
   <h1 id="hero-title">Sveiki, esmu SoundPulse!</h1>
   <p id="hero-subtitle">Šeit klausies manu pašsacerēto mūziku un skaties bildes.</p>
   <button class="btn sm admin-only" style="display:none;margin-top:16px" onclick="openContentModal()" data-i18n="edit_text">✏️ Rediģēt tekstu</button>
+  <button class="btn sm admin-only" style="display:none;margin-top:16px;margin-left:10px" onclick="openBgModal()" data-i18n="edit_bg">🖼️ Fona bilde</button>
 </section>
 
 <section id="about">
@@ -151,15 +152,6 @@
         <div class="field"><label>Virsraksta krāsa (hero)</label><input type="color" id="f-heroTitleColor" value="#eef2f7"></div>
         <div class="field"><label>Apakšvirsraksta krāsa (hero)</label><input type="color" id="f-heroSubtitleColor" value="#9aa4b2"></div>
       </div>
-      <div class="field">
-        <label data-i18n="bg_image_label">Fona bilde (parādās aiz visas lapas)</label>
-        <input type="file" id="f-bgImage" accept="image/*">
-        <button type="button" class="btn sm primary" id="bg-upload-btn" style="margin-top:8px" onclick="uploadBgImage()" data-i18n="bg_upload">⬆️ Augšupielādēt un uzstādīt fonu</button>
-        <div class="msg-err" id="bg-err"></div>
-        <div id="bg-current-preview" style="margin-top:8px"></div>
-        <button type="button" class="btn sm danger" id="bg-remove-btn" style="margin-top:6px;display:none" onclick="removeBgImage()" data-i18n="bg_remove">🗑️ Noņemt fona bildi</button>
-      </div>
-      <p class="hint" data-i18n="bg_hint">Fona bilde saglabājas uzreiz pēc augšupielādes (neatkarīgi no "Saglabāt" pogas apakšā).</p>
 
       <div class="lang-row">
         <div class="field"><label>Sauklis 🇱🇻 (LV)</label><input id="f-tagline_lv"></div>
@@ -187,6 +179,27 @@
         <button type="submit" class="btn primary" data-i18n="save">Saglabāt</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Fona bildes modālais logs (atsevišķi no teksta) -->
+<div class="modal-overlay" id="bg-modal">
+  <div class="modal">
+    <h3 data-i18n="edit_bg_title">Fona bilde</h3>
+    <p class="hint" data-i18n="bg_hint">Fona bilde parādās aiz visas lapas un saglabājas uzreiz pēc augšupielādes.</p>
+    <div class="field">
+      <label data-i18n="image_label">Bilde</label>
+      <input type="file" id="f-bgImage" accept="image/*">
+    </div>
+    <div id="bg-current-preview" style="margin-bottom:10px"></div>
+    <div class="msg-err" id="bg-err"></div>
+    <div class="modal-actions" style="justify-content:space-between">
+      <button type="button" class="btn sm danger" id="bg-remove-btn" style="display:none" onclick="removeBgImage()" data-i18n="bg_remove">🗑️ Noņemt fona bildi</button>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn" onclick="closeModal('bg-modal')" data-i18n="close">Aizvērt</button>
+        <button type="button" class="btn primary" id="bg-upload-btn" onclick="uploadBgImage()" data-i18n="bg_upload">⬆️ Augšupielādēt un uzstādīt fonu</button>
+      </div>
+    </div>
   </div>
 </div>
 

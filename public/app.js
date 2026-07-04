@@ -49,7 +49,7 @@ const I18N = {
   lv: {
     nav_about: 'Par mani', nav_gallery: 'Bildes', nav_music: 'Mūzika', nav_chat: 'Čats',
     admin_bar: '🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot bildes un mūziku',
-    logout: 'Iziet', edit_text: '✏️ Rediģēt tekstu', about_title: 'Par mani',
+    logout: 'Iziet', edit_text: '✏️ Rediģēt tekstu', edit_bg: '🖼️ Fona bilde', edit_bg_title: 'Fona bilde', about_title: 'Par mani',
     gallery_title: 'Bildes', add_image: '➕ Pievienot bildi',
     music_title: 'Mūzika', add_track: '➕ Pievienot dziesmu',
     drag_hint: 'Padoms: adminā vari dziesmas pārkārtot, velkot aiz ⠿ ikonas.',
@@ -77,7 +77,7 @@ const I18N = {
   en: {
     nav_about: 'About', nav_gallery: 'Gallery', nav_music: 'Music', nav_chat: 'Chat',
     admin_bar: '🔧 Admin mode on — you can edit content, add photos and music',
-    logout: 'Log out', edit_text: '✏️ Edit text', about_title: 'About me',
+    logout: 'Log out', edit_text: '✏️ Edit text', edit_bg: '🖼️ Background image', edit_bg_title: 'Background image', about_title: 'About me',
     gallery_title: 'Gallery', add_image: '➕ Add photo',
     music_title: 'Music', add_track: '➕ Add track',
     drag_hint: 'Tip: as admin you can reorder tracks by dragging the ⠿ handle.',
@@ -233,9 +233,6 @@ function openContentModal() {
   document.getElementById('f-siteTitle').value = c.siteTitle || '';
   document.getElementById('f-heroTitleColor').value = c.heroTitleColor || '#eef2f7';
   document.getElementById('f-heroSubtitleColor').value = c.heroSubtitleColor || '#9aa4b2';
-  document.getElementById('f-bgImage').value = '';
-  document.getElementById('bg-err').textContent = '';
-  refreshBgPreview(c);
   ['tagline', 'heroTitle', 'heroSubtitle', 'aboutText'].forEach(key => {
     document.getElementById('f-' + key + '_lv').value = c[key + '_lv'] || '';
     document.getElementById('f-' + key + '_en').value = c[key + '_en'] || '';
@@ -245,6 +242,14 @@ function openContentModal() {
   document.getElementById('content-err').textContent = '';
   document.getElementById('content-ok').textContent = '';
   showModal('content-modal');
+}
+
+function openBgModal() {
+  const c = window._content || {};
+  document.getElementById('f-bgImage').value = '';
+  document.getElementById('bg-err').textContent = '';
+  refreshBgPreview(c);
+  showModal('bg-modal');
 }
 
 function refreshBgPreview(c) {
