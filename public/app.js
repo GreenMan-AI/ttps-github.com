@@ -212,20 +212,20 @@ function applyContentForLang() {
   const bgEl = document.getElementById('site-bg');
   const overlayEl = document.getElementById('site-bg-overlay');
   if (c.bgImageUrl) {
-    document.body.style.backgroundImage = `linear-gradient(rgba(6,6,10,.74), rgba(6,6,10,.74)), url('${c.bgImageUrl}')`;
-    document.body.style.backgroundSize = 'cover';
-    document.body.style.backgroundPosition = 'center';
-    document.body.style.backgroundAttachment = 'fixed';
-    document.body.style.backgroundRepeat = 'no-repeat';
+    if (bgEl) {
+      bgEl.style.backgroundImage = `url('${c.bgImageUrl}')`;
+      bgEl.style.display = 'block';
+    }
+    if (overlayEl) overlayEl.style.display = 'block';
   } else {
-    document.body.style.backgroundImage = '';
-    document.body.style.backgroundSize = '';
-    document.body.style.backgroundPosition = '';
-    document.body.style.backgroundAttachment = '';
-    document.body.style.backgroundRepeat = '';
+    if (bgEl) { bgEl.style.backgroundImage = ''; bgEl.style.display = 'none'; }
+    if (overlayEl) overlayEl.style.display = 'none';
   }
-  if (bgEl) bgEl.style.display = 'none';
-  if (overlayEl) overlayEl.style.display = 'none';
+  document.body.style.backgroundImage = '';
+  document.body.style.backgroundSize = '';
+  document.body.style.backgroundPosition = '';
+  document.body.style.backgroundAttachment = '';
+  document.body.style.backgroundRepeat = '';
 }
 
 function openContentModal() {
