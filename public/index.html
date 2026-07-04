@@ -7,7 +7,7 @@
 <link rel="icon" href="/favicon.ico">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=9">
+<link rel="stylesheet" href="/design.css?v=10">
 </head>
 <body>
 
@@ -217,6 +217,11 @@
         <option value="bottom right" data-i18n="pos_bottom_right">Apakšā labi</option>
       </select>
     </div>
+    <div class="field">
+      <label data-i18n="bg_overlay_label">Tumšuma pārklājums (lai teksts būtu salasāms)</label>
+      <input type="range" id="f-bgOverlay" min="0" max="0.85" step="0.05" value="0.4" oninput="document.getElementById('bg-overlay-val').textContent = Math.round(this.value*100)+'%'">
+      <span id="bg-overlay-val" style="font-size:12px;color:var(--mut)">40%</span>
+    </div>
     <div id="bg-current-preview" style="margin-bottom:10px"></div>
     <div class="msg-err" id="bg-err"></div>
     <div class="modal-actions" style="justify-content:space-between">
@@ -292,6 +297,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=9"></script>
+<script src="/app.js?v=10"></script>
 </body>
 </html>

@@ -18,7 +18,7 @@ body{
   background-repeat:no-repeat;display:none;
 }
 #site-bg-overlay{
-  position:fixed;inset:0;z-index:-1;background:rgba(6,6,10,.72);display:none;
+  position:fixed;inset:0;z-index:-1;background:rgba(6,6,10,.4);display:none;
 }
 #site-bg-overlay.show{display:block}
 a{color:var(--accent);text-decoration:none}

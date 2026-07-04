@@ -74,6 +74,7 @@ const I18N = {
     bg_hint: 'Fona bilde saglabājas uzreiz pēc augšupielādes (neatkarīgi no "Saglabāt" pogas apakšā).',
     bg_position_label: 'Bildes novietojums (centrējums)',
     bg_size_label: 'Bildes izmērs', size_cover: 'Aizpildīt ekrānu (var apgriezt malas)', size_contain: 'Rādīt visu bildi (var būt tukšas malas)',
+    bg_overlay_label: 'Tumšuma pārklājums (lai teksts būtu salasāms)',
     pos_center: 'Centrā', pos_top: 'Augšā', pos_bottom: 'Apakšā', pos_left: 'Kreisajā pusē', pos_right: 'Labajā pusē',
     pos_top_left: 'Augšā kreisi', pos_top_right: 'Augšā labi', pos_bottom_left: 'Apakšā kreisi', pos_bottom_right: 'Apakšā labi',
     new_this_week: '🆕 Šīs nedēļas jaunumi', all_tracks: '🎵 Visas dziesmas',
@@ -106,6 +107,7 @@ const I18N = {
     bg_hint: 'The background image saves immediately on upload (independent of the "Save" button below).',
     bg_position_label: 'Image position (alignment)',
     bg_size_label: 'Image size', size_cover: 'Fill screen (may crop edges)', size_contain: 'Show full image (may leave empty margins)',
+    bg_overlay_label: 'Darkness overlay (for text readability)',
     pos_center: 'Center', pos_top: 'Top', pos_bottom: 'Bottom', pos_left: 'Left', pos_right: 'Right',
     pos_top_left: 'Top left', pos_top_right: 'Top right', pos_bottom_left: 'Bottom left', pos_bottom_right: 'Bottom right',
     new_this_week: '🆕 New this week', all_tracks: '🎵 All tracks',
@@ -226,7 +228,11 @@ function applyContentForLang() {
       bgEl.style.backgroundSize = c.bgSize || 'cover';
       bgEl.style.display = 'block';
     }
-    if (overlayEl) overlayEl.style.display = 'block';
+    if (overlayEl) {
+      const opacity = c.bgOverlayOpacity !== undefined && c.bgOverlayOpacity !== '' ? c.bgOverlayOpacity : '0.4';
+      overlayEl.style.background = `rgba(6,6,10,${opacity})`;
+      overlayEl.style.display = 'block';
+    }
   } else {
     if (bgEl) { bgEl.style.backgroundImage = ''; bgEl.style.display = 'none'; }
     if (overlayEl) overlayEl.style.display = 'none';
@@ -259,6 +265,9 @@ function openBgModal() {
   document.getElementById('f-bgImage').value = '';
   document.getElementById('f-bgPosition').value = c.bgPosition || 'center';
   document.getElementById('f-bgSize').value = c.bgSize || 'cover';
+  const ov = c.bgOverlayOpacity !== undefined && c.bgOverlayOpacity !== '' ? c.bgOverlayOpacity : '0.4';
+  document.getElementById('f-bgOverlay').value = ov;
+  document.getElementById('bg-overlay-val').textContent = Math.round(ov * 100) + '%';
   document.getElementById('bg-err').textContent = '';
   refreshBgPreview(c);
   showModal('bg-modal');
@@ -282,12 +291,14 @@ async function uploadBgImage() {
   const file = document.getElementById('f-bgImage').files[0];
   const position = document.getElementById('f-bgPosition').value;
   const size = document.getElementById('f-bgSize').value;
+  const overlayOpacity = document.getElementById('f-bgOverlay').value;
   const hasExisting = !!(window._content && window._content.bgImageUrl);
   if (!file && !hasExisting) { errEl.textContent = currentLang === 'lv' ? 'Vispirms izvēlies failu' : 'Choose a file first'; return; }
   const fd = new FormData();
   if (file) fd.append('bgImage', file);
   fd.append('position', position);
   fd.append('size', size);
+  fd.append('overlayOpacity', overlayOpacity);
   const btn = document.getElementById('bg-upload-btn');
   btn.disabled = true;
   try {

@@ -201,6 +201,7 @@ const DEFAULT_CONTENT = {
   bgImagePublicId: '',
   bgPosition: 'center',
   bgSize: 'cover',
+  bgOverlayOpacity: '0.4',
   heroTitleColor: '',
   heroSubtitleColor: '',
 };
@@ -341,10 +342,11 @@ app.post('/api/content/background', requireAdmin, uploadLimiter, (req, res) => {
     try {
       const position = req.body?.position;
       const size = req.body?.size;
+      const overlayOpacity = req.body?.overlayOpacity;
       const allowedPositions = ['center', 'top', 'bottom', 'left', 'right', 'top left', 'top right', 'bottom left', 'bottom right'];
       const allowedSizes = ['cover', 'contain'];
 
-      if (!req.file && !position && !size) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
+      if (!req.file && !position && !size && !overlayOpacity) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
 
       if (req.file) {
         const old = await Content.findOne({ key: 'bgImagePublicId' });
@@ -357,6 +359,12 @@ app.post('/api/content/background', requireAdmin, uploadLimiter, (req, res) => {
       }
       if (size && allowedSizes.includes(size)) {
         await Content.findOneAndUpdate({ key: 'bgSize' }, { value: size }, { upsert: true });
+      }
+      if (overlayOpacity !== undefined) {
+        const num = parseFloat(overlayOpacity);
+        if (!isNaN(num) && num >= 0 && num <= 0.9) {
+          await Content.findOneAndUpdate({ key: 'bgOverlayOpacity' }, { value: String(num) }, { upsert: true });
+        }
       }
       res.json({ ok: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
