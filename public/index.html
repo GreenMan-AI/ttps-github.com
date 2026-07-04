@@ -7,7 +7,7 @@
 <link rel="icon" href="/favicon.ico">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=8">
+<link rel="stylesheet" href="/design.css?v=9">
 </head>
 <body>
 
@@ -197,6 +197,13 @@
       <input type="file" id="f-bgImage" accept="image/*">
     </div>
     <div class="field">
+      <label data-i18n="bg_size_label">Bildes izmērs</label>
+      <select id="f-bgSize">
+        <option value="cover" data-i18n="size_cover">Aizpildīt ekrānu (var apgriezt malas)</option>
+        <option value="contain" data-i18n="size_contain">Rādīt visu bildi (var būt tukšas malas)</option>
+      </select>
+    </div>
+    <div class="field">
       <label data-i18n="bg_position_label">Bildes novietojums (centrējums)</label>
       <select id="f-bgPosition">
         <option value="center" data-i18n="pos_center">Centrā</option>
@@ -285,6 +292,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=8"></script>
+<script src="/app.js?v=9"></script>
 </body>
 </html>

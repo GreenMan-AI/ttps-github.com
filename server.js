@@ -200,6 +200,7 @@ const DEFAULT_CONTENT = {
   bgImageUrl: '',
   bgImagePublicId: '',
   bgPosition: 'center',
+  bgSize: 'cover',
   heroTitleColor: '',
   heroSubtitleColor: '',
 };
@@ -339,9 +340,11 @@ app.post('/api/content/background', requireAdmin, uploadLimiter, (req, res) => {
     if (err) return res.status(400).json({ error: err.message });
     try {
       const position = req.body?.position;
+      const size = req.body?.size;
       const allowedPositions = ['center', 'top', 'bottom', 'left', 'right', 'top left', 'top right', 'bottom left', 'bottom right'];
+      const allowedSizes = ['cover', 'contain'];
 
-      if (!req.file && !position) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
+      if (!req.file && !position && !size) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
 
       if (req.file) {
         const old = await Content.findOne({ key: 'bgImagePublicId' });
@@ -351,6 +354,9 @@ app.post('/api/content/background', requireAdmin, uploadLimiter, (req, res) => {
       }
       if (position && allowedPositions.includes(position)) {
         await Content.findOneAndUpdate({ key: 'bgPosition' }, { value: position }, { upsert: true });
+      }
+      if (size && allowedSizes.includes(size)) {
+        await Content.findOneAndUpdate({ key: 'bgSize' }, { value: size }, { upsert: true });
       }
       res.json({ ok: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
