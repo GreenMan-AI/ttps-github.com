@@ -194,12 +194,20 @@ function applyContentForLang() {
   const bgEl = document.getElementById('site-bg');
   const overlayEl = document.getElementById('site-bg-overlay');
   if (c.bgImageUrl) {
-    bgEl.style.backgroundImage = `url('${c.bgImageUrl}')`;
-    overlayEl.classList.add('show');
+    document.body.style.backgroundImage = `linear-gradient(rgba(6,6,10,.74), rgba(6,6,10,.74)), url('${c.bgImageUrl}')`;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundAttachment = 'fixed';
+    document.body.style.backgroundRepeat = 'no-repeat';
   } else {
-    bgEl.style.backgroundImage = '';
-    overlayEl.classList.remove('show');
+    document.body.style.backgroundImage = '';
+    document.body.style.backgroundSize = '';
+    document.body.style.backgroundPosition = '';
+    document.body.style.backgroundAttachment = '';
+    document.body.style.backgroundRepeat = '';
   }
+  if (bgEl) bgEl.style.display = 'none';
+  if (overlayEl) overlayEl.style.display = 'none';
 }
 
 let bgRemoveFlag = false;
