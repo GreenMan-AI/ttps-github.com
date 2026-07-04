@@ -72,6 +72,9 @@ const I18N = {
     bg_image_label: 'Fona bilde (parādās aiz visas lapas)', bg_remove: '🗑️ Noņemt fona bildi',
     bg_upload: '⬆️ Augšupielādēt un uzstādīt fonu',
     bg_hint: 'Fona bilde saglabājas uzreiz pēc augšupielādes (neatkarīgi no "Saglabāt" pogas apakšā).',
+    bg_position_label: 'Bildes novietojums (centrējums)',
+    pos_center: 'Centrā', pos_top: 'Augšā', pos_bottom: 'Apakšā', pos_left: 'Kreisajā pusē', pos_right: 'Labajā pusē',
+    pos_top_left: 'Augšā kreisi', pos_top_right: 'Augšā labi', pos_bottom_left: 'Apakšā kreisi', pos_bottom_right: 'Apakšā labi',
     new_this_week: '🆕 Šīs nedēļas jaunumi', all_tracks: '🎵 Visas dziesmas',
   },
   en: {
@@ -100,6 +103,9 @@ const I18N = {
     bg_image_label: 'Background image (shows behind the whole page)', bg_remove: '🗑️ Remove background image',
     bg_upload: '⬆️ Upload and set background',
     bg_hint: 'The background image saves immediately on upload (independent of the "Save" button below).',
+    bg_position_label: 'Image position (alignment)',
+    pos_center: 'Center', pos_top: 'Top', pos_bottom: 'Bottom', pos_left: 'Left', pos_right: 'Right',
+    pos_top_left: 'Top left', pos_top_right: 'Top right', pos_bottom_left: 'Bottom left', pos_bottom_right: 'Bottom right',
     new_this_week: '🆕 New this week', all_tracks: '🎵 All tracks',
   },
 };
@@ -214,6 +220,7 @@ function applyContentForLang() {
   if (c.bgImageUrl) {
     if (bgEl) {
       bgEl.style.backgroundImage = `url('${c.bgImageUrl}')`;
+      bgEl.style.backgroundPosition = c.bgPosition || 'center';
       bgEl.style.display = 'block';
     }
     if (overlayEl) overlayEl.style.display = 'block';
@@ -247,6 +254,7 @@ function openContentModal() {
 function openBgModal() {
   const c = window._content || {};
   document.getElementById('f-bgImage').value = '';
+  document.getElementById('f-bgPosition').value = c.bgPosition || 'center';
   document.getElementById('bg-err').textContent = '';
   refreshBgPreview(c);
   showModal('bg-modal');
@@ -268,9 +276,12 @@ async function uploadBgImage() {
   const errEl = document.getElementById('bg-err');
   errEl.textContent = '';
   const file = document.getElementById('f-bgImage').files[0];
-  if (!file) { errEl.textContent = currentLang === 'lv' ? 'Vispirms izvēlies failu' : 'Choose a file first'; return; }
+  const position = document.getElementById('f-bgPosition').value;
+  const hasExisting = !!(window._content && window._content.bgImageUrl);
+  if (!file && !hasExisting) { errEl.textContent = currentLang === 'lv' ? 'Vispirms izvēlies failu' : 'Choose a file first'; return; }
   const fd = new FormData();
-  fd.append('bgImage', file);
+  if (file) fd.append('bgImage', file);
+  fd.append('position', position);
   const btn = document.getElementById('bg-upload-btn');
   btn.disabled = true;
   try {
@@ -739,6 +750,17 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 function escapeAttr(str) { return escapeHtml(str).replace(/"/g, '&quot;'); }
+
+// ══════════════════════════════════════════════════
+//  ATPAKAĻ UZ AUGŠU poga
+// ══════════════════════════════════════════════════
+const backToTopBtn = document.getElementById('back-to-top');
+window.addEventListener('scroll', () => {
+  backToTopBtn.classList.toggle('show', window.scrollY > 400);
+});
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 // ══════════════════════════════════════════════════
 //  START

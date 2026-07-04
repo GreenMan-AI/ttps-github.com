@@ -199,6 +199,7 @@ const DEFAULT_CONTENT = {
   socialLink: '',
   bgImageUrl: '',
   bgImagePublicId: '',
+  bgPosition: 'center',
   heroTitleColor: '',
   heroSubtitleColor: '',
 };
@@ -337,12 +338,21 @@ app.post('/api/content/background', requireAdmin, uploadLimiter, (req, res) => {
   uploadBgImg.single('bgImage')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     try {
-      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
-      const old = await Content.findOne({ key: 'bgImagePublicId' });
-      if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
-      await Content.findOneAndUpdate({ key: 'bgImageUrl' }, { value: req.file.path }, { upsert: true });
-      await Content.findOneAndUpdate({ key: 'bgImagePublicId' }, { value: req.file.filename }, { upsert: true });
-      res.json({ ok: true, bgImageUrl: req.file.path });
+      const position = req.body?.position;
+      const allowedPositions = ['center', 'top', 'bottom', 'left', 'right', 'top left', 'top right', 'bottom left', 'bottom right'];
+
+      if (!req.file && !position) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
+
+      if (req.file) {
+        const old = await Content.findOne({ key: 'bgImagePublicId' });
+        if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
+        await Content.findOneAndUpdate({ key: 'bgImageUrl' }, { value: req.file.path }, { upsert: true });
+        await Content.findOneAndUpdate({ key: 'bgImagePublicId' }, { value: req.file.filename }, { upsert: true });
+      }
+      if (position && allowedPositions.includes(position)) {
+        await Content.findOneAndUpdate({ key: 'bgPosition' }, { value: position }, { upsert: true });
+      }
+      res.json({ ok: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 });

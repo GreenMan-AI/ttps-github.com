@@ -7,7 +7,7 @@
 <link rel="icon" href="/favicon.ico">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=7">
+<link rel="stylesheet" href="/design.css?v=8">
 </head>
 <body>
 
@@ -121,6 +121,9 @@
 <!-- Admin login FAB -->
 <button id="admin-fab" title="Admin ielogošanās" onclick="openLoginModal()">🔒</button>
 
+<!-- Atpakaļ uz augšu poga -->
+<button id="back-to-top" title="Uz augšu" onclick="scrollToTop()">⬆</button>
+
 <!-- Login modal -->
 <div class="modal-overlay" id="login-modal">
   <div class="modal">
@@ -192,6 +195,20 @@
     <div class="field">
       <label data-i18n="image_label">Bilde</label>
       <input type="file" id="f-bgImage" accept="image/*">
+    </div>
+    <div class="field">
+      <label data-i18n="bg_position_label">Bildes novietojums (centrējums)</label>
+      <select id="f-bgPosition">
+        <option value="center" data-i18n="pos_center">Centrā</option>
+        <option value="top" data-i18n="pos_top">Augšā</option>
+        <option value="bottom" data-i18n="pos_bottom">Apakšā</option>
+        <option value="left" data-i18n="pos_left">Kreisajā pusē</option>
+        <option value="right" data-i18n="pos_right">Labajā pusē</option>
+        <option value="top left" data-i18n="pos_top_left">Augšā kreisi</option>
+        <option value="top right" data-i18n="pos_top_right">Augšā labi</option>
+        <option value="bottom left" data-i18n="pos_bottom_left">Apakšā kreisi</option>
+        <option value="bottom right" data-i18n="pos_bottom_right">Apakšā labi</option>
+      </select>
     </div>
     <div id="bg-current-preview" style="margin-bottom:10px"></div>
     <div class="msg-err" id="bg-err"></div>
@@ -268,6 +285,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=7"></script>
+<script src="/app.js?v=8"></script>
 </body>
 </html>
