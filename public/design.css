@@ -97,6 +97,8 @@ section h2::before{content:'';width:4px;height:20px;background:var(--accent);bor
 .track.dragging{opacity:.4}
 .track.drag-over{border-color:var(--accent);border-style:dashed}
 .hint{color:var(--mut);font-size:12px;font-style:italic;margin-bottom:12px}
+.sub-h{font-size:15px;color:var(--mut);margin:18px 0 10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.sub-h:first-of-type{margin-top:0}
 
 #player-bar{
   position:sticky;bottom:0;z-index:150;

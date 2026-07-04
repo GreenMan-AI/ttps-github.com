@@ -56,6 +56,7 @@ const I18N = {
     audio_files_label: 'Audio faili (vari izvēlēties vairākus)',
     bulk_hint: 'Nosaukumi tiks ņemti no failu nosaukumiem — pēc tam tos vari rediģēt atsevišķi.',
     bg_image_label: 'Fona bilde (parādās aiz visas lapas)', bg_remove: '🗑️ Noņemt fona bildi',
+    new_this_week: '🆕 Šīs nedēļas jaunumi', all_tracks: '🎵 Visas dziesmas',
   },
   en: {
     nav_about: 'About', nav_gallery: 'Gallery', nav_music: 'Music', nav_chat: 'Chat',
@@ -81,6 +82,7 @@ const I18N = {
     audio_files_label: 'Audio files (you can select several)',
     bulk_hint: 'Titles are taken from file names — you can edit them individually afterwards.',
     bg_image_label: 'Background image (shows behind the whole page)', bg_remove: '🗑️ Remove background image',
+    new_this_week: '🆕 New this week', all_tracks: '🎵 All tracks',
   },
 };
 
@@ -353,13 +355,8 @@ async function loadTracks() {
   renderTracks();
 }
 
-function renderTracks() {
-  const tracks = window._tracks || [];
-  const list = document.getElementById('track-list');
-  const isAdmin = !!adminToken;
-  document.getElementById('drag-hint').style.display = isAdmin ? '' : 'none';
-  if (!tracks.length) { list.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`; return; }
-  list.innerHTML = tracks.map(t2 => `
+function trackItemHtml(t2, isAdmin) {
+  return `
     <div class="track ${t2._id === currentTrackId ? 'playing' : ''}" data-id="${t2._id}" draggable="${isAdmin}" onclick="playTrack('${t2._id}')">
       ${isAdmin ? '<span class="drag-handle">⠿</span>' : ''}
       <img class="cover" src="${t2.coverUrl || ''}" onerror="this.style.visibility='hidden'" alt="">
@@ -370,9 +367,40 @@ function renderTracks() {
       <span class="play-ic">${t2._id === currentTrackId ? '⏸' : '▶'}</span>
       <button class="btn sm danger del admin-only" style="display:none" onclick="event.stopPropagation();deleteTrack('${t2._id}')">✕</button>
     </div>
-  `).join('');
+  `;
+}
+
+const NEW_TRACK_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 1 nedēļa
+
+function renderTracks() {
+  const tracks = window._tracks || [];
+  const list = document.getElementById('track-list');
+  const isAdmin = !!adminToken;
+  document.getElementById('drag-hint').style.display = isAdmin ? '' : 'none';
+
+  // ── Šīs nedēļas jaunumi ──
+  const now = Date.now();
+  const newTracks = tracks
+    .filter(t2 => t2.createdAt && (now - new Date(t2.createdAt).getTime()) < NEW_TRACK_WINDOW_MS)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const newWrap = document.getElementById('new-tracks-wrap');
+  const newList = document.getElementById('new-track-list');
+  const allHeading = document.getElementById('all-tracks-heading');
+  if (newTracks.length) {
+    newWrap.style.display = '';
+    allHeading.style.display = '';
+    newList.innerHTML = newTracks.map(t2 => trackItemHtml(t2, isAdmin)).join('');
+  } else {
+    newWrap.style.display = 'none';
+    allHeading.style.display = tracks.length ? 'none' : ''; // ja vispār nav dziesmu, tik un tā parādi virsrakstu ar tukšu ziņu
+  }
+
+  // ── Visas dziesmas ──
+  if (!tracks.length) { list.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`; return; }
+  list.innerHTML = tracks.map(t2 => trackItemHtml(t2, isAdmin)).join('');
+
   if (isAdmin) {
-    document.querySelectorAll('#track-list .admin-only').forEach(el => el.style.display = '');
+    document.querySelectorAll('#track-list .admin-only, #new-track-list .admin-only').forEach(el => el.style.display = '');
     attachDragHandlers();
   }
 }
