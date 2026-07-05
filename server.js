@@ -143,6 +143,17 @@ const uploadTrackFiles = multer({ storage: audioStorage, fileFilter: (req, file,
 }, limits: { fileSize: 30 * 1024 * 1024 } });
 const uploadBgImg = multer({ storage: bgStorage, fileFilter: imageFilter, limits: { fileSize: 12 * 1024 * 1024 } });
 
+const avatarStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async () => ({
+    folder: 'SoundPulse/avatar',
+    resource_type: 'image',
+    public_id: 'avatar_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
+    transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face', quality: 'auto' }],
+  }),
+});
+const uploadAvatarImg = multer({ storage: avatarStorage, fileFilter: imageFilter, limits: { fileSize: 8 * 1024 * 1024 } });
+
 // ══════════════════════════════════════════════════
 //  MONGODB
 // ══════════════════════════════════════════════════
@@ -172,6 +183,7 @@ const GalleryImageSchema = new mongoose.Schema({
 const TrackSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   artist: { type: String, default: '', trim: true },
+  genre: { type: String, default: '', trim: true },
   cloudUrl: { type: String, required: true },
   publicId: { type: String, required: true },
   coverUrl: { type: String, default: '' },
@@ -210,8 +222,12 @@ const DEFAULT_CONTENT = {
   bgSize: 'cover',
   bgOverlayOpacity: '0.4',
   bgSlideInterval: '6',
+  heroAvatarUrl: '',
+  heroAvatarPublicId: '',
   heroTitleColor: '',
   heroSubtitleColor: '',
+  heroImageUrl: '',
+  heroImagePublicId: '',
 };
 
 async function seedContent() {
@@ -224,7 +240,7 @@ async function seedContent() {
 //  ADMIN AUTH — viens vienīgs admin konts (no .env)
 // ══════════════════════════════════════════════════
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'Draconball1';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
 
 // tokens glabājas atmiņā — pietiek, jo admin ir tikai viens
 const sessions = new Map(); // token -> expiresAt
@@ -374,6 +390,56 @@ app.put('/api/content/bg-settings', requireAdmin, async (req, res) => {
 });
 
 // ── Fona bilžu slaidrāde (var būt 1 vai vairākas bildes) ──
+// ── Profila bilde (hero attēls) ──
+app.post('/api/content/hero-image', requireAdmin, uploadLimiter, (req, res) => {
+  uploadBgImg.single('image')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
+      const old = await Content.findOne({ key: 'heroImagePublicId' });
+      if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
+      await Content.findOneAndUpdate({ key: 'heroImageUrl' }, { value: req.file.path }, { upsert: true });
+      await Content.findOneAndUpdate({ key: 'heroImagePublicId' }, { value: req.file.filename }, { upsert: true });
+      res.json({ ok: true, heroImageUrl: req.file.path });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+});
+
+app.delete('/api/content/hero-image', requireAdmin, async (req, res) => {
+  try {
+    const old = await Content.findOne({ key: 'heroImagePublicId' });
+    if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
+    await Content.findOneAndUpdate({ key: 'heroImageUrl' }, { value: '' }, { upsert: true });
+    await Content.findOneAndUpdate({ key: 'heroImagePublicId' }, { value: '' }, { upsert: true });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Profila (hero) bilde — neliela apļveida bilde virs virsraksta ──
+app.post('/api/content/hero-image', requireAdmin, uploadLimiter, (req, res) => {
+  uploadAvatarImg.single('image')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
+      const old = await Content.findOne({ key: 'heroAvatarPublicId' });
+      if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
+      await Content.findOneAndUpdate({ key: 'heroAvatarUrl' }, { value: req.file.path }, { upsert: true });
+      await Content.findOneAndUpdate({ key: 'heroAvatarPublicId' }, { value: req.file.filename }, { upsert: true });
+      res.json({ ok: true, heroAvatarUrl: req.file.path });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+});
+
+app.delete('/api/content/hero-image', requireAdmin, async (req, res) => {
+  try {
+    const old = await Content.findOne({ key: 'heroAvatarPublicId' });
+    if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
+    await Content.findOneAndUpdate({ key: 'heroAvatarUrl' }, { value: '' }, { upsert: true });
+    await Content.findOneAndUpdate({ key: 'heroAvatarPublicId' }, { value: '' }, { upsert: true });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/content/bg-slides', async (req, res) => {
   try {
     const slides = await BgSlide.find().sort({ order: 1, createdAt: 1 }).lean();
@@ -454,11 +520,12 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       const audioFile = req.files?.audio?.[0];
       const coverFile = req.files?.cover?.[0];
       if (!audioFile) return res.status(400).json({ error: 'Audio fails obligāts' });
-      const { title, artist } = req.body || {};
+      const { title, artist, genre } = req.body || {};
       if (!title?.trim()) return res.status(400).json({ error: 'Nosaukums obligāts' });
       const track = await Track.create({
         title: sanitize(title),
         artist: sanitize(artist || ''),
+        genre: sanitize(genre || ''),
         cloudUrl: audioFile.path,
         publicId: audioFile.filename,
         coverUrl: coverFile?.path || '',
@@ -485,10 +552,11 @@ app.put('/api/tracks/reorder', requireAdmin, async (req, res) => {
 app.put('/api/tracks/:id', requireAdmin, async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Nederīgs ID' });
-    const { title, artist } = req.body || {};
+    const { title, artist, genre } = req.body || {};
     const update = {};
     if (title?.trim()) update.title = sanitize(title);
     if (typeof artist === 'string') update.artist = sanitize(artist);
+    if (typeof genre === 'string') update.genre = sanitize(genre);
     const track = await Track.findByIdAndUpdate(req.params.id, update, { new: true });
     res.json({ track });
   } catch (e) { res.status(500).json({ error: e.message }); }

@@ -7,7 +7,7 @@
 <link rel="icon" href="/favicon.ico">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=11">
+<link rel="stylesheet" href="/design.css?v=12">
 </head>
 <body>
 
@@ -36,11 +36,36 @@
 </div>
 
 <section class="hero">
+  <img id="hero-profile-img" class="hero-avatar" src="" alt="" style="display:none">
   <h1 id="hero-title">Sveiki, esmu SoundPulse!</h1>
   <p id="hero-subtitle">Šeit klausies manu pašsacerēto mūziku un skaties bildes.</p>
-  <button class="btn sm admin-only" style="display:none;margin-top:16px" onclick="openContentModal()" data-i18n="edit_text">✏️ Rediģēt tekstu</button>
-  <button class="btn sm admin-only" style="display:none;margin-top:16px;margin-left:10px" onclick="openBgModal()" data-i18n="edit_bg">🖼️ Fona bilde</button>
+  <div class="btn-row admin-only" style="display:none;margin-top:16px;justify-content:center">
+    <button class="btn sm" onclick="openContentModal()" data-i18n="edit_text">✏️ Rediģēt tekstu</button>
+    <button class="btn sm" onclick="openBgModal()" data-i18n="edit_bg">🖼️ Fona bilde</button>
+    <button class="btn sm" onclick="openHeroImgModal()" data-i18n="edit_hero_img">🙂 Profila bilde</button>
+  </div>
 </section>
+
+<!-- Profila bildes modālais logs -->
+<div class="modal-overlay" id="hero-img-modal">
+  <div class="modal">
+    <h3 data-i18n="hero_img_title">Profila bilde</h3>
+    <p class="hint" data-i18n="hero_img_hint">Neliela apļveida bilde, kas parādās virs virsraksta.</p>
+    <div class="field">
+      <label data-i18n="image_label">Bilde</label>
+      <input type="file" id="f-heroImg" accept="image/*">
+    </div>
+    <div id="hero-img-preview" style="margin-bottom:10px"></div>
+    <div class="msg-err" id="hero-img-err"></div>
+    <div class="modal-actions" style="justify-content:space-between">
+      <button type="button" class="btn sm danger" id="hero-img-remove-btn" style="display:none" onclick="removeHeroImage()" data-i18n="hero_img_remove">🗑️ Noņemt</button>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn" onclick="closeModal('hero-img-modal')" data-i18n="close">Aizvērt</button>
+        <button type="button" class="btn primary" id="hero-img-upload-btn" onclick="uploadHeroImage()" data-i18n="upload">Augšupielādēt</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <section id="about">
   <h2 data-i18n="about_title">Par mani</h2>
@@ -88,7 +113,12 @@
 
 <div id="player-bar">
   <div class="pb-track-info">
-    <img id="pb-cover" class="cover" src="" alt="">
+    <div class="pb-cover-wrap">
+      <img id="pb-cover" class="cover" src="" alt="">
+      <div class="waveform" id="pb-waveform">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+    </div>
     <div class="info">
       <div class="t" id="pb-title">—</div>
       <div class="a" id="pb-artist"></div>
@@ -270,6 +300,7 @@
     <form id="track-form">
       <div class="field"><label data-i18n="title_label">Nosaukums</label><input id="t-title" required></div>
       <div class="field"><label data-i18n="artist_label">Izpildītājs (nav obligāts)</label><input id="t-artist"></div>
+      <div class="field"><label data-i18n="genre_label">Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)</label><input id="t-genre" list="genre-list"><datalist id="genre-list"></datalist></div>
       <div class="field"><label data-i18n="audio_file_label">Audio fails (MP3, WAV, OGG...)</label><input type="file" id="t-audio" accept="audio/*" required></div>
       <div class="field"><label data-i18n="cover_label">Vāciņa bilde (nav obligāta)</label><input type="file" id="t-cover" accept="image/*"></div>
       <div class="msg-err" id="track-err"></div>
@@ -294,6 +325,10 @@
         <label data-i18n="artist_label">Izpildītājs visām (nav obligāts)</label>
         <input id="b-artist">
       </div>
+      <div class="field">
+        <label data-i18n="genre_label">Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)</label>
+        <input id="b-genre" list="genre-list">
+      </div>
       <p class="hint" data-i18n="bulk_hint">Nosaukumi tiks ņemti no failu nosaukumiem — pēc tam tos vari rediģēt atsevišķi.</p>
       <div id="bulk-progress"></div>
       <div class="msg-err" id="bulk-err"></div>
@@ -309,6 +344,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=11"></script>
+<script src="/app.js?v=12"></script>
 </body>
 </html>

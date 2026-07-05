@@ -50,6 +50,9 @@ const I18N = {
     nav_about: 'Par mani', nav_gallery: 'Bildes', nav_music: 'Mūzika', nav_chat: 'Čats',
     admin_bar: '🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot bildes un mūziku',
     logout: 'Iziet', edit_text: '✏️ Rediģēt tekstu', edit_bg: '🖼️ Fona bilde', edit_bg_title: 'Fona bilde', about_title: 'Par mani',
+    edit_hero_img: '🙂 Profila bilde', hero_img_title: 'Profila bilde',
+    hero_img_hint: 'Neliela apļveida bilde, kas parādās virs virsraksta.', hero_img_remove: '🗑️ Noņemt',
+    genre_label: 'Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)',
     gallery_title: 'Bildes', add_image: '➕ Pievienot bildi',
     music_title: 'Mūzika', add_track: '➕ Pievienot dziesmu',
     drag_hint: 'Padoms: adminā vari dziesmas pārkārtot, velkot aiz ⠿ ikonas.',
@@ -85,6 +88,9 @@ const I18N = {
     nav_about: 'About', nav_gallery: 'Gallery', nav_music: 'Music', nav_chat: 'Chat',
     admin_bar: '🔧 Admin mode on — you can edit content, add photos and music',
     logout: 'Log out', edit_text: '✏️ Edit text', edit_bg: '🖼️ Background image', edit_bg_title: 'Background image', about_title: 'About me',
+    edit_hero_img: '🙂 Profile image', hero_img_title: 'Profile image',
+    hero_img_hint: 'A small round image that appears above the title.', hero_img_remove: '🗑️ Remove',
+    genre_label: 'Genre (optional, e.g. Hip-Hop, Metal, Ballad)',
     gallery_title: 'Gallery', add_image: '➕ Add photo',
     music_title: 'Music', add_track: '➕ Add track',
     drag_hint: 'Tip: as admin you can reorder tracks by dragging the ⠿ handle.',
@@ -223,6 +229,12 @@ function applyContentForLang() {
   const tagline = c['tagline_' + L] || c.tagline_lv || '';
   document.getElementById('footer-text').textContent = '© ' + new Date().getFullYear() + ' ' + c.siteTitle + (tagline ? ' — ' + tagline : '');
 
+  const avatarEl = document.getElementById('hero-profile-img');
+  if (avatarEl) {
+    if (c.heroAvatarUrl) { avatarEl.src = c.heroAvatarUrl; avatarEl.style.display = ''; }
+    else { avatarEl.style.display = 'none'; avatarEl.src = ''; }
+  }
+
   // Fona bilde tagad tiek pārvaldīta atsevišķi caur loadBgSlideshow() /
   // startBgSlideshow() (skat. zemāk) — atbalsta gan 1, gan vairākas bildes.
 }
@@ -241,6 +253,54 @@ function openContentModal() {
   document.getElementById('content-err').textContent = '';
   document.getElementById('content-ok').textContent = '';
   showModal('content-modal');
+}
+
+function openHeroImgModal() {
+  const c = window._content || {};
+  document.getElementById('f-heroImg').value = '';
+  document.getElementById('hero-img-err').textContent = '';
+  const preview = document.getElementById('hero-img-preview');
+  const removeBtn = document.getElementById('hero-img-remove-btn');
+  if (c.heroAvatarUrl) {
+    preview.innerHTML = `<img src="${c.heroAvatarUrl}" alt="" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`;
+    removeBtn.style.display = '';
+  } else {
+    preview.innerHTML = '';
+    removeBtn.style.display = 'none';
+  }
+  showModal('hero-img-modal');
+}
+
+async function uploadHeroImage() {
+  const errEl = document.getElementById('hero-img-err');
+  errEl.textContent = '';
+  const file = document.getElementById('f-heroImg').files[0];
+  if (!file) { errEl.textContent = currentLang === 'lv' ? 'Vispirms izvēlies failu' : 'Choose a file first'; return; }
+  const fd = new FormData();
+  fd.append('image', file);
+  const btn = document.getElementById('hero-img-upload-btn');
+  btn.disabled = true;
+  try {
+    const r = await fetch(API + '/api/content/hero-image', { method: 'POST', headers: authHeaders(), body: fd });
+    const data = await r.json();
+    btn.disabled = false;
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    toast(currentLang === 'lv' ? '✅ Profila bilde uzstādīta!' : '✅ Profile image set!', 'ok');
+    closeModal('hero-img-modal');
+    await loadContent();
+  } catch (e) { btn.disabled = false; errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
+}
+
+async function removeHeroImage() {
+  if (!confirm(currentLang === 'lv' ? 'Noņemt profila bildi?' : 'Remove profile image?')) return;
+  try {
+    const r = await fetch(API + '/api/content/hero-image', { method: 'DELETE', headers: authHeaders() });
+    const data = await r.json();
+    if (!r.ok) { toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    toast(currentLang === 'lv' ? '🗑️ Profila bilde noņemta' : '🗑️ Profile image removed', 'ok');
+    closeModal('hero-img-modal');
+    await loadContent();
+  } catch (e) { toast('❌ Servera kļūda', 'err'); }
 }
 
 function openBgModal() {
@@ -532,7 +592,7 @@ function trackItemHtml(t2, isAdmin) {
       ${isAdmin ? '<span class="drag-handle">⠿</span>' : ''}
       <img class="cover" src="${t2.coverUrl || ''}" onerror="this.style.visibility='hidden'" alt="">
       <div class="meta">
-        <div class="t">${escapeHtml(t2.title)}</div>
+        <div class="t">${escapeHtml(t2.title)}${t2.genre ? `<span class="genre-tag">${escapeHtml(t2.genre)}</span>` : ''}</div>
         <div class="a">${escapeHtml(t2.artist || '')}</div>
       </div>
       <span class="play-ic">${t2._id === currentTrackId ? '⏸' : '▶'}</span>
@@ -664,11 +724,15 @@ pbAudio.addEventListener('play', () => {
   pbPlayBtn.textContent = '⏸';
   const el = document.querySelector(`.track[data-id="${currentTrackId}"] .play-ic`);
   if (el) el.textContent = '⏸';
+  const wf = document.getElementById('pb-waveform');
+  if (wf) wf.classList.add('playing');
 });
 pbAudio.addEventListener('pause', () => {
   pbPlayBtn.textContent = '▶';
   const el = document.querySelector(`.track[data-id="${currentTrackId}"] .play-ic`);
   if (el) el.textContent = '▶';
+  const wf = document.getElementById('pb-waveform');
+  if (wf) wf.classList.remove('playing');
 });
 pbAudio.addEventListener('ended', () => playAdjacentTrack(1));
 
@@ -709,7 +773,14 @@ pbVolumeSlider.addEventListener('input', () => {
 function openTrackModal() {
   document.getElementById('track-form').reset();
   document.getElementById('track-err').textContent = '';
+  populateGenreList();
   showModal('track-modal');
+}
+
+function populateGenreList() {
+  const genres = [...new Set((window._tracks || []).map(t2 => t2.genre).filter(Boolean))];
+  const listEl = document.getElementById('genre-list');
+  if (listEl) listEl.innerHTML = genres.map(g => `<option value="${escapeAttr(g)}">`).join('');
 }
 
 document.getElementById('track-form').addEventListener('submit', async (e) => {
@@ -721,6 +792,7 @@ document.getElementById('track-form').addEventListener('submit', async (e) => {
   const fd = new FormData();
   fd.append('title', document.getElementById('t-title').value);
   fd.append('artist', document.getElementById('t-artist').value);
+  fd.append('genre', document.getElementById('t-genre').value);
   fd.append('audio', audioFile);
   const coverFile = document.getElementById('t-cover').files[0];
   if (coverFile) fd.append('cover', coverFile);
@@ -747,6 +819,7 @@ function openBulkModal() {
   document.getElementById('bulk-err').textContent = '';
   document.getElementById('bulk-progress').innerHTML = '';
   document.getElementById('bulk-submit-btn').disabled = false;
+  populateGenreList();
   showModal('bulk-modal');
 }
 
@@ -764,6 +837,7 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
   const files = Array.from(document.getElementById('b-files').files);
   if (!files.length) { errEl.textContent = 'Izvēlies vismaz vienu failu'; return; }
   const artist = document.getElementById('b-artist').value;
+  const genre = document.getElementById('b-genre').value;
 
   submitBtn.disabled = true;
   let okCount = 0, errCount = 0;
@@ -779,6 +853,7 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
     const fd = new FormData();
     fd.append('title', title);
     fd.append('artist', artist);
+    fd.append('genre', genre);
     fd.append('audio', file);
     try {
       const r = await fetch(API + '/api/tracks', { method: 'POST', headers: authHeaders(), body: fd });
