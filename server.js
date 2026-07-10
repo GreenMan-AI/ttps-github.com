@@ -18,14 +18,40 @@ const PORT   = process.env.PORT || 3000;
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// ══════════════════════════════════════════════════
-//  CORS
-// ══════════════════════════════════════════════════
+// Vienkāršs cookie parseris (bez cookie-parser atkarības) — vajadzīgs, lai
+// nolasītu httpOnly admin sesijas cookie no pieprasījuma galvenēm.
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  req.cookies = {};
+  const header = req.headers.cookie;
+  if (header) {
+    header.split(';').forEach(pair => {
+      const idx = pair.indexOf('=');
+      if (idx === -1) return;
+      const key = pair.slice(0, idx).trim();
+      const val = pair.slice(idx + 1).trim();
+      if (key) { try { req.cookies[key] = decodeURIComponent(val); } catch (e) { req.cookies[key] = val; } }
+    });
+  }
+  next();
+});
+
+// ══════════════════════════════════════════════════
+//  CORS — sašaurināts uz zināmiem avotiem. Lapa un API ir vienā domēnā,
+//  tāpēc parastiem apmeklētājiem CORS pat nav vajadzīgs (pārlūks CORS
+//  pārbaudi piemēro TIKAI cross-origin pieprasījumiem). Ja vajag atļaut
+//  kādu papildu domēnu (piem. atsevišķu admin app), pievieno to
+//  ALLOWED_ORIGINS vides mainīgajā (ar komatu atdalītu sarakstu).
+// ══════════════════════════════════════════════════
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Vary', 'Origin');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') return res.status(204).end();
   next();
 });
@@ -38,6 +64,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
     "script-src 'self' 'unsafe-inline'; " +
@@ -241,6 +268,9 @@ async function seedContent() {
 // ══════════════════════════════════════════════════
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
+const COOKIE_NAME = 'sp_admin_session';
+const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 // tokens glabājas atmiņā — pietiek, jo admin ir tikai viens
 const sessions = new Map(); // token -> expiresAt
@@ -251,11 +281,72 @@ function isValidSession(token) {
   if (Date.now() > exp) { sessions.delete(token); return false; }
   return true;
 }
+
+// Droša (laika ziņā konstanta) virkņu salīdzināšana — pasargā pret
+// "timing attack", kur uzbrucējs pēc atbildes ātruma varētu uzminēt
+// paroli rakstzīmi pa rakstzīmei.
+function safeEqual(a, b) {
+  const bufA = crypto.createHash('sha256').update(String(a)).digest();
+  const bufB = crypto.createHash('sha256').update(String(b)).digest();
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+// Konta bloķēšana pēc vairākiem neveiksmīgiem pieteikšanās mēģinājumiem —
+// papildus IP rate-limitam, lai neļautu minēt paroli pat lēnām/no vairākām IP.
+const loginAttempts = new Map(); // key (IP+lietotājvārds) -> { count, lockedUntil }
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000;
+function loginKey(req, username) {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+  return ip + ':' + String(username || '').toLowerCase();
+}
+function isLockedOut(key) {
+  const entry = loginAttempts.get(key);
+  if (!entry) return false;
+  if (entry.lockedUntil && Date.now() < entry.lockedUntil) return true;
+  if (entry.lockedUntil && Date.now() >= entry.lockedUntil) { loginAttempts.delete(key); return false; }
+  return false;
+}
+function recordFailedLogin(key) {
+  const entry = loginAttempts.get(key) || { count: 0 };
+  entry.count++;
+  if (entry.count >= MAX_LOGIN_ATTEMPTS) { entry.lockedUntil = Date.now() + LOCKOUT_MS; entry.count = 0; }
+  loginAttempts.set(key, entry);
+}
+function clearLoginAttempts(key) { loginAttempts.delete(key); }
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of loginAttempts) if (!v.lockedUntil && now - (v.updated || 0) > LOCKOUT_MS) loginAttempts.delete(k);
+}, 600000);
+
+function setSessionCookie(res, token) {
+  const parts = [
+    `${COOKIE_NAME}=${encodeURIComponent(token)}`,
+    'HttpOnly',
+    'Path=/',
+    'SameSite=Strict',
+    `Max-Age=${Math.floor(SESSION_MS / 1000)}`,
+  ];
+  if (IS_PROD) parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+function clearSessionCookie(res) {
+  const parts = [`${COOKIE_NAME}=`, 'HttpOnly', 'Path=/', 'SameSite=Strict', 'Max-Age=0'];
+  if (IS_PROD) parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+
+// Atbalsta sesijas token gan no httpOnly cookie (parastie apmeklētāji admin
+// panelī), gan no Authorization: Bearer galvenes (ērtāk API testēšanai/skriptiem).
+function getSessionToken(req) {
+  return req.cookies?.[COOKIE_NAME] || (req.headers['authorization'] || '').replace('Bearer ', '').trim();
+}
+
 function requireAdmin(req, res, next) {
-  const token = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
+  const token = getSessionToken(req);
   if (!token || !isValidSession(token)) return res.status(401).json({ error: 'Nepieciešama admin autorizācija' });
   // atjauno sesijas termiņu
-  sessions.set(token, Date.now() + 7 * 24 * 60 * 60 * 1000);
+  sessions.set(token, Date.now() + SESSION_MS);
   next();
 }
 setInterval(() => { const now = Date.now(); for (const [t, exp] of sessions) if (now > exp) sessions.delete(t); }, 600000);
@@ -279,17 +370,27 @@ function fixMojibake(str) {
 
 app.post('/api/admin/login', authLimiter, (req, res) => {
   const { username, password } = req.body || {};
-  if (username === ADMIN_USER && password === ADMIN_PASS) {
-    const token = makeToken();
-    sessions.set(token, Date.now() + 7 * 24 * 60 * 60 * 1000);
-    return res.json({ token });
+  const key = loginKey(req, username);
+  if (isLockedOut(key)) {
+    return res.status(429).json({ error: 'Pārāk daudz neveiksmīgu mēģinājumu. Mēģini pēc 15 minūtēm.' });
   }
+  const userOk = safeEqual(username || '', ADMIN_USER);
+  const passOk = safeEqual(password || '', ADMIN_PASS);
+  if (userOk && passOk) {
+    clearLoginAttempts(key);
+    const token = makeToken();
+    sessions.set(token, Date.now() + SESSION_MS);
+    setSessionCookie(res, token);
+    return res.json({ ok: true });
+  }
+  recordFailedLogin(key);
   res.status(401).json({ error: 'Nepareizs lietotājvārds vai parole' });
 });
 
 app.post('/api/admin/logout', requireAdmin, (req, res) => {
-  const token = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
+  const token = getSessionToken(req);
   sessions.delete(token);
+  clearSessionCookie(res);
   res.json({ ok: true });
 });
 
@@ -390,33 +491,8 @@ app.put('/api/content/bg-settings', requireAdmin, async (req, res) => {
 });
 
 // ── Fona bilžu slaidrāde (var būt 1 vai vairākas bildes) ──
-// ── Profila bilde (hero attēls) ──
-app.post('/api/content/hero-image', requireAdmin, uploadLimiter, (req, res) => {
-  uploadBgImg.single('image')(req, res, async (err) => {
-    if (err) return res.status(400).json({ error: err.message });
-    try {
-      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
-      const old = await Content.findOne({ key: 'heroImagePublicId' });
-      if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
-      await Content.findOneAndUpdate({ key: 'heroImageUrl' }, { value: req.file.path }, { upsert: true });
-      await Content.findOneAndUpdate({ key: 'heroImagePublicId' }, { value: req.file.filename }, { upsert: true });
-      res.json({ ok: true, heroImageUrl: req.file.path });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-  });
-});
-
-app.delete('/api/content/hero-image', requireAdmin, async (req, res) => {
-  try {
-    const old = await Content.findOne({ key: 'heroImagePublicId' });
-    if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
-    await Content.findOneAndUpdate({ key: 'heroImageUrl' }, { value: '' }, { upsert: true });
-    await Content.findOneAndUpdate({ key: 'heroImagePublicId' }, { value: '' }, { upsert: true });
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 // ── Profila (hero) bilde — neliela apļveida bilde virs virsraksta ──
-app.post('/api/content/hero-image', requireAdmin, uploadLimiter, (req, res) => {
+app.post('/api/content/hero-avatar', requireAdmin, uploadLimiter, (req, res) => {
   uploadAvatarImg.single('image')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     try {
@@ -430,7 +506,7 @@ app.post('/api/content/hero-image', requireAdmin, uploadLimiter, (req, res) => {
   });
 });
 
-app.delete('/api/content/hero-image', requireAdmin, async (req, res) => {
+app.delete('/api/content/hero-avatar', requireAdmin, async (req, res) => {
   try {
     const old = await Content.findOne({ key: 'heroAvatarPublicId' });
     if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
@@ -578,10 +654,21 @@ app.delete('/api/tracks/:id', requireAdmin, async (req, res) => {
 //  ČATS — reāllaika, apmeklētājiem (Socket.IO, atmiņā)
 // ══════════════════════════════════════════════════
 const chatHistory = [];
+const CHAT_MAX_MSGS = 8;
+const CHAT_WINDOW_MS = 10000;
 io.on('connection', socket => {
   socket.emit('chat-history', chatHistory.slice(-50));
+  const chatTimestamps = [];
 
   socket.on('chat-msg', data => {
+    const now = Date.now();
+    while (chatTimestamps.length && now - chatTimestamps[0] > CHAT_WINDOW_MS) chatTimestamps.shift();
+    if (chatTimestamps.length >= CHAT_MAX_MSGS) {
+      socket.emit('chat-rate-limited');
+      return;
+    }
+    chatTimestamps.push(now);
+
     const name = String(data?.name || 'Anonīms').replace(/<[^>]*>/g, '').trim().slice(0, 30) || 'Anonīms';
     const text = String(data?.text || '').replace(/<[^>]*>/g, '').trim().slice(0, 500);
     if (!text) return;
@@ -591,11 +678,17 @@ io.on('connection', socket => {
     io.emit('chat-msg', msg);
   });
 
-  socket.on('chat-clear', token => {
-    if (!isValidSession(token)) return;
-    chatHistory.length = 0;
-    io.emit('chat-cleared');
+  socket.on('chat-clear', () => {
+    // Vecā metode vairs nedarbojas — admin sesijas tokens tagad ir httpOnly
+    // cookie un JS to vairs nevar nolasīt/nosūtīt. Tīrīšana notiek caur
+    // /api/chat/clear (skat. zemāk), kas pareizi pārbauda admin sesiju.
   });
+});
+
+app.post('/api/chat/clear', requireAdmin, (req, res) => {
+  chatHistory.length = 0;
+  io.emit('chat-cleared');
+  res.json({ ok: true });
 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));

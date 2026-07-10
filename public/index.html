@@ -7,7 +7,7 @@
 <link rel="icon" href="/favicon.ico">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=12">
+<link rel="stylesheet" href="/design.css?v=13">
 </head>
 <body>
 
@@ -22,7 +22,7 @@
     <a href="#about" data-i18n="nav_about">Par mani</a>
     <a href="#gallery" data-i18n="nav_gallery">Bildes</a>
     <a href="#music" data-i18n="nav_music">Mūzika</a>
-    <a href="#chat" data-i18n="nav_chat">Čats</a>
+    <a href="javascript:void(0)" onclick="toggleChatPanel(true)" data-i18n="nav_chat">Čats</a>
     <button class="btn sm" id="lang-toggle" onclick="toggleLang()">EN</button>
   </nav>
 </header>
@@ -96,19 +96,6 @@
   <div class="track-list" id="track-list"></div>
 </section>
 
-<section id="chat">
-  <h2 data-i18n="chat_title">Čats</h2>
-  <div id="chat-box">
-    <div id="chat-msgs"></div>
-    <form class="chat-form" id="chat-form">
-      <input id="chat-name" type="text" data-i18n-ph="chat_name_ph" placeholder="Tavs vārds" maxlength="30" required>
-      <input id="chat-text" type="text" data-i18n-ph="chat_text_ph" placeholder="Raksti ziņu..." maxlength="500" required>
-      <button class="btn sm primary" type="submit" data-i18n="chat_send">Sūtīt</button>
-    </form>
-  </div>
-  <button class="btn sm danger admin-only" style="display:none;margin-top:10px" onclick="clearChat()" data-i18n="clear_chat">🗑️ Notīrīt čatu</button>
-</section>
-
 <footer id="footer-text">SoundPulse</footer>
 
 <div id="player-bar">
@@ -127,9 +114,11 @@
 
   <div class="pb-center">
     <div class="pb-controls">
+      <button class="pb-btn pb-toggle" id="pb-shuffle" title="Jaukt secību">🔀</button>
       <button class="pb-btn" id="pb-prev" title="Iepriekšējā">⏮</button>
       <button class="pb-btn pb-play" id="pb-playpause" title="Atskaņot/Pauze">▶</button>
       <button class="pb-btn" id="pb-next" title="Nākamā">⏭</button>
+      <button class="pb-btn pb-toggle" id="pb-repeat" title="Atkārtot">🔁</button>
     </div>
     <div class="pb-seek-row">
       <span class="pb-time" id="pb-current">0:00</span>
@@ -144,9 +133,30 @@
   <div class="pb-volume">
     <span id="pb-vol-icon">🔊</span>
     <input type="range" id="pb-volume-slider" min="0" max="1" step="0.01" value="1">
+    <button class="pb-btn" id="pb-download" title="Lejupielādēt šo dziesmu" onclick="downloadCurrentTrack()">⬇</button>
   </div>
 
   <audio id="pb-audio"></audio>
+</div>
+
+<!-- Peldošā čata poga (kreisajā apakšējā stūrī) -->
+<button id="chat-fab" title="Čats" onclick="toggleChatPanel()">
+  💬<span id="chat-badge" class="chat-badge" style="display:none">0</span>
+</button>
+
+<!-- Peldošais čata panelis -->
+<div id="chat-panel">
+  <div class="chat-panel-header">
+    <span data-i18n="chat_title">Čats</span>
+    <button class="chat-panel-close" onclick="toggleChatPanel(false)" title="Aizvērt">✕</button>
+  </div>
+  <div id="chat-msgs"></div>
+  <form class="chat-form" id="chat-form">
+    <input id="chat-name" type="text" data-i18n-ph="chat_name_ph" placeholder="Tavs vārds" maxlength="30" required>
+    <input id="chat-text" type="text" data-i18n-ph="chat_text_ph" placeholder="Raksti ziņu..." maxlength="500" required>
+    <button class="btn sm primary" type="submit" data-i18n="chat_send">Sūtīt</button>
+  </form>
+  <button class="btn sm danger admin-only" style="display:none;margin:10px" onclick="clearChat()" data-i18n="clear_chat">🗑️ Notīrīt čatu</button>
 </div>
 
 <!-- Admin login FAB -->
@@ -344,6 +354,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=12"></script>
+<script src="/app.js?v=13"></script>
 </body>
 </html>

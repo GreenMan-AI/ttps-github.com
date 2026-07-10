@@ -83,7 +83,7 @@ echo ""
 echo "── Serveris (server.js) ──"
 check "Admin kodējuma labošanas endpoint" "grep -c \"'/api/admin/fix-encoding'\" server.js" "1"
 check_min "Fona slaidrādes endpoints" "grep -c \"'/api/content/bg-slides\" server.js" "1"
-check_min "Profila bildes endpoints" "grep -c \"'/api/content/hero-image'\" server.js" "1"
+check_min "Profila bildes endpoints" "grep -c \"'/api/content/hero-avatar'\" server.js" "1"
 check "Dziesmu secības maiņas endpoint" "grep -c \"'/api/tracks/reorder'\" server.js" "1"
 
 echo ""

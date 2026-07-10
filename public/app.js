@@ -16,13 +16,14 @@ if ('serviceWorker' in navigator) {
 }
 
 const API = ''; // tukšs, jo lapa un API ir vienā domēnā
-let adminToken = localStorage.getItem('sp_admin_token') || null;
+// PIEZĪME: admin sesija tagad tiek glabāta httpOnly cookie (nevis localStorage),
+// tāpēc JS kodam tā vairs nav redzama/nozogama caur XSS. isAdmin ir tikai
+// vietējais UI stāvoklis — patieso autorizāciju katrā pieprasījumā pārbauda serveris.
+let isAdmin = false;
 let currentLang = localStorage.getItem('sp_lang') || 'lv';
 let currentCategory = 'all';
 
-function authHeaders() {
-  return adminToken ? { 'Authorization': 'Bearer ' + adminToken } : {};
-}
+function authHeaders() { return {}; } // saglabāts priekš saderības ar esošajiem izsaukumiem — cookie tiek sūtīta automātiski
 
 function showModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
@@ -150,12 +151,11 @@ function setAdminUI(isAdmin) {
 }
 
 async function checkAdmin() {
-  if (!adminToken) { setAdminUI(false); return; }
   try {
-    const r = await fetch(API + '/api/admin/check', { headers: authHeaders() });
-    if (r.ok) setAdminUI(true);
-    else { adminToken = null; localStorage.removeItem('sp_admin_token'); setAdminUI(false); }
-  } catch (e) { setAdminUI(false); }
+    const r = await fetch(API + '/api/admin/check');
+    if (r.ok) { isAdmin = true; setAdminUI(true); }
+    else { isAdmin = false; setAdminUI(false); }
+  } catch (e) { isAdmin = false; setAdminUI(false); }
 }
 
 function openLoginModal() { document.getElementById('login-err').textContent = ''; showModal('login-modal'); }
@@ -173,8 +173,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     });
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; return; }
-    adminToken = data.token;
-    localStorage.setItem('sp_admin_token', adminToken);
+    isAdmin = true;
     closeModal('login-modal');
     setAdminUI(true);
     await loadGallery();
@@ -183,9 +182,8 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 });
 
 async function adminLogout() {
-  try { await fetch(API + '/api/admin/logout', { method: 'POST', headers: authHeaders() }); } catch (e) {}
-  adminToken = null;
-  localStorage.removeItem('sp_admin_token');
+  try { await fetch(API + '/api/admin/logout', { method: 'POST' }); } catch (e) {}
+  isAdmin = false;
   setAdminUI(false);
 }
 
@@ -281,7 +279,7 @@ async function uploadHeroImage() {
   const btn = document.getElementById('hero-img-upload-btn');
   btn.disabled = true;
   try {
-    const r = await fetch(API + '/api/content/hero-image', { method: 'POST', headers: authHeaders(), body: fd });
+    const r = await fetch(API + '/api/content/hero-avatar', { method: 'POST', headers: authHeaders(), body: fd });
     const data = await r.json();
     btn.disabled = false;
     if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
@@ -294,7 +292,7 @@ async function uploadHeroImage() {
 async function removeHeroImage() {
   if (!confirm(currentLang === 'lv' ? 'Noņemt profila bildi?' : 'Remove profile image?')) return;
   try {
-    const r = await fetch(API + '/api/content/hero-image', { method: 'DELETE', headers: authHeaders() });
+    const r = await fetch(API + '/api/content/hero-avatar', { method: 'DELETE', headers: authHeaders() });
     const data = await r.json();
     if (!r.ok) { toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
     toast(currentLang === 'lv' ? '🗑️ Profila bilde noņemta' : '🗑️ Profile image removed', 'ok');
@@ -537,7 +535,7 @@ function renderGallery() {
       <button class="btn sm danger del admin-only" style="display:none" onclick="deleteGalleryItem('${it._id}')">✕</button>
     </div>
   `).join('');
-  if (adminToken) document.querySelectorAll('#gallery-grid .admin-only').forEach(el => el.style.display = '');
+  if (isAdmin) document.querySelectorAll('#gallery-grid .admin-only').forEach(el => el.style.display = '');
 }
 
 function openGalleryModal() {
@@ -596,9 +594,37 @@ function trackItemHtml(t2, isAdmin) {
         <div class="a">${escapeHtml(t2.artist || '')}</div>
       </div>
       <span class="play-ic">${t2._id === currentTrackId ? '⏸' : '▶'}</span>
+      <button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Lejupielādēt' : 'Download'}" onclick="event.stopPropagation();downloadTrack('${t2._id}')">⬇</button>
       <button class="btn sm danger del admin-only" style="display:none" onclick="event.stopPropagation();deleteTrack('${t2._id}')">✕</button>
     </div>
   `;
+}
+
+// Cloudinary URL pārveidošana lejupielādes saitē: pievieno fl_attachment karodziņu,
+// lai serveris atbild ar Content-Disposition: attachment (pārlūks failu lejupielādē,
+// nevis atskaņo/atver to jaunā cilnē).
+function cloudinaryDownloadUrl(url, filename) {
+  if (!url) return url;
+  const marker = '/upload/';
+  const idx = url.indexOf(marker);
+  if (idx === -1) return url;
+  const safeName = (filename || 'dziesma').replace(/[^\w\s\-()]/g, '').trim().replace(/\s+/g, '_').slice(0, 80);
+  const flag = 'fl_attachment:' + encodeURIComponent(safeName || 'dziesma');
+  return url.slice(0, idx + marker.length) + flag + '/' + url.slice(idx + marker.length);
+}
+
+function downloadTrack(id) {
+  const tracks = window._tracks || [];
+  const track = tracks.find(t2 => t2._id === id);
+  if (!track || !track.cloudUrl) return;
+  const filename = (track.artist ? track.artist + ' - ' : '') + track.title;
+  const url = cloudinaryDownloadUrl(track.cloudUrl, filename);
+  window.open(url, '_blank');
+}
+
+function downloadCurrentTrack() {
+  if (!currentTrackId) { toast(currentLang === 'lv' ? 'Nav izvēlēta dziesma' : 'No track selected', 'err'); return; }
+  downloadTrack(currentTrackId);
 }
 
 const NEW_TRACK_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 1 nedēļa
@@ -606,7 +632,6 @@ const NEW_TRACK_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 1 nedēļa
 function renderTracks() {
   const tracks = window._tracks || [];
   const list = document.getElementById('track-list');
-  const isAdmin = !!adminToken;
   document.getElementById('drag-hint').style.display = isAdmin ? '' : 'none';
 
   // ── Šīs nedēļas jaunumi ──
@@ -691,9 +716,31 @@ function playAdjacentTrack(dir) {
   if (!tracks.length || !currentTrackId) return;
   const idx = tracks.findIndex(t2 => t2._id === currentTrackId);
   if (idx < 0) return;
+  if (shuffleOn && tracks.length > 1) {
+    let randIdx;
+    do { randIdx = Math.floor(Math.random() * tracks.length); } while (randIdx === idx);
+    playTrack(tracks[randIdx]._id);
+    return;
+  }
   const nextIdx = (idx + dir + tracks.length) % tracks.length;
   playTrack(tracks[nextIdx]._id);
 }
+
+// ── Shuffle / Repeat ──
+let shuffleOn = false;
+let repeatMode = 'off'; // 'off' | 'all' | 'one'
+const pbShuffleBtn = document.getElementById('pb-shuffle');
+const pbRepeatBtn = document.getElementById('pb-repeat');
+pbShuffleBtn.addEventListener('click', () => {
+  shuffleOn = !shuffleOn;
+  pbShuffleBtn.classList.toggle('active', shuffleOn);
+});
+pbRepeatBtn.addEventListener('click', () => {
+  repeatMode = repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off';
+  pbRepeatBtn.classList.toggle('active', repeatMode !== 'off');
+  pbRepeatBtn.textContent = repeatMode === 'one' ? '🔂' : '🔁';
+  pbRepeatBtn.title = repeatMode === 'off' ? 'Atkārtot: izslēgts' : repeatMode === 'all' ? 'Atkārtot: visas' : 'Atkārtot: vienu';
+});
 
 // ── Custom player vadība ──
 const pbAudio = document.getElementById('pb-audio');
@@ -726,6 +773,7 @@ pbAudio.addEventListener('play', () => {
   if (el) el.textContent = '⏸';
   const wf = document.getElementById('pb-waveform');
   if (wf) wf.classList.add('playing');
+  document.getElementById('pb-cover').classList.add('pulsing');
 });
 pbAudio.addEventListener('pause', () => {
   pbPlayBtn.textContent = '▶';
@@ -733,8 +781,12 @@ pbAudio.addEventListener('pause', () => {
   if (el) el.textContent = '▶';
   const wf = document.getElementById('pb-waveform');
   if (wf) wf.classList.remove('playing');
+  document.getElementById('pb-cover').classList.remove('pulsing');
 });
-pbAudio.addEventListener('ended', () => playAdjacentTrack(1));
+pbAudio.addEventListener('ended', () => {
+  if (repeatMode === 'one') { pbAudio.currentTime = 0; pbAudio.play().catch(() => {}); return; }
+  playAdjacentTrack(1);
+});
 
 pbAudio.addEventListener('loadedmetadata', () => {
   pbDurationEl.textContent = formatTime(pbAudio.duration);
@@ -887,6 +939,24 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
 // ══════════════════════════════════════════════════
 const socket = io();
 const chatMsgsEl = document.getElementById('chat-msgs');
+let chatPanelOpen = false;
+let chatUnreadCount = 0;
+
+function toggleChatPanel(forceOpen) {
+  chatPanelOpen = typeof forceOpen === 'boolean' ? forceOpen : !chatPanelOpen;
+  document.getElementById('chat-panel').classList.toggle('show', chatPanelOpen);
+  if (chatPanelOpen) {
+    chatUnreadCount = 0;
+    updateChatBadge();
+    chatMsgsEl.scrollTop = chatMsgsEl.scrollHeight;
+  }
+}
+
+function updateChatBadge() {
+  const badge = document.getElementById('chat-badge');
+  if (chatUnreadCount > 0) { badge.textContent = chatUnreadCount > 9 ? '9+' : chatUnreadCount; badge.style.display = 'flex'; }
+  else { badge.style.display = 'none'; }
+}
 
 function renderChatMsg(m) {
   const div = document.createElement('div');
@@ -900,8 +970,14 @@ socket.on('chat-history', (history) => {
   chatMsgsEl.innerHTML = '';
   history.forEach(renderChatMsg);
 });
-socket.on('chat-msg', renderChatMsg);
+socket.on('chat-msg', (m) => {
+  renderChatMsg(m);
+  if (!chatPanelOpen) { chatUnreadCount++; updateChatBadge(); }
+});
 socket.on('chat-cleared', () => { chatMsgsEl.innerHTML = ''; });
+socket.on('chat-rate-limited', () => {
+  toast(currentLang === 'lv' ? '⏳ Pārāk daudz ziņu — pagaidi mirkli' : '⏳ Too many messages — wait a moment', 'err');
+});
 
 document.getElementById('chat-form').addEventListener('submit', (e) => {
   e.preventDefault();
@@ -917,7 +993,10 @@ document.getElementById('chat-form').addEventListener('submit', (e) => {
 
 async function clearChat() {
   if (!confirm('Notīrīt visu čata vēsturi visiem apmeklētājiem?')) return;
-  socket.emit('chat-clear', adminToken);
+  try {
+    const r = await fetch(API + '/api/chat/clear', { method: 'POST' });
+    if (!r.ok) { const d = await r.json().catch(() => ({})); toast(d.error || 'Kļūda', 'err'); }
+  } catch (e) { toast('Servera kļūda', 'err'); }
 }
 
 // ── palīgfunkcijas ──
