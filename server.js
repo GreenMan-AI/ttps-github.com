@@ -145,14 +145,6 @@ const coverStorage = new CloudinaryStorage({
     transformation: [{ width: 500, height: 500, crop: 'fill', quality: 'auto' }],
   }),
 });
-const audioStorage = new CloudinaryStorage({
-  cloudinary,
-  params: async () => ({
-    folder: 'SoundPulse/audio',
-    resource_type: 'video', // Cloudinary glabā audio zem "video" resursa tipa
-    public_id: 'track_' + Date.now() + '_' + crypto.randomBytes(6).toString('hex'),
-  }),
-});
 const bgStorage = new CloudinaryStorage({
   cloudinary,
   params: async () => ({
@@ -164,7 +156,10 @@ const bgStorage = new CloudinaryStorage({
 });
 
 const uploadGalleryImg = multer({ storage: galleryStorage, fileFilter: imageFilter, limits: { fileSize: 10 * 1024 * 1024 } });
-const uploadTrackFiles = multer({ storage: audioStorage, fileFilter: (req, file, cb) => {
+// Audio + vāciņa faili PIRMS Cloudinary augšupielādes paliek atmiņā (memoryStorage),
+// lai varētu aprēķināt audio faila hash un pārbaudīt, vai tāda dziesma jau nav
+// augšupielādēta — tā izvairāmies tērēt Cloudinary vietu dublikātiem.
+const uploadTrackFiles = multer({ storage: multer.memoryStorage(), fileFilter: (req, file, cb) => {
   if (file.fieldname === 'cover') return imageFilter(req, file, cb);
   return audioFilter(req, file, cb);
 }, limits: { fileSize: 30 * 1024 * 1024 } });
@@ -215,6 +210,7 @@ const TrackSchema = new mongoose.Schema({
   publicId: { type: String, required: true },
   coverUrl: { type: String, default: '' },
   coverPublicId: { type: String, default: '' },
+  fileHash: { type: String, index: true }, // SHA-256 no audio faila satura — dublikātu noteikšanai
   order: { type: Number, default: 0 },
 }, { timestamps: true });
 
@@ -353,6 +349,19 @@ setInterval(() => { const now = Date.now(); for (const [t, exp] of sessions) if 
 
 function sanitize(str) {
   return String(str || '').replace(/<[^>]*>/g, '').trim().slice(0, 2000);
+}
+
+// Augšupielādē bufera saturu (atmiņā, no multer memoryStorage) uz Cloudinary,
+// izmantojot upload_stream — vajadzīgs, jo audio failu vispirms pārbaudām pēc
+// hash (dublikātu meklēšanai) un TIKAI TAD sūtām uz Cloudinary.
+function uploadBufferToCloudinary(buffer, options) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (err, result) => {
+      if (err) return reject(err);
+      resolve(result);
+    });
+    stream.end(buffer);
+  });
 }
 
 // Multer/busboy multipart teksta laukus pēc noklusējuma atkodē kā "latin1",
@@ -598,17 +607,50 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       if (!audioFile) return res.status(400).json({ error: 'Audio fails obligāts' });
       const { title, artist, genre } = req.body || {};
       if (!title?.trim()) return res.status(400).json({ error: 'Nosaukums obligāts' });
+
+      // ── Dublikātu pārbaude PIRMS Cloudinary augšupielādes ──
+      // Hash tiek rēķināts no faila SATURA, nevis nosaukuma, tāpēc dublikātu
+      // atpazīst arī tad, ja fails pārsaukts vai nosaukums/izpildītājs atšķiras.
+      const fileHash = crypto.createHash('sha256').update(audioFile.buffer).digest('hex');
+      const existing = await Track.findOne({ fileHash });
+      if (existing) {
+        return res.status(409).json({
+          error: `Šī dziesma jau ir augšupielādēta ("${existing.title}"${existing.artist ? ' — ' + existing.artist : ''}). Lai neaizņemtu vietu velti, dublikāts netika pievienots.`,
+          duplicateOf: { id: existing._id, title: existing.title, artist: existing.artist },
+        });
+      }
+
+      const audioResult = await uploadBufferToCloudinary(audioFile.buffer, {
+        folder: 'SoundPulse/audio',
+        resource_type: 'video', // Cloudinary glabā audio zem "video" resursa tipa
+        public_id: 'track_' + Date.now() + '_' + crypto.randomBytes(6).toString('hex'),
+      });
+
+      let coverResult = null;
+      if (coverFile) {
+        coverResult = await uploadBufferToCloudinary(coverFile.buffer, {
+          folder: 'SoundPulse/covers',
+          resource_type: 'image',
+          public_id: 'cover_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
+          transformation: [{ width: 500, height: 500, crop: 'fill', quality: 'auto' }],
+        });
+      }
+
       const track = await Track.create({
         title: sanitize(title),
         artist: sanitize(artist || ''),
         genre: sanitize(genre || ''),
-        cloudUrl: audioFile.path,
-        publicId: audioFile.filename,
-        coverUrl: coverFile?.path || '',
-        coverPublicId: coverFile?.filename || '',
+        cloudUrl: audioResult.secure_url,
+        publicId: audioResult.public_id,
+        coverUrl: coverResult?.secure_url || '',
+        coverPublicId: coverResult?.public_id || '',
+        fileHash,
       });
       res.status(201).json({ track });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+      if (e?.code === 11000) return res.status(409).json({ error: 'Šī dziesma jau ir augšupielādēta (dublikāts).' });
+      res.status(500).json({ error: e.message });
+    }
   });
 });
 

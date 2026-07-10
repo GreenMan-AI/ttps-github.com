@@ -892,7 +892,7 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
   const genre = document.getElementById('b-genre').value;
 
   submitBtn.disabled = true;
-  let okCount = 0, errCount = 0;
+  let okCount = 0, errCount = 0, dupCount = 0;
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
@@ -914,6 +914,10 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
         line.textContent = `✅ ${title}`;
         line.className = 'line-ok';
         okCount++;
+      } else if (r.status === 409) {
+        line.textContent = `⏭️ ${title} — jau ir augšupielādēta (izlaists dublikāts)`;
+        line.className = 'line-err';
+        dupCount++;
       } else {
         line.textContent = `❌ ${title} — ${data.error || 'kļūda'}`;
         line.className = 'line-err';
@@ -929,9 +933,9 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
   submitBtn.disabled = false;
   await loadTracks();
   const summary = currentLang === 'lv'
-    ? `Pievienotas ${okCount} dziesmas` + (errCount ? `, ${errCount} neizdevās` : '')
-    : `Added ${okCount} tracks` + (errCount ? `, ${errCount} failed` : '');
-  toast((errCount ? '⚠️ ' : '✅ ') + summary, errCount ? 'err' : 'ok');
+    ? `Pievienotas ${okCount} dziesmas` + (dupCount ? `, ${dupCount} dublikāti izlaisti` : '') + (errCount ? `, ${errCount} neizdevās` : '')
+    : `Added ${okCount} tracks` + (dupCount ? `, ${dupCount} duplicates skipped` : '') + (errCount ? `, ${errCount} failed` : '');
+  toast(((errCount || dupCount) ? '⚠️ ' : '✅ ') + summary, (errCount || dupCount) ? 'err' : 'ok');
 });
 
 // ══════════════════════════════════════════════════
