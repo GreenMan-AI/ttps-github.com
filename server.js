@@ -106,7 +106,7 @@ function rateLimit(maxReq, windowMs, prefix) {
 setInterval(() => { const now = Date.now(); for (const [k, v] of rateLimitMap) if (now > v.reset) rateLimitMap.delete(k); }, 300000);
 
 const authLimiter   = rateLimit(10, 60000, 'auth');
-const uploadLimiter = rateLimit(30, 300000, 'upload');
+const uploadLimiter = rateLimit(150, 300000, 'upload');
 const translateLimiter = rateLimit(40, 600000, 'translate');
 const apiLimiter    = rateLimit(300, 60000, 'api');
 app.use('/api/', apiLimiter);
@@ -214,7 +214,7 @@ const TrackSchema = new mongoose.Schema({
   coverPublicId: { type: String, default: '' },
   fileHash: { type: String, index: true }, // SHA-256 no audio faila satura — dublikātu noteikšanai
   playCount: { type: Number, default: 0 },
-  order: { type: Number, default: 0 },
+  order: { type: Number, default: 0, index: true },
 }, { timestamps: true });
 
 const BgSlideSchema = new mongoose.Schema({
@@ -402,6 +402,19 @@ app.post('/api/admin/translate', requireAdmin, translateLimiter, async (req, res
     const translated = await translateText(sanitize(text), source || 'auto', target);
     res.json({ translated });
   } catch (e) { res.status(502).json({ error: 'Tulkošana neizdevās — pamēģini vēlreiz vēlāk' }); }
+});
+
+// Publisks tulkošanas endpoints čatam (nevis tikai adminam) — visi apmeklētāji
+// var uzrakstīt/lasīt čatu savā valodā. Stingrāks rate-limit, jo pieejams visiem.
+const chatTranslateLimiter = rateLimit(20, 300000, 'chat-translate');
+app.post('/api/translate', chatTranslateLimiter, async (req, res) => {
+  try {
+    const { text, source, target } = req.body || {};
+    if (!text || !target) return res.status(400).json({ error: 'Trūkst text vai target' });
+    if (String(text).length > 500) return res.status(400).json({ error: 'Teksts par garu' });
+    const translated = await translateText(sanitize(text), source || 'auto', target);
+    res.json({ translated });
+  } catch (e) { res.status(502).json({ error: 'Tulkošana neizdevās' }); }
 });
 
 // Augšupielādē bufera saturu (atmiņā, no multer memoryStorage) uz Cloudinary,

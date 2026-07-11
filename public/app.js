@@ -682,13 +682,16 @@ async function loadTracks() {
   renderTracks();
 }
 
-function trackItemHtml(t2, isAdmin) {
+function trackItemHtml(t2, isAdmin, num) {
+  const lastPlayedId = localStorage.getItem('sp_last_played');
+  const isLastPlayed = lastPlayedId && t2._id === lastPlayedId && t2._id !== currentTrackId;
   return `
     <div class="track ${t2._id === currentTrackId ? 'playing' : ''}" data-id="${t2._id}" draggable="${isAdmin}" onclick="playTrack('${t2._id}')">
       ${isAdmin ? '<span class="drag-handle">⠿</span>' : ''}
+      ${num ? `<span class="track-num">${num}</span>` : ''}
       <img class="cover" src="${t2.coverUrl || ''}" onerror="this.style.visibility='hidden'" alt="">
       <div class="meta">
-        <div class="t">${escapeHtml(t2.title)}${t2.genre ? `<span class="genre-tag">${escapeHtml(t2.genre)}</span>` : ''}</div>
+        <div class="t">${escapeHtml(t2.title)}${t2.genre ? `<span class="genre-tag">${escapeHtml(t2.genre)}</span>` : ''}${isLastPlayed ? `<span class="last-played-tag" title="${currentLang === 'lv' ? 'Pēdējā klausītā' : 'Last played'}">🕐 ${currentLang === 'lv' ? 'pēdējā' : 'last'}</span>` : ''}</div>
         <div class="a">${escapeHtml(t2.artist || '')}${isAdmin ? `<span class="play-count" title="${currentLang === 'lv' ? 'Noklausīšanās skaits' : 'Play count'}">▶ ${t2.playCount || 0}</span>` : ''}</div>
       </div>
       <span class="play-ic">${t2._id === currentTrackId ? '⏸' : '▶'}</span>
@@ -751,7 +754,7 @@ function renderTracks() {
 
   // ── Visas dziesmas ──
   if (!tracks.length) { list.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`; return; }
-  list.innerHTML = tracks.map(t2 => trackItemHtml(t2, isAdmin)).join('');
+  list.innerHTML = tracks.map((t2, idx) => trackItemHtml(t2, isAdmin, idx + 1)).join('');
 
   if (isAdmin) {
     document.querySelectorAll('#track-list .admin-only, #new-track-list .admin-only').forEach(el => el.style.display = '');
@@ -807,6 +810,7 @@ function playTrack(id) {
   const audio = document.getElementById('pb-audio');
   audio.src = track.cloudUrl;
   audio.play().catch(() => {});
+  localStorage.setItem('sp_last_played', id);
 
   // Klausīšanās skaitītājs — vienreiz uz katru dziesmas izvēli (nevis katru
   // pauzes/atsākšanas reizi). "Fire and forget" — neietekmē atskaņošanu, ja neizdodas.
@@ -1059,6 +1063,20 @@ function parseAudioFilename(rawName) {
   return { title: title || 'Nezināms nosaukums', artist };
 }
 
+// Apstrādā vairākus elementus VIENLAICĪGI (ierobežots skaits uzreiz), nevis
+// vienu pēc otra — tas ievērojami paātrina daudzu failu augšupielādi.
+async function processWithConcurrency(items, worker, concurrency) {
+  let idx = 0;
+  async function runNext() {
+    while (idx < items.length) {
+      const current = idx++;
+      await worker(items[current], current);
+    }
+  }
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, runNext);
+  await Promise.all(workers);
+}
+
 document.getElementById('bulk-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const errEl = document.getElementById('bulk-err');
@@ -1074,17 +1092,19 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
   submitBtn.disabled = true;
   let okCount = 0, errCount = 0, dupCount = 0, coverFoundCount = 0;
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
+  // Visas rindiņas izveidojam UZREIZ (pareizā secībā), lai progress saraksts
+  // paliktu pārskatāms, pat ja faili paralēli pabeidzas citā secībā.
+  const lines = files.map((file, i) => {
     const parsed = parseAudioFilename(file.name);
-    const title = parsed.title;
-    // ja globālais "Izpildītājs" lauks tukšs, izmanto no faila nosaukuma atpazīto
     const trackArtist = artist.trim() || parsed.artist;
     const line = document.createElement('div');
-    line.textContent = `⏳ (${i + 1}/${files.length}) ${trackArtist ? trackArtist + ' - ' : ''}${title}...`;
+    line.textContent = `⏳ (${i + 1}/${files.length}) ${trackArtist ? trackArtist + ' - ' : ''}${parsed.title}...`;
     progressEl.appendChild(line);
-    progressEl.scrollTop = progressEl.scrollHeight;
+    return { line, title: parsed.title, trackArtist };
+  });
 
+  await processWithConcurrency(files, async (file, i) => {
+    const { line, title, trackArtist } = lines[i];
     const fd = new FormData();
     fd.append('title', title);
     fd.append('artist', trackArtist);
@@ -1112,7 +1132,8 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
       line.className = 'line-err';
       errCount++;
     }
-  }
+    progressEl.scrollTop = progressEl.scrollHeight;
+  }, 3); // 3 faili vienlaicīgi — līdzsvars starp ātrumu un servera slodzi
 
   submitBtn.disabled = false;
   await loadTracks();
@@ -1149,9 +1170,66 @@ function updateChatBadge() {
 function renderChatMsg(m) {
   const div = document.createElement('div');
   div.className = 'chat-line';
-  div.innerHTML = `<b>${escapeHtml(m.name)}:</b> ${escapeHtml(m.text)}`;
+  div.dataset.msgId = m.id || '';
+  div.dataset.rawText = m.text;
+  div.innerHTML = `<b>${escapeHtml(m.name)}:</b> <span class="msg-text">${escapeHtml(m.text)}</span>` +
+    `<button type="button" class="msg-translate-btn" title="${currentLang === 'lv' ? 'Iztulkot' : 'Translate'}" onclick="toggleTranslateMsg(this)">T</button>`;
   chatMsgsEl.appendChild(div);
   chatMsgsEl.scrollTop = chatMsgsEl.scrollHeight;
+}
+
+// ── Čata tulkošana ──
+// Katrai ziņai — nospiežot "T", parāda/paslēpj tulkojumu uz lietotāja pašreizējo
+// valodu (currentLang). Ievades laukam — nospiežot "T", pārtulko UZRAKSTĪTO
+// tekstu uz OTRU valodu, lai varētu uzrakstīt savā valodā un nosūtīt saprotamu
+// ziņu arī tiem, kas to nezina.
+async function toggleTranslateMsg(btn) {
+  const line = btn.closest('.chat-line');
+  const existing = line.querySelector('.translated-text');
+  if (existing) { existing.remove(); return; } // otrreiz nospiežot — paslēpj
+
+  const text = line.dataset.rawText;
+  if (!text) return;
+  btn.disabled = true;
+  try {
+    const target = currentLang === 'lv' ? 'lv' : 'en';
+    const translated = await callPublicTranslateApi(text, 'auto', target);
+    const span = document.createElement('span');
+    span.className = 'translated-text';
+    span.textContent = '🌐 ' + translated;
+    line.appendChild(span);
+  } catch (e) {
+    toast(currentLang === 'lv' ? 'Tulkošana neizdevās' : 'Translation failed', 'err');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function translateChatDraft() {
+  const textEl = document.getElementById('chat-text');
+  const btn = document.querySelector('.chat-translate-btn');
+  const text = textEl.value.trim();
+  if (!text) return;
+  const target = currentLang === 'lv' ? 'en' : 'lv';
+  const source = currentLang === 'lv' ? 'lv' : 'en';
+  btn.classList.add('busy');
+  try {
+    textEl.value = await callPublicTranslateApi(text, source, target);
+  } catch (e) {
+    toast(currentLang === 'lv' ? 'Tulkošana neizdevās' : 'Translation failed', 'err');
+  } finally {
+    btn.classList.remove('busy');
+  }
+}
+
+async function callPublicTranslateApi(text, source, target) {
+  const r = await fetch(API + '/api/translate', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, source, target }),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Tulkošana neizdevās');
+  return data.translated;
 }
 
 socket.on('chat-history', (history) => {

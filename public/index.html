@@ -7,7 +7,7 @@
 <link rel="icon" href="/favicon.ico">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=16">
+<link rel="stylesheet" href="/design.css?v=17">
 </head>
 <body>
 
@@ -159,6 +159,7 @@
   <form class="chat-form" id="chat-form">
     <input id="chat-name" type="text" data-i18n-ph="chat_name_ph" placeholder="Tavs vārds" maxlength="30" required>
     <input id="chat-text" type="text" data-i18n-ph="chat_text_ph" placeholder="Raksti ziņu..." maxlength="500" required>
+    <button type="button" class="chat-translate-btn" title="Iztulkot manu ziņu" onclick="translateChatDraft()">T</button>
     <button class="btn sm primary" type="submit" data-i18n="chat_send">Sūtīt</button>
   </form>
   <button class="btn sm danger admin-only" style="display:none;margin:10px" onclick="clearChat()" data-i18n="clear_chat">🗑️ Notīrīt čatu</button>
@@ -364,6 +365,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=16"></script>
+<script src="/app.js?v=17"></script>
 </body>
 </html>
