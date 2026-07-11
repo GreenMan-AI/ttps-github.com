@@ -272,7 +272,7 @@ async function seedContent() {
 //  ADMIN AUTH — viens vienīgs admin konts (no .env)
 // ══════════════════════════════════════════════════
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'Draconball1';
 const COOKIE_NAME = 'sp_admin_session';
 const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
 const IS_PROD = process.env.NODE_ENV === 'production';
