@@ -253,6 +253,67 @@ function openContentModal() {
   showModal('content-modal');
 }
 
+// ══════════════════════════════════════════════════
+//  Automātiskā LV ↔ EN tulkošana admin panelī
+// ══════════════════════════════════════════════════
+async function callTranslateApi(text, source, target) {
+  const r = await fetch(API + '/api/admin/translate', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, source, target }),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Tulkošana neizdevās');
+  return data.translated;
+}
+
+// force=true (poga 🌐) -> vienmēr pārtulko LV->EN un pārraksta EN lauku.
+// force=false (automātiski, zaudējot fokusu) -> aizpilda TIKAI ja mērķa lauks tukšs,
+// un virziens ir tas lauks, kuram tikko pazuda fokuss un kurā ir teksts.
+async function autoTranslatePair(lvId, enId, force, fromField) {
+  const lvEl = document.getElementById(lvId);
+  const enEl = document.getElementById(enId);
+  if (!lvEl || !enEl) return;
+
+  let sourceEl, targetEl, source, target;
+  if (force) {
+    // poga vienmēr tulko no LV puses (parastākā plūsma: uzraksti LV, ģenerē EN)
+    sourceEl = lvEl; targetEl = enEl; source = 'lv'; target = 'en';
+  } else if (fromField === 'lv') {
+    if (enEl.value.trim()) return; // EN jau aizpildīts — nepārraksta automātiski
+    sourceEl = lvEl; targetEl = enEl; source = 'lv'; target = 'en';
+  } else {
+    if (lvEl.value.trim()) return;
+    sourceEl = enEl; targetEl = lvEl; source = 'en'; target = 'lv';
+  }
+
+  const text = sourceEl.value.trim();
+  if (!text) return;
+
+  const btn = document.querySelector(`.translate-btn[onclick*="'${lvId}'"]`);
+  if (btn) btn.classList.add('busy');
+  try {
+    const translated = await callTranslateApi(text, source, target);
+    targetEl.value = translated;
+    targetEl.classList.add('auto-translated');
+  } catch (e) {
+    if (force) toast(e.message || 'Tulkošana neizdevās', 'err');
+  } finally {
+    if (btn) btn.classList.remove('busy');
+  }
+}
+
+// automātiska aizpilde, kad lietotājs pabeidz rakstīt vienā pusē un otra ir tukša
+document.querySelectorAll('#content-form [data-pair]').forEach(el => {
+  el.addEventListener('blur', () => {
+    const pairId = el.dataset.pair;
+    const isLv = el.dataset.lv === '1';
+    if (isLv) autoTranslatePair(el.id, pairId, false, 'lv');
+    else autoTranslatePair(pairId, el.id, false, 'en');
+  });
+  // ja lietotājs pats izlabo automātiski tulkoto tekstu, noņem "auto" izcēlumu
+  el.addEventListener('input', () => el.classList.remove('auto-translated'));
+});
+
 function openHeroImgModal() {
   const c = window._content || {};
   document.getElementById('f-heroImg').value = '';
@@ -472,7 +533,42 @@ document.getElementById('content-form').addEventListener('submit', async (e) => 
   e.preventDefault();
   const errEl = document.getElementById('content-err');
   const okEl = document.getElementById('content-ok');
+  const submitBtn = e.target.querySelector('button[type="submit"]');
   errEl.textContent = ''; okEl.textContent = '';
+
+  // ── Garantēta tulkošana PIRMS saglabāšanas ──
+  // Ja lietotājs uzrakstīja tikai LV (vai tikai EN) un uzreiz spiež "Saglabāt"
+  // (bez klikšķa citur, kas parasti izraisa auto-tulkošanu), pārliecināmies,
+  // ka trūkstošā valoda tomēr tiek pārtulkota — lai NEKAD nebūtu jāraksta pašam.
+  const pairs = ['tagline', 'heroTitle', 'heroSubtitle', 'aboutText'];
+  const missing = pairs.filter(key => {
+    const lv = document.getElementById('f-' + key + '_lv').value.trim();
+    const en = document.getElementById('f-' + key + '_en').value.trim();
+    return (lv && !en) || (en && !lv);
+  });
+  if (missing.length) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = currentLang === 'lv' ? 'Tulkoju...' : 'Translating...';
+    try {
+      for (const key of missing) {
+        const lvEl = document.getElementById('f-' + key + '_lv');
+        const enEl = document.getElementById('f-' + key + '_en');
+        if (lvEl.value.trim() && !enEl.value.trim()) {
+          enEl.value = await callTranslateApi(lvEl.value.trim(), 'lv', 'en');
+          enEl.classList.add('auto-translated');
+        } else if (enEl.value.trim() && !lvEl.value.trim()) {
+          lvEl.value = await callTranslateApi(enEl.value.trim(), 'en', 'lv');
+          lvEl.classList.add('auto-translated');
+        }
+      }
+    } catch (err) {
+      toast(currentLang === 'lv' ? '⚠️ Automātiskā tulkošana neizdevās — pārbaudi tekstu pats' : '⚠️ Auto-translate failed — please check the text', 'err');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = currentLang === 'lv' ? 'Saglabāt' : 'Save';
+    }
+  }
+
   const body = {
     siteTitle: document.getElementById('f-siteTitle').value,
     heroTitleColor: document.getElementById('f-heroTitleColor').value,
@@ -480,7 +576,7 @@ document.getElementById('content-form').addEventListener('submit', async (e) => 
     contactEmail: document.getElementById('f-contactEmail').value,
     socialLink: document.getElementById('f-socialLink').value,
   };
-  ['tagline', 'heroTitle', 'heroSubtitle', 'aboutText'].forEach(key => {
+  pairs.forEach(key => {
     body[key + '_lv'] = document.getElementById('f-' + key + '_lv').value;
     body[key + '_en'] = document.getElementById('f-' + key + '_en').value;
   });
@@ -829,6 +925,16 @@ function openTrackModal() {
   showModal('track-modal');
 }
 
+document.getElementById('t-audio').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const titleEl = document.getElementById('t-title');
+  const artistEl = document.getElementById('t-artist');
+  const parsed = parseAudioFilename(file.name);
+  if (!titleEl.value.trim()) titleEl.value = parsed.title;
+  if (!artistEl.value.trim() && parsed.artist) artistEl.value = parsed.artist;
+});
+
 function populateGenreList() {
   const genres = [...new Set((window._tracks || []).map(t2 => t2.genre).filter(Boolean))];
   const listEl = document.getElementById('genre-list');
@@ -875,8 +981,72 @@ function openBulkModal() {
   showModal('bulk-modal');
 }
 
-function filenameToTitle(name) {
-  return name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim();
+// ══════════════════════════════════════════════════
+//  Gudra failu nosaukumu atpazīšana (bulk augšupielādei un
+//  vienas dziesmas augšupielādes noklusējuma nosaukumam)
+// ══════════════════════════════════════════════════
+
+// Frāzes, kas bieži sastopamas lejupielādētu dziesmu nosaukumos, bet nav
+// daļa no īstā dziesmas nosaukuma — tās izņemam pilnībā.
+const FILENAME_JUNK_PATTERNS = [
+  /\(\s*official\s*(music\s*)?video\s*\)/gi,
+  /\(\s*official\s*audio\s*\)/gi,
+  /\(\s*official\s*\)/gi,
+  /\(\s*lyrics?\s*(video)?\s*\)/gi,
+  /\(\s*audio\s*\)/gi,
+  /\(\s*visualizer\s*\)/gi,
+  /\(\s*hq\s*\)/gi, /\(\s*hd\s*\)/gi, /\(\s*4k\s*\)/gi,
+  /\(\s*explicit\s*\)/gi, /\(\s*clean\s*(version)?\s*\)/gi,
+  /\(\s*remaster(ed)?(\s*\d{4})?\s*\)/gi,
+  /\[[^\]]*\]/g, // jebkas kvadrātiekavās (piem. [Official], [Music Video], [4K])
+];
+
+// Vārdi, kam paliek mazie burti, ja tie NAV nosaukuma pirmajā vietā
+// (latviešu un angļu īsie saikļi/prievārdi)
+const TITLE_CASE_LOWERCASE_WORDS = new Set([
+  'un', 'ar', 'no', 'uz', 'pie', 'par', 'kā', 'vai', 'bet', 'ir', 'the', 'of', 'in', 'on',
+  'a', 'an', 'and', 'or', 'to', 'for', 'ft', 'feat',
+]);
+
+function smartTitleCase(str) {
+  return str.split(' ').map((word, idx) => {
+    if (!word) return word;
+    // saglabā jau esošus lielos burtus, ja tas izskatās pēc saīsinājuma (DJ, MC, III...)
+    if (word.length <= 4 && word === word.toUpperCase() && /[A-ZĀČĒĢĪĶĻŅŠŪŽ]/.test(word)) return word;
+    const lower = word.toLowerCase();
+    if (idx > 0 && TITLE_CASE_LOWERCASE_WORDS.has(lower)) return lower;
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  }).join(' ');
+}
+
+// Atpazīst "Izpildītājs - Nosaukums.mp3" formātu un iztīra sēraini failu
+// nosaukumus (numuru prefiksus, liekus iekavu tekstus, pasvītrojumus u.c.)
+function parseAudioFilename(rawName) {
+  let name = rawName.replace(/\.[^/.]+$/, ''); // noņem paplašinājumu
+  try { name = decodeURIComponent(name); } catch (e) {} // piem. %20 -> atstarpe
+
+  FILENAME_JUNK_PATTERNS.forEach(re => { name = name.replace(re, ''); });
+
+  name = name.replace(/[_]+/g, ' '); // pasvītrojumi -> atstarpes
+  name = name.replace(/^\s*\(?\d{1,3}\)?[\s._\-]+/, ''); // noņem sākuma celiņa numuru, piem. "01 - ", "01."
+  name = name.replace(/\s{2,}/g, ' ').trim();
+  name = name.replace(/^[\s\-._]+|[\s\-._]+$/g, ''); // liekas atstarpes/domuzīmes malās
+
+  let artist = '';
+  let title = name;
+
+  // "Izpildītājs - Nosaukums" — sadala tikai pēc PIRMĀS " - ", lai nesabojātu
+  // nosaukumus, kuros domuzīme ir daļa no paša nosaukuma
+  const dashMatch = name.match(/^(.+?)\s+-\s+(.+)$/);
+  if (dashMatch && dashMatch[1].length <= 40) {
+    artist = dashMatch[1].trim();
+    title = dashMatch[2].trim();
+  }
+
+  title = smartTitleCase(title);
+  artist = smartTitleCase(artist);
+
+  return { title: title || 'Nezināms nosaukums', artist };
 }
 
 document.getElementById('bulk-form').addEventListener('submit', async (e) => {
@@ -896,22 +1066,25 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    const title = filenameToTitle(file.name);
+    const parsed = parseAudioFilename(file.name);
+    const title = parsed.title;
+    // ja globālais "Izpildītājs" lauks tukšs, izmanto no faila nosaukuma atpazīto
+    const trackArtist = artist.trim() || parsed.artist;
     const line = document.createElement('div');
-    line.textContent = `⏳ (${i + 1}/${files.length}) ${title}...`;
+    line.textContent = `⏳ (${i + 1}/${files.length}) ${trackArtist ? trackArtist + ' - ' : ''}${title}...`;
     progressEl.appendChild(line);
     progressEl.scrollTop = progressEl.scrollHeight;
 
     const fd = new FormData();
     fd.append('title', title);
-    fd.append('artist', artist);
+    fd.append('artist', trackArtist);
     fd.append('genre', genre);
     fd.append('audio', file);
     try {
       const r = await fetch(API + '/api/tracks', { method: 'POST', headers: authHeaders(), body: fd });
       const data = await r.json();
       if (r.ok) {
-        line.textContent = `✅ ${title}`;
+        line.textContent = `✅ ${trackArtist ? trackArtist + ' - ' : ''}${title}`;
         line.className = 'line-ok';
         okCount++;
       } else if (r.status === 409) {

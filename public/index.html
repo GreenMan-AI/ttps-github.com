@@ -7,7 +7,7 @@
 <link rel="icon" href="/favicon.ico">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=13">
+<link rel="stylesheet" href="/design.css?v=15">
 </head>
 <body>
 
@@ -199,22 +199,27 @@
         <div class="field"><label>Apakšvirsraksta krāsa (hero)</label><input type="color" id="f-heroSubtitleColor" value="#9aa4b2"></div>
       </div>
 
-      <div class="lang-row">
-        <div class="field"><label>Sauklis 🇱🇻 (LV)</label><input id="f-tagline_lv"></div>
-        <div class="field"><label>Tagline 🇬🇧 (EN)</label><input id="f-tagline_en"></div>
+      <div class="lang-row lang-row-translate">
+        <div class="field"><label>Sauklis 🇱🇻 (LV)</label><input id="f-tagline_lv" data-pair="f-tagline_en" data-lv="1"></div>
+        <button type="button" class="translate-btn" title="Pārtulkot LV → EN" onclick="autoTranslatePair('f-tagline_lv','f-tagline_en',true)">🌐</button>
+        <div class="field"><label>Tagline 🇬🇧 (EN)</label><input id="f-tagline_en" data-pair="f-tagline_lv" data-lv="0"></div>
       </div>
-      <div class="lang-row">
-        <div class="field"><label>Virsraksts 🇱🇻 (LV)</label><input id="f-heroTitle_lv"></div>
-        <div class="field"><label>Hero title 🇬🇧 (EN)</label><input id="f-heroTitle_en"></div>
+      <div class="lang-row lang-row-translate">
+        <div class="field"><label>Virsraksts 🇱🇻 (LV)</label><input id="f-heroTitle_lv" data-pair="f-heroTitle_en" data-lv="1"></div>
+        <button type="button" class="translate-btn" title="Pārtulkot LV → EN" onclick="autoTranslatePair('f-heroTitle_lv','f-heroTitle_en',true)">🌐</button>
+        <div class="field"><label>Hero title 🇬🇧 (EN)</label><input id="f-heroTitle_en" data-pair="f-heroTitle_lv" data-lv="0"></div>
       </div>
-      <div class="lang-row">
-        <div class="field"><label>Apakšvirsraksts 🇱🇻 (LV)</label><input id="f-heroSubtitle_lv"></div>
-        <div class="field"><label>Hero subtitle 🇬🇧 (EN)</label><input id="f-heroSubtitle_en"></div>
+      <div class="lang-row lang-row-translate">
+        <div class="field"><label>Apakšvirsraksts 🇱🇻 (LV)</label><input id="f-heroSubtitle_lv" data-pair="f-heroSubtitle_en" data-lv="1"></div>
+        <button type="button" class="translate-btn" title="Pārtulkot LV → EN" onclick="autoTranslatePair('f-heroSubtitle_lv','f-heroSubtitle_en',true)">🌐</button>
+        <div class="field"><label>Hero subtitle 🇬🇧 (EN)</label><input id="f-heroSubtitle_en" data-pair="f-heroSubtitle_lv" data-lv="0"></div>
       </div>
-      <div class="lang-row">
-        <div class="field"><label>"Par mani" 🇱🇻 (LV)</label><textarea id="f-aboutText_lv"></textarea></div>
-        <div class="field"><label>"About" 🇬🇧 (EN)</label><textarea id="f-aboutText_en"></textarea></div>
+      <div class="lang-row lang-row-translate">
+        <div class="field"><label>"Par mani" 🇱🇻 (LV)</label><textarea id="f-aboutText_lv" data-pair="f-aboutText_en" data-lv="1"></textarea></div>
+        <button type="button" class="translate-btn" title="Pārtulkot LV → EN" onclick="autoTranslatePair('f-aboutText_lv','f-aboutText_en',true)">🌐</button>
+        <div class="field"><label>"About" 🇬🇧 (EN)</label><textarea id="f-aboutText_en" data-pair="f-aboutText_lv" data-lv="0"></textarea></div>
       </div>
+      <p class="hint" style="margin:-6px 0 12px">🌐 = pārtulkot no jauna (pārraksta EN). Ja EN lauks tukšs, tas aizpildās automātiski, kad pabeidz rakstīt LV pusē (un otrādi).</p>
 
       <div class="field"><label data-i18n="contact_email_label">Kontakta e-pasts</label><input id="f-contactEmail"></div>
       <div class="field"><label data-i18n="social_link_label">Sociālo tīklu saite</label><input id="f-socialLink"></div>
@@ -354,6 +359,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=13"></script>
+<script src="/app.js?v=15"></script>
 </body>
 </html>

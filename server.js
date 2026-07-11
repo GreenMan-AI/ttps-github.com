@@ -106,6 +106,7 @@ setInterval(() => { const now = Date.now(); for (const [k, v] of rateLimitMap) i
 
 const authLimiter   = rateLimit(10, 60000, 'auth');
 const uploadLimiter = rateLimit(30, 300000, 'upload');
+const translateLimiter = rateLimit(40, 600000, 'translate');
 const apiLimiter    = rateLimit(300, 60000, 'api');
 app.use('/api/', apiLimiter);
 
@@ -350,6 +351,32 @@ setInterval(() => { const now = Date.now(); for (const [t, exp] of sessions) if 
 function sanitize(str) {
   return String(str || '').replace(/<[^>]*>/g, '').trim().slice(0, 2000);
 }
+
+// ══════════════════════════════════════════════════
+//  AUTOMĀTISKĀ TULKOŠANA (admin panelim, LV ↔ EN)
+//  Izmanto bezmaksas, neoficiālo Google Translate galapunktu —
+//  tas nemaksā un nav vajadzīga API atslēga, bet arī nav garantēts
+//  (var mainīties/pārtraukt darboties). Ja nākotnē vajag stabilāku
+//  risinājumu, var pāriet uz maksas Google Cloud Translate API.
+// ══════════════════════════════════════════════════
+async function translateText(text, source, target) {
+  if (!text || !text.trim()) return '';
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(source)}&tl=${encodeURIComponent(target)}&dt=t&q=${encodeURIComponent(text)}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('Tulkošanas serviss nav pieejams');
+  const data = await r.json();
+  return (data[0] || []).map(chunk => chunk[0]).join('');
+}
+
+app.post('/api/admin/translate', requireAdmin, translateLimiter, async (req, res) => {
+  try {
+    const { text, source, target } = req.body || {};
+    if (!text || !target) return res.status(400).json({ error: 'Trūkst text vai target' });
+    if (String(text).length > 3000) return res.status(400).json({ error: 'Teksts par garu' });
+    const translated = await translateText(sanitize(text), source || 'auto', target);
+    res.json({ translated });
+  } catch (e) { res.status(502).json({ error: 'Tulkošana neizdevās — pamēģini vēlreiz vēlāk' }); }
+});
 
 // Augšupielādē bufera saturu (atmiņā, no multer memoryStorage) uz Cloudinary,
 // izmantojot upload_stream — vajadzīgs, jo audio failu vispirms pārbaudām pēc
