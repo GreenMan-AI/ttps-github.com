@@ -7,7 +7,7 @@
 <link rel="icon" href="/favicon.ico">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=15">
+<link rel="stylesheet" href="/design.css?v=16">
 </head>
 <body>
 
@@ -137,6 +137,11 @@
   </div>
 
   <audio id="pb-audio"></audio>
+</div>
+
+<!-- Apmeklējumu skaitītājs (redzams tikai adminam) -->
+<div id="visit-counter" style="display:none" title="Kopējais apmeklējumu skaits">
+  👁 <span id="visit-count-num">0</span>
 </div>
 
 <!-- Peldošā čata poga (kreisajā apakšējā stūrī) -->
@@ -359,6 +364,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=15"></script>
+<script src="/app.js?v=16"></script>
 </body>
 </html>

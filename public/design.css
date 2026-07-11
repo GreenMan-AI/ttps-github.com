@@ -97,6 +97,11 @@ section h2::before{content:'';width:4px;height:20px;background:var(--accent);bor
 .track .meta{flex:1;min-width:0}
 .track .meta .t{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .track .meta .a{font-size:12px;color:var(--mut)}
+.play-count{
+  display:inline-block;font-size:10px;font-weight:700;color:var(--warn);
+  margin-left:8px;background:rgba(255,196,0,.1);border:1px solid rgba(255,196,0,.3);
+  border-radius:8px;padding:1px 6px;
+}
 .genre-tag{
   display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
   background:rgba(0,207,255,.12);color:var(--accent);border:1px solid var(--border2);
@@ -211,6 +216,16 @@ section h2::before{content:'';width:4px;height:20px;background:var(--accent);bor
 .chat-form input{flex:1;background:var(--bg2);border:1px solid var(--border);color:var(--txt);padding:8px 10px;border-radius:var(--r-sm);font-size:13px;outline:none}
 .chat-form input:focus{border-color:var(--accent)}
 #chat-name{max-width:120px}
+
+/* ══ APMEKLĒJUMU SKAITĪTĀJS (admin) ══ */
+#visit-counter{
+  position:fixed;top:70px;left:20px;z-index:180;
+  background:rgba(21,21,31,.9);backdrop-filter:blur(10px);
+  border:1px solid var(--border2);border-radius:20px;
+  padding:6px 14px;font-size:13px;font-weight:700;color:var(--accent);
+  align-items:center;gap:6px;box-shadow:0 4px 16px rgba(0,0,0,.35);
+}
+@media(max-width:640px){#visit-counter{top:64px;left:10px;font-size:12px;padding:5px 10px}}
 
 /* ══ ČATA PELDOŠAIS PANELIS ══ */
 #chat-fab{

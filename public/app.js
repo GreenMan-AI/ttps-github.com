@@ -148,6 +148,8 @@ function setAdminUI(isAdmin) {
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
   document.getElementById('admin-bar').classList.toggle('show', isAdmin);
   document.getElementById('admin-fab').style.display = isAdmin ? 'none' : 'flex';
+  if (isAdmin) loadVisitCount();
+  else document.getElementById('visit-counter').style.display = 'none';
 }
 
 async function checkAdmin() {
@@ -687,7 +689,7 @@ function trackItemHtml(t2, isAdmin) {
       <img class="cover" src="${t2.coverUrl || ''}" onerror="this.style.visibility='hidden'" alt="">
       <div class="meta">
         <div class="t">${escapeHtml(t2.title)}${t2.genre ? `<span class="genre-tag">${escapeHtml(t2.genre)}</span>` : ''}</div>
-        <div class="a">${escapeHtml(t2.artist || '')}</div>
+        <div class="a">${escapeHtml(t2.artist || '')}${isAdmin ? `<span class="play-count" title="${currentLang === 'lv' ? 'Noklausīšanās skaits' : 'Play count'}">▶ ${t2.playCount || 0}</span>` : ''}</div>
       </div>
       <span class="play-ic">${t2._id === currentTrackId ? '⏸' : '▶'}</span>
       <button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Lejupielādēt' : 'Download'}" onclick="event.stopPropagation();downloadTrack('${t2._id}')">⬇</button>
@@ -805,6 +807,10 @@ function playTrack(id) {
   const audio = document.getElementById('pb-audio');
   audio.src = track.cloudUrl;
   audio.play().catch(() => {});
+
+  // Klausīšanās skaitītājs — vienreiz uz katru dziesmas izvēli (nevis katru
+  // pauzes/atsākšanas reizi). "Fire and forget" — neietekmē atskaņošanu, ja neizdodas.
+  fetch(API + '/api/tracks/' + id + '/play', { method: 'POST' }).catch(() => {});
 }
 
 function playAdjacentTrack(dir) {
@@ -959,7 +965,11 @@ document.getElementById('track-form').addEventListener('submit', async (e) => {
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
     closeModal('track-modal');
-    toast(currentLang === 'lv' ? '✅ Dziesma pievienota!' : '✅ Track added!', 'ok');
+    if (data.coverFromId3) {
+      toast(currentLang === 'lv' ? '✅ Dziesma pievienota! 🖼️ Vāka bilde automātiski atrasta failā' : '✅ Track added! 🖼️ Cover art found in file', 'ok');
+    } else {
+      toast(currentLang === 'lv' ? '✅ Dziesma pievienota!' : '✅ Track added!', 'ok');
+    }
     await loadTracks();
   } catch (e) { errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
 });
@@ -1062,7 +1072,7 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
   const genre = document.getElementById('b-genre').value;
 
   submitBtn.disabled = true;
-  let okCount = 0, errCount = 0, dupCount = 0;
+  let okCount = 0, errCount = 0, dupCount = 0, coverFoundCount = 0;
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
@@ -1084,9 +1094,10 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
       const r = await fetch(API + '/api/tracks', { method: 'POST', headers: authHeaders(), body: fd });
       const data = await r.json();
       if (r.ok) {
-        line.textContent = `✅ ${trackArtist ? trackArtist + ' - ' : ''}${title}`;
+        line.textContent = data.coverFromId3 ? `✅ ${trackArtist ? trackArtist + ' - ' : ''}${title} 🖼️` : `✅ ${trackArtist ? trackArtist + ' - ' : ''}${title}`;
         line.className = 'line-ok';
         okCount++;
+        if (data.coverFromId3) coverFoundCount++;
       } else if (r.status === 409) {
         line.textContent = `⏭️ ${title} — jau ir augšupielādēta (izlaists dublikāts)`;
         line.className = 'line-err';
@@ -1106,8 +1117,8 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
   submitBtn.disabled = false;
   await loadTracks();
   const summary = currentLang === 'lv'
-    ? `Pievienotas ${okCount} dziesmas` + (dupCount ? `, ${dupCount} dublikāti izlaisti` : '') + (errCount ? `, ${errCount} neizdevās` : '')
-    : `Added ${okCount} tracks` + (dupCount ? `, ${dupCount} duplicates skipped` : '') + (errCount ? `, ${errCount} failed` : '');
+    ? `Pievienotas ${okCount} dziesmas` + (coverFoundCount ? ` (${coverFoundCount} ar auto-atrastu vāku 🖼️)` : '') + (dupCount ? `, ${dupCount} dublikāti izlaisti` : '') + (errCount ? `, ${errCount} neizdevās` : '')
+    : `Added ${okCount} tracks` + (coverFoundCount ? ` (${coverFoundCount} with auto-found cover 🖼️)` : '') + (dupCount ? `, ${dupCount} duplicates skipped` : '') + (errCount ? `, ${errCount} failed` : '');
   toast(((errCount || dupCount) ? '⚠️ ' : '✅ ') + summary, (errCount || dupCount) ? 'err' : 'ok');
 });
 
@@ -1207,4 +1218,27 @@ function scrollToTop() {
   await loadBgSlideshow();
   await loadGallery();
   await loadTracks();
+  registerVisit();
 })();
+
+// ══════════════════════════════════════════════════
+//  Apmeklējumu skaitītājs
+// ══════════════════════════════════════════════════
+function registerVisit() {
+  // Skaita reizi uz pārlūka cilnes sesiju (nevis katru pārlādi/atsvaidzināšanu),
+  // lai skaitlis rupji atspoguļotu apmeklējumus, nevis F5 spiešanu.
+  if (sessionStorage.getItem('sp_visit_counted')) return;
+  sessionStorage.setItem('sp_visit_counted', '1');
+  fetch(API + '/api/visits/ping', { method: 'POST' }).catch(() => {});
+}
+
+async function loadVisitCount() {
+  try {
+    const r = await fetch(API + '/api/visits');
+    if (!r.ok) return;
+    const data = await r.json();
+    const el = document.getElementById('visit-counter');
+    const numEl = document.getElementById('visit-count-num');
+    if (el && numEl) { numEl.textContent = data.total; el.style.display = 'flex'; }
+  } catch (e) {}
+}

@@ -9,6 +9,7 @@ const crypto     = require('crypto');
 const mongoose   = require('mongoose');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const mm = require('music-metadata');
 
 const app    = express();
 const server = http.createServer(app);
@@ -212,6 +213,7 @@ const TrackSchema = new mongoose.Schema({
   coverUrl: { type: String, default: '' },
   coverPublicId: { type: String, default: '' },
   fileHash: { type: String, index: true }, // SHA-256 no audio faila satura — dublikātu noteikšanai
+  playCount: { type: Number, default: 0 },
   order: { type: Number, default: 0 },
 }, { timestamps: true });
 
@@ -223,6 +225,11 @@ const BgSlideSchema = new mongoose.Schema({
 
 const Content = mongoose.model('Content', ContentSchema);
 const GalleryImage = mongoose.model('GalleryImage', GalleryImageSchema);
+const StatSchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true },
+  count: { type: Number, default: 0 },
+}, { timestamps: true });
+const Stat = mongoose.model('Stat', StatSchema);
 const Track = mongoose.model('Track', TrackSchema);
 const BgSlide = mongoose.model('BgSlide', BgSlideSchema);
 
@@ -348,8 +355,27 @@ function requireAdmin(req, res, next) {
 }
 setInterval(() => { const now = Date.now(); for (const [t, exp] of sessions) if (now > exp) sessions.delete(t); }, 600000);
 
+// ══════════════════════════════════════════════════
+//  Automātiska "mojibake" (sabojātu burtu, piem. ā→Ä, š→Å¡) labošana —
+//  tas pats princips kā vienreizējā scripts/fix-encoding.js, bet tagad
+//  pielietots AUTOMĀTISKI ikreiz, kad kāds teksts tiek saglabāts (dziesmu
+//  nosaukumi, izpildītāji, bildes paraksti utt.), lai latviešu burti
+//  (ā,ē,ī,ņ,ļ,ķ,š,ž,č,ģ) vienmēr paliktu pareizi un korekti izlasāmi.
+function looksCorrupted(str) {
+  if (typeof str !== 'string' || !str) return false;
+  return /[\u0080-\u009F]/.test(str) || /Ã.|Å.|Ä.|â€/.test(str);
+}
+function fixMojibake(str) {
+  if (typeof str !== 'string' || !str || !looksCorrupted(str)) return str;
+  try {
+    const fixed = Buffer.from(str, 'latin1').toString('utf8');
+    return fixed.includes('\uFFFD') ? str : fixed;
+  } catch (e) { return str; }
+}
+
 function sanitize(str) {
-  return String(str || '').replace(/<[^>]*>/g, '').trim().slice(0, 2000);
+  const clean = String(str || '').replace(/<[^>]*>/g, '').trim().slice(0, 2000);
+  return fixMojibake(clean);
 }
 
 // ══════════════════════════════════════════════════
@@ -431,6 +457,25 @@ app.post('/api/admin/logout', requireAdmin, (req, res) => {
 });
 
 app.get('/api/admin/check', requireAdmin, (req, res) => res.json({ ok: true }));
+
+// ══════════════════════════════════════════════════
+//  APMEKLĒJUMU SKAITĪTĀJS — vienkāršs (ne unikālu apmeklētāju) skaitītājs.
+//  Klients izsauc /ping vienreiz uz sesiju (skat. app.js), admins redz
+//  kopskaitu lapas augšā kreisajā stūrī.
+// ══════════════════════════════════════════════════
+const visitLimiter = rateLimit(20, 60000, 'visit');
+app.post('/api/visits/ping', visitLimiter, async (req, res) => {
+  try {
+    const stat = await Stat.findOneAndUpdate({ key: 'totalVisits' }, { $inc: { count: 1 } }, { upsert: true, new: true });
+    res.json({ ok: true, total: stat.count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/visits', requireAdmin, async (req, res) => {
+  try {
+    const stat = await Stat.findOne({ key: 'totalVisits' }).lean();
+    res.json({ total: stat?.count || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // Vienreizējs admin rīks — salabo jau esošos sabojātos LV burtus/emocijzīmes
 // datubāzē, izsaucot to tieši caur serveri (apiet lokālas DNS problēmas).
@@ -647,6 +692,20 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
         });
       }
 
+      let coverBuffer = coverFile?.buffer || null;
+      let coverIsFromId3 = false;
+
+      // ── Ja admins pats nepievienoja vāka bildi, mēģinam izgūt to, kas jau
+      //    ir "iekšā" audio failā (ID3 tags) — attēls, kas dziesmai pievienots
+      //    kopš tās izveides brīža. Ja tāda nav, dziesma paliek bez vāka. ──
+      if (!coverBuffer) {
+        try {
+          const metadata = await mm.parseBuffer(audioFile.buffer, audioFile.mimetype, { duration: false, skipCovers: false });
+          const pic = metadata?.common?.picture?.[0];
+          if (pic?.data?.length) { coverBuffer = Buffer.from(pic.data); coverIsFromId3 = true; }
+        } catch (e) { /* nav ID3 taga vai fails to nesatur — tas ir OK, turpinām bez vāka */ }
+      }
+
       const audioResult = await uploadBufferToCloudinary(audioFile.buffer, {
         folder: 'SoundPulse/audio',
         resource_type: 'video', // Cloudinary glabā audio zem "video" resursa tipa
@@ -654,8 +713,8 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       });
 
       let coverResult = null;
-      if (coverFile) {
-        coverResult = await uploadBufferToCloudinary(coverFile.buffer, {
+      if (coverBuffer) {
+        coverResult = await uploadBufferToCloudinary(coverBuffer, {
           folder: 'SoundPulse/covers',
           resource_type: 'image',
           public_id: 'cover_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
@@ -673,7 +732,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
         coverPublicId: coverResult?.public_id || '',
         fileHash,
       });
-      res.status(201).json({ track });
+      res.status(201).json({ track, coverFromId3: coverIsFromId3 });
     } catch (e) {
       if (e?.code === 11000) return res.status(409).json({ error: 'Šī dziesma jau ir augšupielādēta (dublikāts).' });
       res.status(500).json({ error: e.message });
@@ -690,6 +749,17 @@ app.put('/api/tracks/reorder', requireAdmin, async (req, res) => {
       if (!mongoose.isValidObjectId(id)) return null;
       return Track.findByIdAndUpdate(id, { order: idx });
     }));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+const playLimiter = rateLimit(120, 60000, 'play');
+// Klausīšanās skaitītājs — publisks (jebkurš apmeklētājs, kas noklausās
+// dziesmu, palielina skaitli), bet ar limitu, lai nevarētu mākslīgi uzpumpēt.
+app.post('/api/tracks/:id/play', playLimiter, async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Nederīgs ID' });
+    await Track.findByIdAndUpdate(req.params.id, { $inc: { playCount: 1 } });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
