@@ -13,7 +13,7 @@ const mm = require('music-metadata');
 
 const app    = express();
 const server = http.createServer(app);
-const io     = new Server(server, { cors: { origin: '*', credentials: true } });
+const io     = new Server(server, { cors: { origin: true, credentials: false } });
 const PORT   = process.env.PORT || 3000;
 
 app.use(express.json({ limit: '2mb' }));
@@ -429,19 +429,6 @@ function uploadBufferToCloudinary(buffer, options) {
     });
     stream.end(buffer);
   });
-}
-
-// Multer/busboy multipart teksta laukus pēc noklusējuma atkodē kā "latin1",
-// kas latviešu burtus (ā,č,ē,ģ,ī,ķ,ļ,ņ,š,ū,ž) un emocijzīmes sabojā ("mojibake").
-// Šī funkcija UTF-8 baitus, kas kļūdaini nolasīti kā Latin-1, pārkodē pareizi.
-function fixMojibake(str) {
-  if (typeof str !== 'string' || !str) return str;
-  try {
-    const fixed = Buffer.from(str, 'latin1').toString('utf8');
-    // ja pārkodējot rodas "replacement char" (U+FFFD), oriģināls droši vien
-    // jau bija pareizs UTF-8 — tad paturam sākotnējo vērtību
-    return fixed.includes('\uFFFD') ? str : fixed;
-  } catch (e) { return str; }
 }
 
 app.post('/api/admin/login', authLimiter, (req, res) => {
