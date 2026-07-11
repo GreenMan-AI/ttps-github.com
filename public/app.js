@@ -88,7 +88,7 @@ const I18N = {
   en: {
     nav_about: 'About', nav_gallery: 'Gallery', nav_music: 'Music', nav_chat: 'Chat',
     admin_bar: '🔧 Admin mode on — you can edit content, add photos and music',
-    logout: 'Log out', edit_text: '✏️ Edit text', edit_bg: '🖼️ Background image', edit_bg_title: 'Background image', about_title: 'About me',
+    logout: 'Log out', edit_text: '✏️ Edit text', edit_bg: '🖼️ Background image', edit_bg_title: 'Background image', about_title: 'Information',
     edit_hero_img: '🙂 Profile image', hero_img_title: 'Profile image',
     hero_img_hint: 'A small round image that appears above the title.', hero_img_remove: '🗑️ Remove',
     genre_label: 'Genre (optional, e.g. Hip-Hop, Metal, Ballad)',
