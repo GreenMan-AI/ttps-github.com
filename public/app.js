@@ -48,9 +48,9 @@ function toast(msg, type = 'ok') {
 // ══════════════════════════════════════════════════
 const I18N = {
   lv: {
-    nav_about: 'Par mani', nav_gallery: 'Bildes', nav_music: 'Mūzika', nav_chat: 'Čats',
+    nav_about: 'Informācīja', nav_gallery: 'Bildes', nav_music: 'Mūzika', nav_chat: 'Čats',
     admin_bar: '🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot bildes un mūziku',
-    logout: 'Iziet', edit_text: '✏️ Rediģēt tekstu', edit_bg: '🖼️ Fona bilde', edit_bg_title: 'Fona bilde', about_title: 'Par mani',
+    logout: 'Iziet', edit_text: '✏️ Rediģēt tekstu', edit_bg: '🖼️ Fona bilde', edit_bg_title: 'Fona bilde', about_title: 'Informācīja',
     edit_hero_img: '🙂 Profila bilde', hero_img_title: 'Profila bilde',
     hero_img_hint: 'Neliela apļveida bilde, kas parādās virs virsraksta.', hero_img_remove: '🗑️ Noņemt',
     genre_label: 'Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)',
