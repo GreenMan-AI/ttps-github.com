@@ -257,6 +257,7 @@ const DEFAULT_CONTENT = {
   heroAvatarPublicId: '',
   heroTitleColor: '',
   heroSubtitleColor: '',
+  aboutTextColor: '',
   heroImageUrl: '',
   heroImagePublicId: '',
 };

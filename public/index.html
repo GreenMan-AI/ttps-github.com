@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=17">
+<link rel="stylesheet" href="/design.css?v=18">
 </head>
 <body>
 
@@ -26,7 +26,7 @@
     <a href="#gallery" data-i18n="nav_gallery">Bildes</a>
     <a href="#music" data-i18n="nav_music">Mūzika</a>
     <a href="javascript:void(0)" onclick="toggleChatPanel(true)" data-i18n="nav_chat">Čats</a>
-    <button class="btn sm" id="lang-toggle" onclick="toggleLang()">EN</button>
+    <button class="btn sm lang-switch" id="lang-toggle" onclick="toggleLang()" title="Switch language / Mainīt valodu">🌐 EN</button>
   </nav>
 </header>
 
@@ -206,6 +206,7 @@
       <div class="lang-row">
         <div class="field"><label>Virsraksta krāsa (hero)</label><input type="color" id="f-heroTitleColor" value="#eef2f7"></div>
         <div class="field"><label>Apakšvirsraksta krāsa (hero)</label><input type="color" id="f-heroSubtitleColor" value="#9aa4b2"></div>
+        <div class="field"><label>"Par mani" teksta krāsa</label><input type="color" id="f-aboutTextColor" value="#9aa4b2"></div>
       </div>
 
       <div class="lang-row lang-row-translate">
@@ -368,6 +369,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=17"></script>
+<script src="/app.js?v=18"></script>
 </body>
 </html>

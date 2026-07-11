@@ -130,7 +130,7 @@ function t(key) { return (I18N[currentLang] && I18N[currentLang][key]) || I18N.l
 function applyStaticI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
-  document.getElementById('lang-toggle').textContent = currentLang === 'lv' ? 'EN' : 'LV';
+  document.getElementById('lang-toggle').textContent = currentLang === 'lv' ? '🌐 EN' : '🌐 LV';
   document.documentElement.lang = currentLang;
 }
 
@@ -226,6 +226,7 @@ function applyContentForLang() {
   heroTitleEl.style.webkitTextFillColor = c.heroTitleColor || '';
   heroSubtitleEl.style.color = c.heroSubtitleColor || '';
   document.getElementById('about-text').textContent = c['aboutText_' + L] || c.aboutText_lv || '';
+  document.getElementById('about-text').style.color = c.aboutTextColor || '';
   const tagline = c['tagline_' + L] || c.tagline_lv || '';
   document.getElementById('footer-text').textContent = '© ' + new Date().getFullYear() + ' ' + c.siteTitle + (tagline ? ' — ' + tagline : '');
 
@@ -244,6 +245,7 @@ function openContentModal() {
   document.getElementById('f-siteTitle').value = c.siteTitle || '';
   document.getElementById('f-heroTitleColor').value = c.heroTitleColor || '#eef2f7';
   document.getElementById('f-heroSubtitleColor').value = c.heroSubtitleColor || '#9aa4b2';
+  document.getElementById('f-aboutTextColor').value = c.aboutTextColor || '#9aa4b2';
   ['tagline', 'heroTitle', 'heroSubtitle', 'aboutText'].forEach(key => {
     document.getElementById('f-' + key + '_lv').value = c[key + '_lv'] || '';
     document.getElementById('f-' + key + '_en').value = c[key + '_en'] || '';
@@ -575,6 +577,7 @@ document.getElementById('content-form').addEventListener('submit', async (e) => 
     siteTitle: document.getElementById('f-siteTitle').value,
     heroTitleColor: document.getElementById('f-heroTitleColor').value,
     heroSubtitleColor: document.getElementById('f-heroSubtitleColor').value,
+    aboutTextColor: document.getElementById('f-aboutTextColor').value,
     contactEmail: document.getElementById('f-contactEmail').value,
     socialLink: document.getElementById('f-socialLink').value,
   };
