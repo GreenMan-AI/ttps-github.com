@@ -15,13 +15,22 @@
 <meta name="twitter:title" content="SoundPulse">
 <meta name="twitter:description" content="Klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
 <meta name="twitter:image" content="https://gajon.id.lv/logo512.png">
+<link rel="canonical" href="https://gajon.id.lv/">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "SoundPulse",
+  "url": "https://gajon.id.lv/"
+}
+</script>
 <link rel="icon" href="/favicon.ico?v=2">
 <link rel="icon" type="image/png" sizes="192x192" href="/logo192.png?v=2">
 <link rel="icon" type="image/png" sizes="512x512" href="/logo512.png?v=2">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=21">
+<link rel="stylesheet" href="/design.css?v=22">
 </head>
 <body>
 
@@ -110,6 +119,7 @@
   </div>
 
   <h3 class="sub-h" id="all-tracks-heading" data-i18n="all_tracks">🎵 Visas dziesmas</h3>
+  <input type="text" id="track-search" class="track-search" data-i18n-ph="track_search_ph" placeholder="🔍 Meklēt dziesmu vai izpildītāju..." oninput="handleTrackSearch(this.value)">
   <div class="track-list" id="track-list"></div>
 </section>
 
@@ -354,12 +364,43 @@
       <div class="field"><label data-i18n="genre_label">Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)</label><input id="t-genre" list="genre-list"><datalist id="genre-list"></datalist></div>
       <div class="field"><label data-i18n="audio_file_label">Audio fails (MP3, WAV, OGG...)</label><input type="file" id="t-audio" accept="audio/*" required></div>
       <div class="field"><label data-i18n="cover_label">Vāciņa bilde (nav obligāta)</label><input type="file" id="t-cover" accept="image/*"></div>
+      <div class="field"><label data-i18n="lyrics_label">Dziesmas vārdi (nav obligāti)</label><textarea id="t-lyrics" rows="5" placeholder="Ielīmē dziesmas vārdus šeit, ja vēlies..."></textarea></div>
       <div class="msg-err" id="track-err"></div>
       <div class="modal-actions">
         <button type="button" class="btn" onclick="closeModal('track-modal')" data-i18n="cancel">Atcelt</button>
         <button type="submit" class="btn primary" data-i18n="upload">Augšupielādēt</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Dziesmas rediģēšanas modālis (nosaukums/izpildītājs/žanrs/vārdi) -->
+<div class="modal-overlay" id="edit-track-modal">
+  <div class="modal">
+    <h3>✏️ Rediģēt dziesmu</h3>
+    <form id="edit-track-form">
+      <input type="hidden" id="et-id">
+      <div class="field"><label>Nosaukums</label><input id="et-title" required></div>
+      <div class="field"><label>Izpildītājs</label><input id="et-artist"></div>
+      <div class="field"><label>Žanrs</label><input id="et-genre" list="genre-list"></div>
+      <div class="field"><label>Dziesmas vārdi</label><textarea id="et-lyrics" rows="6" placeholder="Ielīmē dziesmas vārdus šeit, ja vēlies..."></textarea></div>
+      <div class="msg-err" id="edit-track-err"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="closeModal('edit-track-modal')">Atcelt</button>
+        <button type="submit" class="btn primary">Saglabāt</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Dziesmas vārdu skatīšanas modālis -->
+<div class="modal-overlay" id="lyrics-modal">
+  <div class="modal">
+    <h3 id="lyrics-modal-title">📜 Dziesmas vārdi</h3>
+    <p class="about-text" id="lyrics-modal-text" style="white-space:pre-wrap;max-height:50vh;overflow-y:auto"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn" onclick="closeModal('lyrics-modal')">Aizvērt</button>
+    </div>
   </div>
 </div>
 
@@ -395,6 +436,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=21"></script>
+<script src="/app.js?v=22"></script>
 </body>
 </html>

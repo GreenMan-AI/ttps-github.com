@@ -56,6 +56,8 @@ const I18N = {
     genre_label: 'Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)',
     gallery_title: 'Bildes', add_image: '➕ Pievienot bildi',
     music_title: 'Mūzika', add_track: '➕ Pievienot dziesmu',
+    track_search_ph: '🔍 Meklēt dziesmu vai izpildītāju...',
+    lyrics_label: 'Dziesmas vārdi (nav obligāti)',
     drag_hint: 'Padoms: adminā vari dziesmas pārkārtot, velkot aiz ⠿ ikonas.',
     chat_title: 'Čats', chat_send: 'Sūtīt', chat_name_ph: 'Tavs vārds', chat_text_ph: 'Raksti ziņu...',
     clear_chat: '🗑️ Notīrīt čatu',
@@ -95,6 +97,8 @@ const I18N = {
     genre_label: 'Genre (optional, e.g. Hip-Hop, Metal, Ballad)',
     gallery_title: 'Gallery', add_image: '➕ Add photo',
     music_title: 'Music', add_track: '➕ Add track',
+    track_search_ph: '🔍 Search for a song or artist...',
+    lyrics_label: 'Lyrics (optional)',
     drag_hint: 'Tip: as admin you can reorder tracks by dragging the ⠿ handle.',
     chat_title: 'Chat', chat_send: 'Send', chat_name_ph: 'Your name', chat_text_ph: 'Type a message...',
     clear_chat: '🗑️ Clear chat',
@@ -739,7 +743,10 @@ function trackItemHtml(t2, isAdmin, num) {
         <div class="a">${escapeHtml(t2.artist || '')}${isAdmin ? `<span class="play-count" title="${currentLang === 'lv' ? 'Noklausīšanās skaits' : 'Play count'}">▶ ${t2.playCount || 0}</span>` : ''}</div>
       </div>
       <span class="play-ic">${t2._id === currentTrackId ? '⏸' : '▶'}</span>
+      ${t2.lyrics ? `<button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Dziesmas vārdi' : 'Lyrics'}" onclick="event.stopPropagation();openLyricsModal('${t2._id}')">📜</button>` : ''}
+      <button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Dalīties' : 'Share'}" onclick="event.stopPropagation();shareTrack('${t2._id}')">🔗</button>
       <button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Lejupielādēt' : 'Download'}" onclick="event.stopPropagation();downloadTrack('${t2._id}')">⬇</button>
+      <button class="btn sm admin-only" style="display:none" title="${currentLang === 'lv' ? 'Rediģēt' : 'Edit'}" onclick="event.stopPropagation();openEditTrackModal('${t2._id}')">✏️</button>
       <button class="btn sm danger del admin-only" style="display:none" onclick="event.stopPropagation();deleteTrack('${t2._id}')">✕</button>
     </div>
   `;
@@ -767,6 +774,98 @@ function downloadTrack(id) {
   window.open(url, '_blank');
 }
 
+// ══════════════════════════════════════════════════
+//  Dalīšanās ar konkrētu dziesmu — izveido saiti, kas, atverot,
+//  automātiski pieritina un izceļ šo tieši šo dziesmu sarakstā.
+// ══════════════════════════════════════════════════
+function shareTrack(id) {
+  const tracks = window._tracks || [];
+  const track = tracks.find(t2 => t2._id === id);
+  if (!track) return;
+  const url = location.origin + location.pathname + '?track=' + encodeURIComponent(id);
+  const shareText = (track.artist ? track.artist + ' - ' : '') + track.title;
+
+  if (navigator.share) {
+    navigator.share({ title: shareText, text: shareText, url }).catch(() => {});
+    return;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      toast(currentLang === 'lv' ? '🔗 Saite nokopēta!' : '🔗 Link copied!', 'ok');
+    }).catch(() => promptShareFallback(url));
+    return;
+  }
+  promptShareFallback(url);
+}
+
+function promptShareFallback(url) {
+  window.prompt(currentLang === 'lv' ? 'Nokopē šo saiti:' : 'Copy this link:', url);
+}
+
+function checkDeepLinkTrack() {
+  try {
+    const params = new URLSearchParams(location.search);
+    const id = params.get('track');
+    if (!id) return;
+    const tryHighlight = () => {
+      const el = document.querySelector(`.track[data-id="${CSS.escape(id)}"]`);
+      if (!el) return false;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('shared-highlight');
+      setTimeout(() => el.classList.remove('shared-highlight'), 3000);
+      return true;
+    };
+    if (!tryHighlight()) setTimeout(tryHighlight, 400);
+  } catch (e) {}
+}
+
+// ── Dziesmas vārdu skatīšana ──
+function openLyricsModal(id) {
+  const track = (window._tracks || []).find(t2 => t2._id === id);
+  if (!track || !track.lyrics) return;
+  document.getElementById('lyrics-modal-title').textContent = '📜 ' + track.title + (track.artist ? ' — ' + track.artist : '');
+  document.getElementById('lyrics-modal-text').textContent = track.lyrics;
+  showModal('lyrics-modal');
+}
+
+// ── Dziesmas rediģēšana (nosaukums/izpildītājs/žanrs/vārdi) ──
+function openEditTrackModal(id) {
+  const track = (window._tracks || []).find(t2 => t2._id === id);
+  if (!track) return;
+  document.getElementById('et-id').value = track._id;
+  document.getElementById('et-title').value = track.title || '';
+  document.getElementById('et-artist').value = track.artist || '';
+  document.getElementById('et-genre').value = track.genre || '';
+  document.getElementById('et-lyrics').value = track.lyrics || '';
+  document.getElementById('edit-track-err').textContent = '';
+  populateGenreList();
+  showModal('edit-track-modal');
+}
+
+document.getElementById('edit-track-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById('edit-track-err');
+  errEl.textContent = '';
+  const id = document.getElementById('et-id').value;
+  const body = {
+    title: document.getElementById('et-title').value,
+    artist: document.getElementById('et-artist').value,
+    genre: document.getElementById('et-genre').value,
+    lyrics: document.getElementById('et-lyrics').value,
+  };
+  try {
+    const r = await fetch(API + '/api/tracks/' + id, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    closeModal('edit-track-modal');
+    toast(currentLang === 'lv' ? '✅ Saglabāts!' : '✅ Saved!', 'ok');
+    await loadTracks();
+  } catch (err) { errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
+});
+
 function downloadCurrentTrack() {
   if (!currentTrackId) { toast(currentLang === 'lv' ? 'Nav izvēlēta dziesma' : 'No track selected', 'err'); return; }
   downloadTrack(currentTrackId);
@@ -791,10 +890,12 @@ function toggleTrackView() {
   applyTrackViewMode();
 }
 
+let trackSearchQuery = '';
+
 function renderTracks() {
   const tracks = window._tracks || [];
   const list = document.getElementById('track-list');
-  document.getElementById('drag-hint').style.display = isAdmin ? '' : 'none';
+  document.getElementById('drag-hint').style.display = (isAdmin && !trackSearchQuery) ? '' : 'none';
 
   // ── Šīs nedēļas jaunumi ──
   const now = Date.now();
@@ -804,24 +905,43 @@ function renderTracks() {
   const newWrap = document.getElementById('new-tracks-wrap');
   const newList = document.getElementById('new-track-list');
   const allHeading = document.getElementById('all-tracks-heading');
-  if (newTracks.length) {
+  if (newTracks.length && !trackSearchQuery) {
     newWrap.style.display = '';
     allHeading.style.display = '';
     newList.innerHTML = newTracks.map(t2 => trackItemHtml(t2, isAdmin, tracks.findIndex(x => x._id === t2._id) + 1)).join('');
   } else {
     newWrap.style.display = 'none';
-    allHeading.style.display = tracks.length ? 'none' : ''; // ja vispār nav dziesmu, tik un tā parādi virsrakstu ar tukšu ziņu
+    allHeading.style.display = (tracks.length && !trackSearchQuery) ? 'none' : ''; // ja vispār nav dziesmu, tik un tā parādi virsrakstu ar tukšu ziņu
   }
 
-  // ── Visas dziesmas ──
+  // ── Visas dziesmas (ar iespējamu meklēšanas filtru) ──
   if (!tracks.length) { list.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`; return; }
-  list.innerHTML = tracks.map((t2, idx) => trackItemHtml(t2, isAdmin, idx + 1)).join('');
+
+  const q = trackSearchQuery.trim().toLowerCase();
+  const filtered = q
+    ? tracks.filter(t2 => (t2.title || '').toLowerCase().includes(q) || (t2.artist || '').toLowerCase().includes(q))
+    : tracks;
+
+  if (!filtered.length) {
+    list.innerHTML = `<p class="empty-msg">${currentLang === 'lv' ? '🔍 Nekas netika atrasts' : '🔍 No results found'}</p>`;
+    applyTrackViewMode();
+    return;
+  }
+
+  list.innerHTML = filtered.map(t2 => trackItemHtml(t2, isAdmin, tracks.findIndex(x => x._id === t2._id) + 1)).join('');
   applyTrackViewMode();
 
-  if (isAdmin) {
+  if (isAdmin && !trackSearchQuery) {
     document.querySelectorAll('#track-list .admin-only, #new-track-list .admin-only').forEach(el => el.style.display = '');
     attachDragHandlers();
+  } else if (isAdmin) {
+    document.querySelectorAll('#track-list .admin-only, #new-track-list .admin-only').forEach(el => el.style.display = '');
   }
+}
+
+function handleTrackSearch(value) {
+  trackSearchQuery = value;
+  renderTracks();
 }
 
 function attachDragHandlers() {
@@ -1023,6 +1143,7 @@ document.getElementById('track-form').addEventListener('submit', async (e) => {
   fd.append('title', document.getElementById('t-title').value);
   fd.append('artist', document.getElementById('t-artist').value);
   fd.append('genre', document.getElementById('t-genre').value);
+  fd.append('lyrics', document.getElementById('t-lyrics').value);
   fd.append('audio', audioFile);
   const coverFile = document.getElementById('t-cover').files[0];
   if (coverFile) fd.append('cover', coverFile);
@@ -1359,7 +1480,29 @@ function scrollToTop() {
   await loadGallery();
   await loadTracks();
   registerVisit();
+  initScrollReveal();
+  checkDeepLinkTrack();
 })();
+
+// ══════════════════════════════════════════════════
+//  Smalka animācija — sadaļas parādās, ritinot tām klāt
+//  (progresīvs uzlabojums: ja JS kāda iemesla dēļ nenostrādā,
+//  saturs paliek vienkārši vienmēr redzams — nekas nesalūzt)
+// ══════════════════════════════════════════════════
+function initScrollReveal() {
+  const targets = document.querySelectorAll('#about, #gallery, #music');
+  if (!('IntersectionObserver' in window) || !targets.length) return;
+  targets.forEach(el => el.classList.add('reveal'));
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  targets.forEach(el => observer.observe(el));
+}
 
 // ══════════════════════════════════════════════════
 //  Apmeklējumu skaitītājs
