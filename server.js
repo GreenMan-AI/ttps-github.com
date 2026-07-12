@@ -10,6 +10,7 @@ const mongoose   = require('mongoose');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const mm = require('music-metadata');
+const OTPAuth = require('otpauth');
 
 const app    = express();
 const server = http.createServer(app);
@@ -283,6 +284,36 @@ if (!ADMIN_PASS || ADMIN_PASS.length < 8) {
   console.error('   Iestati to Render dashboard → Environment cilnē, tad restartē servisu.');
   process.exit(1);
 }
+
+// ══════════════════════════════════════════════════
+//  2FA (TOTP) — obligāta divu faktoru autentifikācija admin login'am.
+//
+//  SVARĪGI: ADMIN_TOTP_SECRET tiek iestatīts TIKAI Render dashboard →
+//  Environment cilnē — tur, kur PIEEJA IR TIKAI TEV (Render konta
+//  īpašniekam). Nekur lapā, kodā vai API nav funkcijas, kas ļautu
+//  APMEKLĒTĀJAM vai kādam citam pašam "ieslēgt" vai uzstādīt savu 2FA —
+//  tikai tu, kam ir pieeja Render kontam, vari šo vērtību ievadīt/mainīt.
+//  Tāpēc citi to nekad nevarēs izmantot vai apiet.
+//
+//  Ģenerēšanas skripts: scripts/generate-totp-secret.js (palaid VIENU REIZI
+//  lokāli, iegūsti secret + QR kodu skenēšanai ar Google Authenticator/Authy).
+// ══════════════════════════════════════════════════
+const ADMIN_TOTP_SECRET = (process.env.ADMIN_TOTP_SECRET || '').trim();
+if (!ADMIN_TOTP_SECRET || ADMIN_TOTP_SECRET.length < 16) {
+  console.error('❌ KĻŪDA: ADMIN_TOTP_SECRET nav iestatīts (vai ir pārāk īss)!');
+  console.error('   1. Lokāli palaid: node scripts/generate-totp-secret.js');
+  console.error('   2. Iegūto secret ievieto Render → Environment → ADMIN_TOTP_SECRET');
+  console.error('   3. Ar to pašu skriptu iegūto QR kodu ieskenē Google Authenticator/Authy lietotnē.');
+  process.exit(1);
+}
+const totp = new OTPAuth.TOTP({
+  issuer: 'SoundPulse',
+  label: ADMIN_USER,
+  algorithm: 'SHA1',
+  digits: 6,
+  period: 30,
+  secret: OTPAuth.Secret.fromBase32(ADMIN_TOTP_SECRET),
+});
 const COOKIE_NAME = 'sp_admin_session';
 const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -499,7 +530,7 @@ function isBotLockedOut(key) {
 }
 
 app.post('/api/admin/login', authLimiter, (req, res) => {
-  const { username, password, website } = req.body || {}; // "website" = honeypot lauks
+  const { username, password, totp: totpCode, website } = req.body || {}; // "website" = honeypot lauks
   const key = loginKey(req, username);
   if (isBotLockedOut(key)) {
     return res.status(429).json({ error: 'Pārāk daudz neveiksmīgu mēģinājumu. Mēģini vēlāk.' });
@@ -516,7 +547,14 @@ app.post('/api/admin/login', authLimiter, (req, res) => {
   }
   const userOk = safeEqual(username || '', ADMIN_USER);
   const passOk = safeEqual(password || '', ADMIN_PASS);
+  // 2FA pārbaude — TIKAI tad, ja lietotājvārds/parole jau ir pareizi, lai
+  // neatklātu uzbrucējam, vai TOTP pārbaude vispār notiek (mazāk info noplūdes).
+  let totpOk = false;
   if (userOk && passOk) {
+    const cleanCode = String(totpCode || '').replace(/\s+/g, '');
+    totpOk = /^\d{6}$/.test(cleanCode) && totp.validate({ token: cleanCode, window: 1 }) !== null;
+  }
+  if (userOk && passOk && totpOk) {
     clearLoginAttempts(key);
     const token = makeToken();
     sessions.set(token, Date.now() + SESSION_MS);
@@ -524,7 +562,7 @@ app.post('/api/admin/login', authLimiter, (req, res) => {
     return res.json({ ok: true });
   }
   recordFailedLogin(key);
-  res.status(401).json({ error: 'Nepareizs lietotājvārds vai parole' });
+  res.status(401).json({ error: 'Nepareizs lietotājvārds, parole vai autentifikācijas kods' });
 });
 
 app.post('/api/admin/logout', requireAdmin, (req, res) => {

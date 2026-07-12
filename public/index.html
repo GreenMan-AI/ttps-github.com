@@ -201,6 +201,10 @@
         <label data-i18n="login_pass">Parole</label>
         <input type="password" id="login-pass" required autocomplete="current-password">
       </div>
+      <div class="field">
+        <label data-i18n="login_totp">Autentifikācijas kods (2FA)</label>
+        <input type="text" id="login-totp" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="123456">
+      </div>
       <!-- Honeypot lauks pret botiem — cilvēkam neredzams (aizsegts ar CSS un
            izņemts no Tab secības), bet automātiskie skenējošie boti to bieži
            aizpilda un tā nodod sevi. NEDZĒST un NEPADARĪT redzamu. -->

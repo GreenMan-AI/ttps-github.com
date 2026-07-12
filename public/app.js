@@ -60,6 +60,7 @@ const I18N = {
     chat_title: 'Čats', chat_send: 'Sūtīt', chat_name_ph: 'Tavs vārds', chat_text_ph: 'Raksti ziņu...',
     clear_chat: '🗑️ Notīrīt čatu',
     login_title: 'Admin ielogošanās', login_user: 'Lietotājvārds', login_pass: 'Parole',
+    login_totp: 'Autentifikācijas kods (2FA)',
     cancel: 'Atcelt', login_btn: 'Ielogoties',
     edit_content_title: 'Rediģēt lapas tekstu', site_title_label: 'Lapas nosaukums',
     contact_email_label: 'Kontakta e-pasts', social_link_label: 'Sociālo tīklu saite',
@@ -98,6 +99,7 @@ const I18N = {
     chat_title: 'Chat', chat_send: 'Send', chat_name_ph: 'Your name', chat_text_ph: 'Type a message...',
     clear_chat: '🗑️ Clear chat',
     login_title: 'Admin login', login_user: 'Username', login_pass: 'Password',
+    login_totp: 'Authentication code (2FA)',
     cancel: 'Cancel', login_btn: 'Log in',
     edit_content_title: 'Edit page text', site_title_label: 'Site name',
     contact_email_label: 'Contact email', social_link_label: 'Social media link',
@@ -166,13 +168,14 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('login-user').value.trim();
   const password = document.getElementById('login-pass').value;
+  const totp = document.getElementById('login-totp').value.trim();
   const website = document.getElementById('login-website')?.value || ''; // honeypot — cilvēkam vienmēr tukšs
   const errEl = document.getElementById('login-err');
   errEl.textContent = '';
   try {
     const r = await fetch(API + '/api/admin/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, website }),
+      body: JSON.stringify({ username, password, totp, website }),
     });
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; return; }
