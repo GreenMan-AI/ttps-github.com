@@ -1489,10 +1489,31 @@ function scrollToTop() {
 //  (progresīvs uzlabojums: ja JS kāda iemesla dēļ nenostrādā,
 //  saturs paliek vienkārši vienmēr redzams — nekas nesalūzt)
 // ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+//  Smalka animācija — sadaļas parādās, ritinot tām klāt
+//  (progresīvs uzlabojums: ja JS kāda iemesla dēļ nenostrādā,
+//  saturs paliek vienkārši vienmēr redzams — nekas nesalūzt)
+//
+//  DROŠĪBAS TĪKLI pret "iestrēgušu" neredzamu saturu (tas, kas
+//  iepriekš sabojāja mūzikas sadaļu):
+//  1) Ja sadaļa JAU ir redzeslaukā uzreiz pēc ielādes (piem. lapa
+//     atvērta ar #music saiti) — parādām to UZREIZ, negaidot ritināšanu.
+//  2) rootMargin liek animācijai iedarboties NEDAUDZ ĀTRĀK, nevis
+//     tieši uz robežas — mazāk iespēju "nepaķert" momentu garām.
+//  3. Absolūts drošības taimeris: ja pēc 2.5 sekundēm kāda sadaļa
+//     joprojām nav parādīta (jebkāda neparedzēta iemesla dēļ) —
+//     piespiedu kārtā to parādām. Saturs NEKAD nevar palikt
+//     neredzams uz visiem laikiem.
+// ══════════════════════════════════════════════════
 function initScrollReveal() {
   const targets = document.querySelectorAll('#about, #gallery, #music');
-  if (!('IntersectionObserver' in window) || !targets.length) return;
+  if (!targets.length) return;
+  if (!('IntersectionObserver' in window)) {
+    targets.forEach(el => el.classList.add('revealed')); // veci pārlūki — vienmēr redzams
+    return;
+  }
   targets.forEach(el => el.classList.add('reveal'));
+
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -1500,8 +1521,23 @@ function initScrollReveal() {
         observer.unobserve(entry.target);
       }
     });
-  }, { threshold: 0.12 });
-  targets.forEach(el => observer.observe(el));
+  }, { threshold: 0, rootMargin: '0px 0px -5% 0px' });
+
+  targets.forEach(el => {
+    const rect = el.getBoundingClientRect();
+    const alreadyVisible = rect.top < window.innerHeight && rect.bottom > 0;
+    if (alreadyVisible) {
+      el.classList.add('revealed'); // jau redzama uzreiz — nav jāgaida ritināšana
+    } else {
+      observer.observe(el);
+    }
+  });
+
+  // Absolūtais drošības tīkls — nekas nedrīkst palikt neredzams uz visiem laikiem
+  setTimeout(() => {
+    targets.forEach(el => el.classList.add('revealed'));
+    observer.disconnect();
+  }, 2500);
 }
 
 // ══════════════════════════════════════════════════
