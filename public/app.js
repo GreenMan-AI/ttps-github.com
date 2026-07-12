@@ -842,7 +842,7 @@ function openEditTrackModal(id) {
   showModal('edit-track-modal');
 }
 
-document.getElementById('edit-track-form').addEventListener('submit', async (e) => {
+document.getElementById('edit-track-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const errEl = document.getElementById('edit-track-err');
   errEl.textContent = '';
