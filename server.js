@@ -272,7 +272,17 @@ async function seedContent() {
 //  ADMIN AUTH — viens vienīgs admin konts (no .env)
 // ══════════════════════════════════════════════════
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'Draconball1';
+const ADMIN_PASS = process.env.ADMIN_PASS;
+// SVARĪGI drošībai: NEKAD nedrīkst būt cietkodētas paroles rezerves koda
+// iekšienē — tas nozīmē, ka ikviens, kam ir piekļuve pirmkodam (piem. ja
+// GitHub repo jebkad kļūtu publisks vai nonāktu nepareizās rokās), varētu
+// redzēt admin paroli teksta veidā. Tāpēc serveris tagad ATSAKĀS startēt,
+// ja ADMIN_PASS nav iestatīts (tāpat kā jau notiek ar MONGODB_URI zemāk).
+if (!ADMIN_PASS || ADMIN_PASS.length < 8) {
+  console.error('❌ KĻŪDA: ADMIN_PASS nav iestatīts (vai ir pārāk īss, min. 8 simboli) Environment Variables!');
+  console.error('   Iestati to Render dashboard → Environment cilnē, tad restartē servisu.');
+  process.exit(1);
+}
 const COOKIE_NAME = 'sp_admin_session';
 const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -479,9 +489,28 @@ function uploadBufferToCloudinary(buffer, options) {
   });
 }
 
+// "Honeypot" — slēpts lauks, ko īsts cilvēks nekad neredz un neaizpilda
+// (aizsegts ar CSS), bet automātiskie boti, kas skenē un aizpilda VISUS
+// formas laukus, to bieži aizpilda. Ja tas ir aizpildīts — uzskatām par botu
+// un uzreiz bloķējam uz ilgāku laiku, neizšķiežot laiku paroles pārbaudei.
+function isBotLockedOut(key) {
+  const entry = loginAttempts.get(key);
+  return !!(entry && entry.botLockedUntil && Date.now() < entry.botLockedUntil);
+}
+
 app.post('/api/admin/login', authLimiter, (req, res) => {
-  const { username, password } = req.body || {};
+  const { username, password, website } = req.body || {}; // "website" = honeypot lauks
   const key = loginKey(req, username);
+  if (isBotLockedOut(key)) {
+    return res.status(429).json({ error: 'Pārāk daudz neveiksmīgu mēģinājumu. Mēģini vēlāk.' });
+  }
+  if (website) {
+    // Honeypot aizpildīts → bots. Bloķējam uz 1 stundu un neatklājam iemeslu.
+    const entry = loginAttempts.get(key) || { count: 0 };
+    entry.botLockedUntil = Date.now() + 60 * 60 * 1000;
+    loginAttempts.set(key, entry);
+    return res.status(401).json({ error: 'Nepareizs lietotājvārds vai parole' });
+  }
   if (isLockedOut(key)) {
     return res.status(429).json({ error: 'Pārāk daudz neveiksmīgu mēģinājumu. Mēģini pēc 15 minūtēm.' });
   }

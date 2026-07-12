@@ -14,6 +14,19 @@
     <h2>Datu vākšana</h2>
     <p>Mēs neievācam, neapstrādājam un neuzglabājam nekādus personīgos lietotāju datus. Lietotne neizmanto sīkfailus (cookies) lietotāju izsekošanai.</p>
     <h2>Kontakti</h2>
-    <p>Ja jums ir jautājumi, sazinieties: agniskreits@gmail.com</p>
+    <!-- E-pasts NAV rakstīts tieši HTML kodā, lai automātiskie boti/scraperi,
+         kas skenē lapas pēc e-pasta adresēm (mēstuļu sūtīšanai vai citiem
+         nolūkiem), to nevarētu vienkārši nolasīt. Īstam apmeklētājam pārlūks
+         to salīmē kopā un parāda normāli, kā parastu saiti. -->
+    <p>Ja jums ir jautājumi, sazinieties: <a id="contact-link" href="#">(ielādē...)</a></p>
+    <script>
+      (function () {
+        var u = ['agniskreits', 'gmail.com'];
+        var addr = u[0] + '@' + u[1];
+        var el = document.getElementById('contact-link');
+        el.href = 'mailto:' + addr;
+        el.textContent = addr;
+      })();
+    </script>
 </body>
 </html>

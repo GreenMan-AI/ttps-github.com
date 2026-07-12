@@ -201,6 +201,13 @@
         <label data-i18n="login_pass">Parole</label>
         <input type="password" id="login-pass" required autocomplete="current-password">
       </div>
+      <!-- Honeypot lauks pret botiem — cilvēkam neredzams (aizsegts ar CSS un
+           izņemts no Tab secības), bet automātiskie skenējošie boti to bieži
+           aizpilda un tā nodod sevi. NEDZĒST un NEPADARĪT redzamu. -->
+      <div class="field" aria-hidden="true" style="position:absolute; left:-9999px; top:-9999px; height:0; width:0; overflow:hidden;">
+        <label for="login-website">Website</label>
+        <input type="text" id="login-website" name="website" tabindex="-1" autocomplete="off">
+      </div>
       <div class="msg-err" id="login-err"></div>
       <div class="modal-actions">
         <button type="button" class="btn" onclick="closeModal('login-modal')" data-i18n="cancel">Atcelt</button>

@@ -166,12 +166,13 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('login-user').value.trim();
   const password = document.getElementById('login-pass').value;
+  const website = document.getElementById('login-website')?.value || ''; // honeypot — cilvēkam vienmēr tukšs
   const errEl = document.getElementById('login-err');
   errEl.textContent = '';
   try {
     const r = await fetch(API + '/api/admin/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, website }),
     });
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; return; }
