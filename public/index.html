@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=19">
+<link rel="stylesheet" href="/design.css?v=20">
 </head>
 <body>
 
@@ -83,7 +83,10 @@
 </section>
 
 <section id="music">
-  <h2 data-i18n="music_title">Mūzika</h2>
+  <div class="section-header-row">
+    <h2 data-i18n="music_title">Mūzika</h2>
+    <button class="btn sm view-toggle-btn" id="view-toggle-btn" onclick="toggleTrackView()" title="Pārslēgt skatu">🔲 Režģa skats</button>
+  </div>
   <div class="btn-row admin-only" style="display:none;margin-bottom:14px">
     <button class="btn sm" onclick="openTrackModal()" data-i18n="add_track">➕ Pievienot dziesmu</button>
     <button class="btn sm" onclick="openBulkModal()" data-i18n="add_bulk">📦 Pievienot vairākas uzreiz</button>
@@ -96,7 +99,6 @@
   </div>
 
   <h3 class="sub-h" id="all-tracks-heading" data-i18n="all_tracks">🎵 Visas dziesmas</h3>
-  <button class="btn sm view-toggle-btn" id="view-toggle-btn" onclick="toggleTrackView()" title="Pārslēgt skatu">🔲 Režģis</button>
   <div class="track-list" id="track-list"></div>
 </section>
 
@@ -370,6 +372,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=19"></script>
+<script src="/app.js?v=20"></script>
 </body>
 </html>

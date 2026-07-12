@@ -741,7 +741,7 @@ function applyTrackViewMode() {
   document.getElementById('track-list').classList.toggle('grid-view', isGrid);
   document.getElementById('new-track-list').classList.toggle('grid-view', isGrid);
   const btn = document.getElementById('view-toggle-btn');
-  if (btn) btn.textContent = isGrid ? '📃 Saraksts' : '🔲 Režģis';
+  if (btn) btn.textContent = isGrid ? '📃 Saraksta skats' : '🔲 Režģa skats';
 }
 
 function toggleTrackView() {
