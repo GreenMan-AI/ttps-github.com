@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://gajon.id.lv/sitemap.xml
