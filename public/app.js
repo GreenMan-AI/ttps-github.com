@@ -49,6 +49,7 @@ function toast(msg, type = 'ok') {
 const I18N = {
   lv: {
     nav_about: 'Informācīja', nav_gallery: 'Bildes', nav_music: 'Mūzika', nav_chat: 'Čats',
+    nav_share: '🔗 Dalies', share_title: 'Dalies ar draugiem', share_copy: 'Kopēt saiti', share_more: 'Vairāk...',
     admin_bar: '🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot bildes un mūziku',
     logout: 'Iziet', edit_text: '✏️ Rediģēt tekstu', edit_bg: '🖼️ Fona bilde', edit_bg_title: 'Fona bilde', about_title: 'Informācīja',
     edit_hero_img: '🙂 Profila bilde', hero_img_title: 'Profila bilde',
@@ -90,6 +91,7 @@ const I18N = {
   },
   en: {
     nav_about: 'About', nav_gallery: 'Gallery', nav_music: 'Music', nav_chat: 'Chat',
+    nav_share: '🔗 Share', share_title: 'Share with friends', share_copy: 'Copy link', share_more: 'More...',
     admin_bar: '🔧 Admin mode on — you can edit content, add photos and music',
     logout: 'Log out', edit_text: '✏️ Edit text', edit_bg: '🖼️ Background image', edit_bg_title: 'Background image', about_title: 'Information',
     edit_hero_img: '🙂 Profile image', hero_img_title: 'Profile image',
@@ -775,31 +777,70 @@ function downloadTrack(id) {
 }
 
 // ══════════════════════════════════════════════════
-//  Dalīšanās ar konkrētu dziesmu — izveido saiti, kas, atverot,
-//  automātiski pieritina un izceļ šo tieši šo dziesmu sarakstā.
+//  Dalīšanās — atver logu ar konkrētām platformām (Facebook, WhatsApp,
+//  X, Telegram, kopēt saiti), plus telefonos arī sistēmas dalīšanās
+//  izvēlni ("Vairāk..."), ja pārlūks to atbalsta.
 // ══════════════════════════════════════════════════
+let _shareState = { url: '', title: '' };
+
+function openShareModal(url, title) {
+  _shareState = { url, title };
+  document.getElementById('share-preview-title').textContent = title;
+  document.getElementById('share-preview-url').textContent = url;
+  const nativeBtn = document.getElementById('share-native-btn');
+  if (nativeBtn) nativeBtn.style.display = (typeof navigator.share === 'function') ? '' : 'none';
+  showModal('share-modal');
+}
+
+function shareVia(platform) {
+  const { url, title } = _shareState;
+  const encUrl = encodeURIComponent(url);
+  const encText = encodeURIComponent(title);
+
+  switch (platform) {
+    case 'facebook':
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encUrl}`, '_blank', 'width=580,height=520');
+      break;
+    case 'whatsapp':
+      window.open(`https://wa.me/?text=${encText}%20${encUrl}`, '_blank');
+      break;
+    case 'x':
+      window.open(`https://twitter.com/intent/tweet?url=${encUrl}&text=${encText}`, '_blank', 'width=580,height=420');
+      break;
+    case 'telegram':
+      window.open(`https://t.me/share/url?url=${encUrl}&text=${encText}`, '_blank');
+      break;
+    case 'native':
+      if (navigator.share) navigator.share({ title, text: title, url }).catch(() => {});
+      break;
+    case 'copy':
+    default:
+      copyShareLink(url);
+      return; // negribam aizvērt logu uzreiz — parādām "nokopēts" apstiprinājumu
+  }
+  closeModal('share-modal');
+}
+
+function copyShareLink(url) {
+  const done = () => {
+    toast(currentLang === 'lv' ? '🔗 Saite nokopēta!' : '🔗 Link copied!', 'ok');
+    closeModal('share-modal');
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(done).catch(() => { window.prompt(currentLang === 'lv' ? 'Nokopē šo saiti:' : 'Copy this link:', url); closeModal('share-modal'); });
+  } else {
+    window.prompt(currentLang === 'lv' ? 'Nokopē šo saiti:' : 'Copy this link:', url);
+    closeModal('share-modal');
+  }
+}
+
 function shareTrack(id) {
   const tracks = window._tracks || [];
   const track = tracks.find(t2 => t2._id === id);
   if (!track) return;
   const url = location.origin + location.pathname + '?track=' + encodeURIComponent(id);
   const shareText = (track.artist ? track.artist + ' - ' : '') + track.title;
-
-  if (navigator.share) {
-    navigator.share({ title: shareText, text: shareText, url }).catch(() => {});
-    return;
-  }
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(() => {
-      toast(currentLang === 'lv' ? '🔗 Saite nokopēta!' : '🔗 Link copied!', 'ok');
-    }).catch(() => promptShareFallback(url));
-    return;
-  }
-  promptShareFallback(url);
-}
-
-function promptShareFallback(url) {
-  window.prompt(currentLang === 'lv' ? 'Nokopē šo saiti:' : 'Copy this link:', url);
+  openShareModal(url, shareText);
 }
 
 function checkDeepLinkTrack() {

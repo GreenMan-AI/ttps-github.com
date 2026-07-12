@@ -46,6 +46,7 @@
     <a href="#gallery" data-i18n="nav_gallery">Bildes</a>
     <a href="#music" data-i18n="nav_music">Mūzika</a>
     <a href="javascript:void(0)" onclick="toggleChatPanel(true)" data-i18n="nav_chat">Čats</a>
+    <button class="btn sm" onclick="openShareModal(location.origin, 'SoundPulse')" title="Dalies ar lapu" data-i18n="nav_share">🔗 Dalies</button>
     <button class="btn sm lang-switch" id="lang-toggle" onclick="toggleLang()" title="Switch language / Mainīt valodu">🌐 EN</button>
   </nav>
 </header>
@@ -198,6 +199,40 @@
 
 <!-- Atpakaļ uz augšu poga -->
 <button id="back-to-top" title="Uz augšu" onclick="scrollToTop()">⬆</button>
+
+<!-- Share modal -->
+<div class="modal-overlay" id="share-modal">
+  <div class="modal">
+    <h3 data-i18n="share_title">Dalies ar draugiem</h3>
+    <div class="share-preview">
+      <div class="share-preview-title" id="share-preview-title">—</div>
+      <div class="share-preview-url" id="share-preview-url">—</div>
+    </div>
+    <div class="share-btn-grid">
+      <button class="share-btn share-fb" onclick="shareVia('facebook')">
+        <span class="share-icon">📘</span> Facebook
+      </button>
+      <button class="share-btn share-wa" onclick="shareVia('whatsapp')">
+        <span class="share-icon">💬</span> WhatsApp
+      </button>
+      <button class="share-btn share-x" onclick="shareVia('x')">
+        <span class="share-icon">✖️</span> X
+      </button>
+      <button class="share-btn share-tg" onclick="shareVia('telegram')">
+        <span class="share-icon">✈️</span> Telegram
+      </button>
+      <button class="share-btn share-copy" onclick="shareVia('copy')">
+        <span class="share-icon">🔗</span> <span data-i18n="share_copy">Kopēt saiti</span>
+      </button>
+      <button class="share-btn share-more admin-only-hide-if-unsupported" id="share-native-btn" onclick="shareVia('native')" style="display:none">
+        <span class="share-icon">📤</span> <span data-i18n="share_more">Vairāk...</span>
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" onclick="closeModal('share-modal')" data-i18n="cancel">Atcelt</button>
+    </div>
+  </div>
+</div>
 
 <!-- Login modal -->
 <div class="modal-overlay" id="login-modal">
