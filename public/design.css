@@ -94,7 +94,24 @@ section h2::before{content:'';width:4px;height:20px;background:var(--accent);bor
 .empty-msg{color:var(--mut);font-size:14px;font-style:italic}
 
 /* ══ MUSIC ══ */
-.track-list{display:flex;flex-direction:column;gap:8px}
+.track-list{display:flex;flex-direction:column;gap:8px;max-width:640px}
+.view-toggle-btn{margin-bottom:12px}
+
+/* ── Režģa skats ── */
+.track-list.grid-view{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;
+  max-width:none;
+}
+.grid-view .track{flex-direction:column;align-items:stretch;text-align:center;padding:10px;gap:6px}
+.grid-view .track .drag-handle{display:none}
+.grid-view .track .track-num{align-self:flex-start;min-width:auto}
+.grid-view .track .cover{width:100%;height:auto;aspect-ratio:1;border-radius:8px;margin:0 auto}
+.grid-view .track .meta{text-align:center;width:100%}
+.grid-view .track .meta .t{white-space:normal;overflow-wrap:break-word}
+.grid-view .track .meta .a{white-space:normal}
+.grid-view .track .play-ic,
+.grid-view .track .dl-track,
+.grid-view .track .del{align-self:center}
 .track{
   display:flex;align-items:center;gap:14px;padding:10px 14px;
   background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);

@@ -733,6 +733,23 @@ function downloadCurrentTrack() {
 
 const NEW_TRACK_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 1 nedēļa
 
+// ── Skata pārslēgšana: saraksts / režģis ──
+let trackViewMode = localStorage.getItem('sp_track_view') || 'list';
+
+function applyTrackViewMode() {
+  const isGrid = trackViewMode === 'grid';
+  document.getElementById('track-list').classList.toggle('grid-view', isGrid);
+  document.getElementById('new-track-list').classList.toggle('grid-view', isGrid);
+  const btn = document.getElementById('view-toggle-btn');
+  if (btn) btn.textContent = isGrid ? '📃 Saraksts' : '🔲 Režģis';
+}
+
+function toggleTrackView() {
+  trackViewMode = trackViewMode === 'grid' ? 'list' : 'grid';
+  localStorage.setItem('sp_track_view', trackViewMode);
+  applyTrackViewMode();
+}
+
 function renderTracks() {
   const tracks = window._tracks || [];
   const list = document.getElementById('track-list');
@@ -749,7 +766,7 @@ function renderTracks() {
   if (newTracks.length) {
     newWrap.style.display = '';
     allHeading.style.display = '';
-    newList.innerHTML = newTracks.map(t2 => trackItemHtml(t2, isAdmin)).join('');
+    newList.innerHTML = newTracks.map(t2 => trackItemHtml(t2, isAdmin, tracks.findIndex(x => x._id === t2._id) + 1)).join('');
   } else {
     newWrap.style.display = 'none';
     allHeading.style.display = tracks.length ? 'none' : ''; // ja vispār nav dziesmu, tik un tā parādi virsrakstu ar tukšu ziņu
@@ -758,6 +775,7 @@ function renderTracks() {
   // ── Visas dziesmas ──
   if (!tracks.length) { list.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`; return; }
   list.innerHTML = tracks.map((t2, idx) => trackItemHtml(t2, isAdmin, idx + 1)).join('');
+  applyTrackViewMode();
 
   if (isAdmin) {
     document.querySelectorAll('#track-list .admin-only, #new-track-list .admin-only').forEach(el => el.style.display = '');
