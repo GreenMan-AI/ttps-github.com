@@ -149,10 +149,47 @@ function toggleLang() {
 function setAdminUI(isAdmin) {
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
   document.getElementById('admin-bar').classList.toggle('show', isAdmin);
-  document.getElementById('admin-fab').style.display = isAdmin ? 'none' : 'flex';
   if (isAdmin) loadVisitCount();
   else document.getElementById('visit-counter').style.display = 'none';
 }
+
+// ══════════════════════════════════════════════════
+//  SLĒPTĀ ADMIN PIEKĻUVE — parastiem apmeklētājiem šī iespēja NAV redzama
+//  nekur lapā (nav pogas, nav ikonas). Divi veidi, kā to atvērt:
+//
+//  1) UZRAKSTI vārdu "gajon" jebkurā vietā lapā (kad neesi rakstlaukumā) —
+//     nomaini šo vārdu pēc saviem ieskatiem uz kaut ko tikai TEV zināmu.
+//  2) Atver saiti ar slepenu fragmentu, piem.:
+//     https://gajon.id.lv/!gajon-privats-1512
+//     (arī šo maini uz savu — ērti glabāt grāmatzīmēs vai iesviest sev
+//     WhatsApp/Notes, lai var atvērt arī no telefona).
+//
+//  PIEZĪME: tā ir TIKAI papildu slāni, kas attur nejaušus apmeklētājus
+//  un vienkāršus botus — nevis galvenā aizsardzība. Galvenā aizsardzība
+//  joprojām ir parole + 2FA + bloķēšana pēc neveiksmīgiem mēģinājumiem.
+// ══════════════════════════════════════════════════
+const SECRET_WORD = 'gajon';
+const SECRET_HASH = '!gajon-privats-1512';
+
+(function initHiddenAdminAccess() {
+  let typedBuffer = '';
+  document.addEventListener('keydown', (e) => {
+    const activeTag = document.activeElement?.tagName;
+    if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return; // neuztver, ja raksti formā/čatā
+    if (e.key.length !== 1) return;
+    typedBuffer = (typedBuffer + e.key.toLowerCase()).slice(-SECRET_WORD.length);
+    if (typedBuffer === SECRET_WORD) { typedBuffer = ''; openLoginModal(); }
+  });
+
+  function checkHash() {
+    if (window.location.hash === SECRET_HASH) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      openLoginModal();
+    }
+  }
+  checkHash();
+  window.addEventListener('hashchange', checkHash);
+})();
 
 async function checkAdmin() {
   try {
