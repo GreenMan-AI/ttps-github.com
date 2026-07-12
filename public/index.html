@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title id="page-title">SoundPulse</title>
-<meta name="description" content="SoundPulse — klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
+<title id="page-title">DJ Gajon</title>
+<meta name="description" content="DJ Gajon — klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="SoundPulse">
-<meta property="og:title" content="SoundPulse">
+<meta property="og:site_name" content="DJ Gajon">
+<meta property="og:title" content="DJ Gajon">
 <meta property="og:description" content="Klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
 <meta property="og:image" content="https://gajon.id.lv/logo512.png">
 <meta property="og:url" content="https://gajon.id.lv">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="SoundPulse">
+<meta name="twitter:title" content="DJ Gajon">
 <meta name="twitter:description" content="Klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
 <meta name="twitter:image" content="https://gajon.id.lv/logo512.png">
 <link rel="canonical" href="https://gajon.id.lv/">
@@ -20,7 +20,7 @@
 {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "name": " DJ Gajon ",
+  "name": "DJ Gajon",
   "url": "https://gajon.id.lv/"
 }
 </script>
@@ -40,13 +40,13 @@
 
 
 <header>
-  <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" id="logo-text">SoundPulse</div>
+  <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" id="logo-text">DJ Gajon</div>
   <nav>
     <a href="#about" data-i18n="nav_about">Informācīja</a>
     <a href="#gallery" data-i18n="nav_gallery">Bildes</a>
     <a href="#music" data-i18n="nav_music">Mūzika</a>
     <a href="javascript:void(0)" onclick="toggleChatPanel(true)" data-i18n="nav_chat">Čats</a>
-    <button class="btn sm" onclick="openShareModal(location.origin, 'SoundPulse')" title="Dalies ar lapu" data-i18n="nav_share">🔗 Dalies</button>
+    <button class="btn sm" onclick="openShareModal(location.origin, document.getElementById('page-title').textContent)" title="Dalies ar lapu" data-i18n="nav_share">🔗 Dalies</button>
     <button class="btn sm lang-switch" id="lang-toggle" onclick="toggleLang()" title="Switch language / Mainīt valodu">🌐 EN</button>
   </nav>
 </header>
@@ -61,7 +61,7 @@
 
 <section class="hero">
   <img id="hero-profile-img" class="hero-avatar" src="" alt="" style="display:none">
-  <h1 id="hero-title">Sveiki, esmu SoundPulse!</h1>
+  <h1 id="hero-title">Sveiki, esmu DJ Gajon!</h1>
   <p id="hero-subtitle">Šeit klausies manu pašsacerēto mūziku un skaties bildes.</p>
   <div class="btn-row admin-only" style="display:none;margin-top:16px;justify-content:center">
     <button class="btn sm" onclick="openContentModal()" data-i18n="edit_text">✏️ Rediģēt tekstu</button>
@@ -124,7 +124,7 @@
   <div class="track-list" id="track-list"></div>
 </section>
 
-<footer id="footer-text">SoundPulse</footer>
+<footer id="footer-text">DJ Gajon</footer>
 
 <div id="player-bar">
   <div class="pb-track-info">
