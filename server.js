@@ -380,19 +380,67 @@ function sanitize(str) {
 }
 
 // ══════════════════════════════════════════════════
-//  AUTOMĀTISKĀ TULKOŠANA (admin panelim, LV ↔ EN)
-//  Izmanto bezmaksas, neoficiālo Google Translate galapunktu —
-//  tas nemaksā un nav vajadzīga API atslēga, bet arī nav garantēts
-//  (var mainīties/pārtraukt darboties). Ja nākotnē vajag stabilāku
-//  risinājumu, var pāriet uz maksas Google Cloud Translate API.
+//  AUTOMĀTISKĀ TULKOŠANA (admin panelim un čatam, LV ↔ EN)
+//
+//  Ja .env failā ir DEEPL_API_KEY — izmanto DeepL, kas parasti tulko
+//  ievērojami precīzāk nekā bezmaksas Google trikts (arī labāk saprot
+//  latviešu valodas gramatiku). DeepL ir bezmaksas līmenis līdz
+//  500 000 rakstzīmēm/mēnesī — pietiek ar milzīgu rezervi šai lapai.
+//  Ja atslēgas nav, automātiski izmanto veco bezmaksas Google metodi
+//  (tagad ar 2 mēģinājumiem, ja pirmais neizdodas).
 // ══════════════════════════════════════════════════
-async function translateText(text, source, target) {
-  if (!text || !text.trim()) return '';
+const DEEPL_API_KEY = (process.env.DEEPL_API_KEY || '').trim();
+const DEEPL_ENDPOINT = DEEPL_API_KEY.endsWith(':fx')
+  ? 'https://api-free.deepl.com/v2/translate'
+  : 'https://api.deepl.com/v2/translate';
+
+function deeplLangCode(lang, isTarget) {
+  const l = String(lang || '').toLowerCase();
+  if (l === 'lv') return 'LV';
+  if (l === 'en') return isTarget ? 'EN-US' : 'EN';
+  return l.toUpperCase();
+}
+
+async function translateViaDeepL(text, source, target) {
+  const params = new URLSearchParams();
+  params.append('auth_key', DEEPL_API_KEY);
+  params.append('text', text);
+  if (source && source !== 'auto') params.append('source_lang', deeplLangCode(source, false));
+  params.append('target_lang', deeplLangCode(target, true));
+  const r = await fetch(DEEPL_ENDPOINT, { method: 'POST', body: params });
+  if (!r.ok) throw new Error('DeepL kļūda: ' + r.status);
+  const data = await r.json();
+  return data?.translations?.[0]?.text || '';
+}
+
+async function translateViaGoogleFree(text, source, target) {
   const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(source)}&tl=${encodeURIComponent(target)}&dt=t&q=${encodeURIComponent(text)}`;
   const r = await fetch(url);
   if (!r.ok) throw new Error('Tulkošanas serviss nav pieejams');
   const data = await r.json();
   return (data[0] || []).map(chunk => chunk[0]).join('');
+}
+
+// Mēģina 2 reizes (bezmaksas galapunkti reizēm īslaicīgi neatbild pareizi) —
+// un ja iestatīta DeepL atslēga, to izmanto vispirms, ar Google kā rezerves variantu.
+async function translateText(text, source, target) {
+  if (!text || !text.trim()) return '';
+  const tryTwice = async (fn) => {
+    for (let i = 0; i < 2; i++) {
+      try {
+        const result = await fn(text, source, target);
+        if (result && result.trim()) return result.trim();
+      } catch (e) { /* mēģina vēlreiz vai krīt uz rezerves variantu */ }
+    }
+    return null;
+  };
+  if (DEEPL_API_KEY) {
+    const result = await tryTwice(translateViaDeepL);
+    if (result) return result;
+  }
+  const fallback = await tryTwice(translateViaGoogleFree);
+  if (fallback) return fallback;
+  throw new Error('Tulkošana neizdevās');
 }
 
 app.post('/api/admin/translate', requireAdmin, translateLimiter, async (req, res) => {
