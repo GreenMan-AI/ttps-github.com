@@ -157,10 +157,10 @@ function setAdminUI(isAdmin) {
 //  SLĒPTĀ ADMIN PIEKĻUVE — parastiem apmeklētājiem šī iespēja NAV redzama
 //  nekur lapā (nav pogas, nav ikonas). Divi veidi, kā to atvērt:
 //
-//  1) UZRAKSTI vārdu "sputnik" jebkurā vietā lapā (kad neesi rakstlaukumā) —
+//  1) UZRAKSTI vārdu "gajon" jebkurā vietā lapā (kad neesi rakstlaukumā) —
 //     nomaini šo vārdu pēc saviem ieskatiem uz kaut ko tikai TEV zināmu.
 //  2) Atver saiti ar slepenu fragmentu, piem.:
-//     https://tavadomena.lv/#sp-portal-9f3k2
+//     https://gajon.id.lv/agnis
 //     (arī šo maini uz savu — ērti glabāt grāmatzīmēs vai iesviest sev
 //     WhatsApp/Notes, lai var atvērt arī no telefona).
 //
@@ -168,8 +168,8 @@ function setAdminUI(isAdmin) {
 //  un vienkāršus botus — nevis galvenā aizsardzība. Galvenā aizsardzība
 //  joprojām ir parole + 2FA + bloķēšana pēc neveiksmīgiem mēģinājumiem.
 // ══════════════════════════════════════════════════
-const SECRET_WORD = 'sputnik';
-const SECRET_HASH = '#sp-portal-9f3k2';
+const SECRET_WORD = 'gajon';
+const SECRET_HASH = '/agnis';
 
 (function initHiddenAdminAccess() {
   let typedBuffer = '';
