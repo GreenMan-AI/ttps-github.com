@@ -213,7 +213,6 @@ const TrackSchema = new mongoose.Schema({
   publicId: { type: String, required: true },
   coverUrl: { type: String, default: '' },
   coverPublicId: { type: String, default: '' },
-  lyrics: { type: String, default: '' },
   fileHash: { type: String, index: true }, // SHA-256 no audio faila satura — dublikātu noteikšanai
   playCount: { type: Number, default: 0 },
   order: { type: Number, default: 0, index: true },
@@ -421,12 +420,6 @@ function sanitize(str) {
   return fixMojibake(clean);
 }
 
-// Dziesmu vārdiem vajag lielāku garuma limitu nekā parastiem laukiem
-function sanitizeLyrics(str) {
-  const clean = String(str || '').replace(/<[^>]*>/g, '').trim().slice(0, 6000);
-  return fixMojibake(clean);
-}
-
 // ══════════════════════════════════════════════════
 //  AUTOMĀTISKĀ TULKOŠANA (admin panelim un čatam, LV ↔ EN)
 //
@@ -582,21 +575,42 @@ app.post('/api/admin/logout', requireAdmin, (req, res) => {
 app.get('/api/admin/check', requireAdmin, (req, res) => res.json({ ok: true }));
 
 // ══════════════════════════════════════════════════
-//  APMEKLĒJUMU SKAITĪTĀJS — vienkāršs (ne unikālu apmeklētāju) skaitītājs.
-//  Klients izsauc /ping vienreiz uz sesiju (skat. app.js), admins redz
-//  kopskaitu lapas augšā kreisajā stūrī.
+//  APMEKLĒJUMU SKAITĪTĀJS — pa mēnešiem (ne tikai kopējais lifetime), un
+//  NEKAD nepieskaita admin paša apmeklējumus (pārbauda sesiju servera pusē,
+//  nevis tikai paļaujas uz klienta JS — to nevar apiet no pārlūka puses).
 // ══════════════════════════════════════════════════
+function currentMonthKey() {
+  const d = new Date();
+  return `visits:${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
 const visitLimiter = rateLimit(20, 60000, 'visit');
 app.post('/api/visits/ping', visitLimiter, async (req, res) => {
   try {
-    const stat = await Stat.findOneAndUpdate({ key: 'totalVisits' }, { $inc: { count: 1 } }, { upsert: true, new: true });
-    res.json({ ok: true, total: stat.count });
+    const token = getSessionToken(req);
+    if (token && isValidSession(token)) {
+      // Admin — neskaitām, tikai atgriežam pašreizējo skaitli.
+      const stat = await Stat.findOne({ key: currentMonthKey() }).lean();
+      return res.json({ ok: true, counted: false, month: stat?.count || 0 });
+    }
+    const stat = await Stat.findOneAndUpdate(
+      { key: currentMonthKey() }, { $inc: { count: 1 } }, { upsert: true, new: true }
+    );
+    // Paralēli uzturam arī lifetime kopskaitu (ērtai vēsturiskai statistikai).
+    await Stat.findOneAndUpdate({ key: 'totalVisits' }, { $inc: { count: 1 } }, { upsert: true });
+    res.json({ ok: true, counted: true, month: stat.count });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.get('/api/visits', requireAdmin, async (req, res) => {
   try {
-    const stat = await Stat.findOne({ key: 'totalVisits' }).lean();
-    res.json({ total: stat?.count || 0 });
+    const [monthStat, totalStat] = await Promise.all([
+      Stat.findOne({ key: currentMonthKey() }).lean(),
+      Stat.findOne({ key: 'totalVisits' }).lean(),
+    ]);
+    res.json({
+      month: monthStat?.count || 0,
+      total: totalStat?.count || 0,
+      online: onlineVisitors.size,
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -800,7 +814,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       const audioFile = req.files?.audio?.[0];
       const coverFile = req.files?.cover?.[0];
       if (!audioFile) return res.status(400).json({ error: 'Audio fails obligāts' });
-      const { title, artist, genre, lyrics } = req.body || {};
+      const { title, artist, genre } = req.body || {};
       if (!title?.trim()) return res.status(400).json({ error: 'Nosaukums obligāts' });
 
       // ── Dublikātu pārbaude PIRMS Cloudinary augšupielādes ──
@@ -849,7 +863,6 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
         title: sanitize(title),
         artist: sanitize(artist || ''),
         genre: sanitize(genre || ''),
-        lyrics: sanitizeLyrics(lyrics || ''),
         cloudUrl: audioResult.secure_url,
         publicId: audioResult.public_id,
         coverUrl: coverResult?.secure_url || '',
@@ -891,12 +904,11 @@ app.post('/api/tracks/:id/play', playLimiter, async (req, res) => {
 app.put('/api/tracks/:id', requireAdmin, async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Nederīgs ID' });
-    const { title, artist, genre, lyrics } = req.body || {};
+    const { title, artist, genre } = req.body || {};
     const update = {};
     if (title?.trim()) update.title = sanitize(title);
     if (typeof artist === 'string') update.artist = sanitize(artist);
     if (typeof genre === 'string') update.genre = sanitize(genre);
-    if (typeof lyrics === 'string') update.lyrics = sanitizeLyrics(lyrics);
     const track = await Track.findByIdAndUpdate(req.params.id, update, { new: true });
     res.json({ track });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -916,13 +928,41 @@ app.delete('/api/tracks/:id', requireAdmin, async (req, res) => {
 
 // ══════════════════════════════════════════════════
 //  ČATS — reāllaika, apmeklētājiem (Socket.IO, atmiņā)
+//  + TIEŠSAISTES APMEKLĒTĀJU SKAITĪTĀJS (izmanto to pašu savienojumu)
 // ══════════════════════════════════════════════════
 const chatHistory = [];
 const CHAT_MAX_MSGS = 8;
 const CHAT_WINDOW_MS = 10000;
+
+// Visi PAŠREIZ pieslēgtie apmeklētāju (ne-admin) socket ID.
+const onlineVisitors = new Set();
+
+function isAdminSocket(socket) {
+  const cookieHeader = socket.handshake.headers?.cookie || '';
+  const match = cookieHeader.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
+  const token = match ? decodeURIComponent(match[1]) : null;
+  return !!(token && isValidSession(token));
+}
+
+function broadcastOnlineCount() {
+  io.emit('online-count', onlineVisitors.size);
+}
+
 io.on('connection', socket => {
   socket.emit('chat-history', chatHistory.slice(-50));
   const chatTimestamps = [];
+
+  // Admin pats sevi NEKAD nepieskaita "tiešsaistes apmeklētājiem" —
+  // tā admin var redzēt reālo, no viņa paša neietekmētu skaitli.
+  if (!isAdminSocket(socket)) {
+    onlineVisitors.add(socket.id);
+    broadcastOnlineCount();
+  }
+  socket.emit('online-count', onlineVisitors.size);
+
+  socket.on('disconnect', () => {
+    if (onlineVisitors.delete(socket.id)) broadcastOnlineCount();
+  });
 
   socket.on('chat-msg', data => {
     const now = Date.now();

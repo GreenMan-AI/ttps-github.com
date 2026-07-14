@@ -3,34 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title id="page-title">DJ Gajon</title>
-<meta name="description" content="DJ Gajon — klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
+<title id="page-title">SoundPulse</title>
+<meta name="description" content="SoundPulse — klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="DJ Gajon">
-<meta property="og:title" content="DJ Gajon">
+<meta property="og:site_name" content="SoundPulse">
+<meta property="og:title" content="SoundPulse">
 <meta property="og:description" content="Klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
 <meta property="og:image" content="https://gajon.id.lv/logo512.png">
 <meta property="og:url" content="https://gajon.id.lv">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="DJ Gajon">
+<meta name="twitter:title" content="SoundPulse">
 <meta name="twitter:description" content="Klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
 <meta name="twitter:image" content="https://gajon.id.lv/logo512.png">
-<link rel="canonical" href="https://gajon.id.lv/">
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "DJ Gajon",
-  "url": "https://gajon.id.lv/"
-}
-</script>
 <link rel="icon" href="/favicon.ico?v=2">
 <link rel="icon" type="image/png" sizes="192x192" href="/logo192.png?v=2">
 <link rel="icon" type="image/png" sizes="512x512" href="/logo512.png?v=2">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=22">
+<link rel="stylesheet" href="/design.css?v=21">
 </head>
 <body>
 
@@ -40,13 +31,12 @@
 
 
 <header>
-  <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" id="logo-text">DJ Gajon</div>
+  <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" id="logo-text">SoundPulse</div>
   <nav>
     <a href="#about" data-i18n="nav_about">Informācīja</a>
     <a href="#gallery" data-i18n="nav_gallery">Bildes</a>
     <a href="#music" data-i18n="nav_music">Mūzika</a>
     <a href="javascript:void(0)" onclick="toggleChatPanel(true)" data-i18n="nav_chat">Čats</a>
-    <button class="btn sm" onclick="openShareModal(location.origin, document.getElementById('page-title').textContent)" title="Dalies ar lapu" data-i18n="nav_share">🔗 Dalies</button>
     <button class="btn sm lang-switch" id="lang-toggle" onclick="toggleLang()" title="Switch language / Mainīt valodu">🌐 EN</button>
   </nav>
 </header>
@@ -61,7 +51,7 @@
 
 <section class="hero">
   <img id="hero-profile-img" class="hero-avatar" src="" alt="" style="display:none">
-  <h1 id="hero-title">Sveiki, esmu DJ Gajon!</h1>
+  <h1 id="hero-title">Sveiki, esmu SoundPulse!</h1>
   <p id="hero-subtitle">Šeit klausies manu pašsacerēto mūziku un skaties bildes.</p>
   <div class="btn-row admin-only" style="display:none;margin-top:16px;justify-content:center">
     <button class="btn sm" onclick="openContentModal()" data-i18n="edit_text">✏️ Rediģēt tekstu</button>
@@ -120,11 +110,10 @@
   </div>
 
   <h3 class="sub-h" id="all-tracks-heading" data-i18n="all_tracks">🎵 Visas dziesmas</h3>
-  <input type="text" id="track-search" class="track-search" data-i18n-ph="track_search_ph" placeholder="🔍 Meklēt dziesmu vai izpildītāju..." oninput="handleTrackSearch(this.value)">
   <div class="track-list" id="track-list"></div>
 </section>
 
-<footer id="footer-text">DJ Gajon</footer>
+<footer id="footer-text">SoundPulse</footer>
 
 <div id="player-bar">
   <div class="pb-track-info">
@@ -168,8 +157,10 @@
 </div>
 
 <!-- Apmeklējumu skaitītājs (redzams tikai adminam) -->
-<div id="visit-counter" style="display:none" title="Kopējais apmeklējumu skaits">
-  👁 <span id="visit-count-num">0</span>
+<div id="visit-counter" style="display:none; flex-direction:column; gap:2px; font-size:13px;" title="Apmeklējumu statistika (bez tavējiem)">
+  <span>🟢 Tiešsaistē tagad: <b id="visit-count-online">0</b></span>
+  <span>📅 Šomēnes: <b id="visit-count-month">0</b></span>
+  <span>👁 Kopā (vēsturiski): <b id="visit-count-num">0</b></span>
 </div>
 
 <!-- Peldošā čata poga (kreisajā apakšējā stūrī) -->
@@ -199,40 +190,6 @@
 
 <!-- Atpakaļ uz augšu poga -->
 <button id="back-to-top" title="Uz augšu" onclick="scrollToTop()">⬆</button>
-
-<!-- Share modal -->
-<div class="modal-overlay" id="share-modal">
-  <div class="modal">
-    <h3 data-i18n="share_title">Dalies ar draugiem</h3>
-    <div class="share-preview">
-      <div class="share-preview-title" id="share-preview-title">—</div>
-      <div class="share-preview-url" id="share-preview-url">—</div>
-    </div>
-    <div class="share-btn-grid">
-      <button class="share-btn share-fb" onclick="shareVia('facebook')">
-        <span class="share-icon">📘</span> Facebook
-      </button>
-      <button class="share-btn share-wa" onclick="shareVia('whatsapp')">
-        <span class="share-icon">💬</span> WhatsApp
-      </button>
-      <button class="share-btn share-x" onclick="shareVia('x')">
-        <span class="share-icon">✖️</span> X
-      </button>
-      <button class="share-btn share-tg" onclick="shareVia('telegram')">
-        <span class="share-icon">✈️</span> Telegram
-      </button>
-      <button class="share-btn share-copy" onclick="shareVia('copy')">
-        <span class="share-icon">🔗</span> <span data-i18n="share_copy">Kopēt saiti</span>
-      </button>
-      <button class="share-btn share-more admin-only-hide-if-unsupported" id="share-native-btn" onclick="shareVia('native')" style="display:none">
-        <span class="share-icon">📤</span> <span data-i18n="share_more">Vairāk...</span>
-      </button>
-    </div>
-    <div class="modal-actions">
-      <button type="button" class="btn" onclick="closeModal('share-modal')" data-i18n="cancel">Atcelt</button>
-    </div>
-  </div>
-</div>
 
 <!-- Login modal -->
 <div class="modal-overlay" id="login-modal">
@@ -399,43 +356,12 @@
       <div class="field"><label data-i18n="genre_label">Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)</label><input id="t-genre" list="genre-list"><datalist id="genre-list"></datalist></div>
       <div class="field"><label data-i18n="audio_file_label">Audio fails (MP3, WAV, OGG...)</label><input type="file" id="t-audio" accept="audio/*" required></div>
       <div class="field"><label data-i18n="cover_label">Vāciņa bilde (nav obligāta)</label><input type="file" id="t-cover" accept="image/*"></div>
-      <div class="field"><label data-i18n="lyrics_label">Dziesmas vārdi (nav obligāti)</label><textarea id="t-lyrics" rows="5" placeholder="Ielīmē dziesmas vārdus šeit, ja vēlies..."></textarea></div>
       <div class="msg-err" id="track-err"></div>
       <div class="modal-actions">
         <button type="button" class="btn" onclick="closeModal('track-modal')" data-i18n="cancel">Atcelt</button>
         <button type="submit" class="btn primary" data-i18n="upload">Augšupielādēt</button>
       </div>
     </form>
-  </div>
-</div>
-
-<!-- Dziesmas rediģēšanas modālis (nosaukums/izpildītājs/žanrs/vārdi) -->
-<div class="modal-overlay" id="edit-track-modal">
-  <div class="modal">
-    <h3>✏️ Rediģēt dziesmu</h3>
-    <form id="edit-track-form">
-      <input type="hidden" id="et-id">
-      <div class="field"><label>Nosaukums</label><input id="et-title" required></div>
-      <div class="field"><label>Izpildītājs</label><input id="et-artist"></div>
-      <div class="field"><label>Žanrs</label><input id="et-genre" list="genre-list"></div>
-      <div class="field"><label>Dziesmas vārdi</label><textarea id="et-lyrics" rows="6" placeholder="Ielīmē dziesmas vārdus šeit, ja vēlies..."></textarea></div>
-      <div class="msg-err" id="edit-track-err"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('edit-track-modal')">Atcelt</button>
-        <button type="submit" class="btn primary">Saglabāt</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Dziesmas vārdu skatīšanas modālis -->
-<div class="modal-overlay" id="lyrics-modal">
-  <div class="modal">
-    <h3 id="lyrics-modal-title">📜 Dziesmas vārdi</h3>
-    <p class="about-text" id="lyrics-modal-text" style="white-space:pre-wrap;max-height:50vh;overflow-y:auto"></p>
-    <div class="modal-actions">
-      <button type="button" class="btn" onclick="closeModal('lyrics-modal')">Aizvērt</button>
-    </div>
   </div>
 </div>
 
@@ -471,6 +397,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=22"></script>
+<script src="/app.js?v=21"></script>
 </body>
 </html>

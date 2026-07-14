@@ -49,7 +49,6 @@ function toast(msg, type = 'ok') {
 const I18N = {
   lv: {
     nav_about: 'Informācīja', nav_gallery: 'Bildes', nav_music: 'Mūzika', nav_chat: 'Čats',
-    nav_share: '🔗 Dalies', share_title: 'Dalies ar draugiem', share_copy: 'Kopēt saiti', share_more: 'Vairāk...',
     admin_bar: '🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot bildes un mūziku',
     logout: 'Iziet', edit_text: '✏️ Rediģēt tekstu', edit_bg: '🖼️ Fona bilde', edit_bg_title: 'Fona bilde', about_title: 'Informācīja',
     edit_hero_img: '🙂 Profila bilde', hero_img_title: 'Profila bilde',
@@ -57,8 +56,6 @@ const I18N = {
     genre_label: 'Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)',
     gallery_title: 'Bildes', add_image: '➕ Pievienot bildi',
     music_title: 'Mūzika', add_track: '➕ Pievienot dziesmu',
-    track_search_ph: '🔍 Meklēt dziesmu vai izpildītāju...',
-    lyrics_label: 'Dziesmas vārdi (nav obligāti)',
     drag_hint: 'Padoms: adminā vari dziesmas pārkārtot, velkot aiz ⠿ ikonas.',
     chat_title: 'Čats', chat_send: 'Sūtīt', chat_name_ph: 'Tavs vārds', chat_text_ph: 'Raksti ziņu...',
     clear_chat: '🗑️ Notīrīt čatu',
@@ -91,7 +88,6 @@ const I18N = {
   },
   en: {
     nav_about: 'About', nav_gallery: 'Gallery', nav_music: 'Music', nav_chat: 'Chat',
-    nav_share: '🔗 Share', share_title: 'Share with friends', share_copy: 'Copy link', share_more: 'More...',
     admin_bar: '🔧 Admin mode on — you can edit content, add photos and music',
     logout: 'Log out', edit_text: '✏️ Edit text', edit_bg: '🖼️ Background image', edit_bg_title: 'Background image', about_title: 'Information',
     edit_hero_img: '🙂 Profile image', hero_img_title: 'Profile image',
@@ -99,8 +95,6 @@ const I18N = {
     genre_label: 'Genre (optional, e.g. Hip-Hop, Metal, Ballad)',
     gallery_title: 'Gallery', add_image: '➕ Add photo',
     music_title: 'Music', add_track: '➕ Add track',
-    track_search_ph: '🔍 Search for a song or artist...',
-    lyrics_label: 'Lyrics (optional)',
     drag_hint: 'Tip: as admin you can reorder tracks by dragging the ⠿ handle.',
     chat_title: 'Chat', chat_send: 'Send', chat_name_ph: 'Your name', chat_text_ph: 'Type a message...',
     clear_chat: '🗑️ Clear chat',
@@ -163,10 +157,10 @@ function setAdminUI(isAdmin) {
 //  SLĒPTĀ ADMIN PIEKĻUVE — parastiem apmeklētājiem šī iespēja NAV redzama
 //  nekur lapā (nav pogas, nav ikonas). Divi veidi, kā to atvērt:
 //
-//  1) UZRAKSTI vārdu "gajon" jebkurā vietā lapā (kad neesi rakstlaukumā) —
+//  1) UZRAKSTI vārdu "sputnik" jebkurā vietā lapā (kad neesi rakstlaukumā) —
 //     nomaini šo vārdu pēc saviem ieskatiem uz kaut ko tikai TEV zināmu.
 //  2) Atver saiti ar slepenu fragmentu, piem.:
-//     https://gajon.id.lv/!gajon-privats-1512
+//     https://tavadomena.lv/#sp-portal-9f3k2
 //     (arī šo maini uz savu — ērti glabāt grāmatzīmēs vai iesviest sev
 //     WhatsApp/Notes, lai var atvērt arī no telefona).
 //
@@ -174,8 +168,8 @@ function setAdminUI(isAdmin) {
 //  un vienkāršus botus — nevis galvenā aizsardzība. Galvenā aizsardzība
 //  joprojām ir parole + 2FA + bloķēšana pēc neveiksmīgiem mēģinājumiem.
 // ══════════════════════════════════════════════════
-const SECRET_WORD = 'gajon';
-const SECRET_HASH = '!gajon-privats-1512';
+const SECRET_WORD = 'sputnik';
+const SECRET_HASH = '#sp-portal-9f3k2';
 
 (function initHiddenAdminAccess() {
   let typedBuffer = '';
@@ -745,10 +739,7 @@ function trackItemHtml(t2, isAdmin, num) {
         <div class="a">${escapeHtml(t2.artist || '')}${isAdmin ? `<span class="play-count" title="${currentLang === 'lv' ? 'Noklausīšanās skaits' : 'Play count'}">▶ ${t2.playCount || 0}</span>` : ''}</div>
       </div>
       <span class="play-ic">${t2._id === currentTrackId ? '⏸' : '▶'}</span>
-      ${t2.lyrics ? `<button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Dziesmas vārdi' : 'Lyrics'}" onclick="event.stopPropagation();openLyricsModal('${t2._id}')">📜</button>` : ''}
-      <button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Dalīties' : 'Share'}" onclick="event.stopPropagation();shareTrack('${t2._id}')">🔗</button>
       <button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Lejupielādēt' : 'Download'}" onclick="event.stopPropagation();downloadTrack('${t2._id}')">⬇</button>
-      <button class="btn sm admin-only" style="display:none" title="${currentLang === 'lv' ? 'Rediģēt' : 'Edit'}" onclick="event.stopPropagation();openEditTrackModal('${t2._id}')">✏️</button>
       <button class="btn sm danger del admin-only" style="display:none" onclick="event.stopPropagation();deleteTrack('${t2._id}')">✕</button>
     </div>
   `;
@@ -776,137 +767,6 @@ function downloadTrack(id) {
   window.open(url, '_blank');
 }
 
-// ══════════════════════════════════════════════════
-//  Dalīšanās — atver logu ar konkrētām platformām (Facebook, WhatsApp,
-//  X, Telegram, kopēt saiti), plus telefonos arī sistēmas dalīšanās
-//  izvēlni ("Vairāk..."), ja pārlūks to atbalsta.
-// ══════════════════════════════════════════════════
-let _shareState = { url: '', title: '' };
-
-function openShareModal(url, title) {
-  _shareState = { url, title };
-  document.getElementById('share-preview-title').textContent = title;
-  document.getElementById('share-preview-url').textContent = url;
-  const nativeBtn = document.getElementById('share-native-btn');
-  if (nativeBtn) nativeBtn.style.display = (typeof navigator.share === 'function') ? '' : 'none';
-  showModal('share-modal');
-}
-
-function shareVia(platform) {
-  const { url, title } = _shareState;
-  const encUrl = encodeURIComponent(url);
-  const encText = encodeURIComponent(title);
-
-  switch (platform) {
-    case 'facebook':
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encUrl}`, '_blank', 'width=580,height=520');
-      break;
-    case 'whatsapp':
-      window.open(`https://wa.me/?text=${encText}%20${encUrl}`, '_blank');
-      break;
-    case 'x':
-      window.open(`https://twitter.com/intent/tweet?url=${encUrl}&text=${encText}`, '_blank', 'width=580,height=420');
-      break;
-    case 'telegram':
-      window.open(`https://t.me/share/url?url=${encUrl}&text=${encText}`, '_blank');
-      break;
-    case 'native':
-      if (navigator.share) navigator.share({ title, text: title, url }).catch(() => {});
-      break;
-    case 'copy':
-    default:
-      copyShareLink(url);
-      return; // negribam aizvērt logu uzreiz — parādām "nokopēts" apstiprinājumu
-  }
-  closeModal('share-modal');
-}
-
-function copyShareLink(url) {
-  const done = () => {
-    toast(currentLang === 'lv' ? '🔗 Saite nokopēta!' : '🔗 Link copied!', 'ok');
-    closeModal('share-modal');
-  };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(done).catch(() => { window.prompt(currentLang === 'lv' ? 'Nokopē šo saiti:' : 'Copy this link:', url); closeModal('share-modal'); });
-  } else {
-    window.prompt(currentLang === 'lv' ? 'Nokopē šo saiti:' : 'Copy this link:', url);
-    closeModal('share-modal');
-  }
-}
-
-function shareTrack(id) {
-  const tracks = window._tracks || [];
-  const track = tracks.find(t2 => t2._id === id);
-  if (!track) return;
-  const url = location.origin + location.pathname + '?track=' + encodeURIComponent(id);
-  const shareText = (track.artist ? track.artist + ' - ' : '') + track.title;
-  openShareModal(url, shareText);
-}
-
-function checkDeepLinkTrack() {
-  try {
-    const params = new URLSearchParams(location.search);
-    const id = params.get('track');
-    if (!id) return;
-    const tryHighlight = () => {
-      const el = document.querySelector(`.track[data-id="${CSS.escape(id)}"]`);
-      if (!el) return false;
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('shared-highlight');
-      setTimeout(() => el.classList.remove('shared-highlight'), 3000);
-      return true;
-    };
-    if (!tryHighlight()) setTimeout(tryHighlight, 400);
-  } catch (e) {}
-}
-
-// ── Dziesmas vārdu skatīšana ──
-function openLyricsModal(id) {
-  const track = (window._tracks || []).find(t2 => t2._id === id);
-  if (!track || !track.lyrics) return;
-  document.getElementById('lyrics-modal-title').textContent = '📜 ' + track.title + (track.artist ? ' — ' + track.artist : '');
-  document.getElementById('lyrics-modal-text').textContent = track.lyrics;
-  showModal('lyrics-modal');
-}
-
-// ── Dziesmas rediģēšana (nosaukums/izpildītājs/žanrs/vārdi) ──
-function openEditTrackModal(id) {
-  const track = (window._tracks || []).find(t2 => t2._id === id);
-  if (!track) return;
-  document.getElementById('et-id').value = track._id;
-  document.getElementById('et-title').value = track.title || '';
-  document.getElementById('et-artist').value = track.artist || '';
-  document.getElementById('et-genre').value = track.genre || '';
-  document.getElementById('et-lyrics').value = track.lyrics || '';
-  document.getElementById('edit-track-err').textContent = '';
-  populateGenreList();
-  showModal('edit-track-modal');
-}
-
-document.getElementById('edit-track-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const errEl = document.getElementById('edit-track-err');
-  errEl.textContent = '';
-  const id = document.getElementById('et-id').value;
-  const body = {
-    title: document.getElementById('et-title').value,
-    artist: document.getElementById('et-artist').value,
-    genre: document.getElementById('et-genre').value,
-    lyrics: document.getElementById('et-lyrics').value,
-  };
-  try {
-    const r = await fetch(API + '/api/tracks/' + id, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(body),
-    });
-    const data = await r.json();
-    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
-    closeModal('edit-track-modal');
-    toast(currentLang === 'lv' ? '✅ Saglabāts!' : '✅ Saved!', 'ok');
-    await loadTracks();
-  } catch (err) { errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
-});
-
 function downloadCurrentTrack() {
   if (!currentTrackId) { toast(currentLang === 'lv' ? 'Nav izvēlēta dziesma' : 'No track selected', 'err'); return; }
   downloadTrack(currentTrackId);
@@ -931,12 +791,10 @@ function toggleTrackView() {
   applyTrackViewMode();
 }
 
-let trackSearchQuery = '';
-
 function renderTracks() {
   const tracks = window._tracks || [];
   const list = document.getElementById('track-list');
-  document.getElementById('drag-hint').style.display = (isAdmin && !trackSearchQuery) ? '' : 'none';
+  document.getElementById('drag-hint').style.display = isAdmin ? '' : 'none';
 
   // ── Šīs nedēļas jaunumi ──
   const now = Date.now();
@@ -946,43 +804,24 @@ function renderTracks() {
   const newWrap = document.getElementById('new-tracks-wrap');
   const newList = document.getElementById('new-track-list');
   const allHeading = document.getElementById('all-tracks-heading');
-  if (newTracks.length && !trackSearchQuery) {
+  if (newTracks.length) {
     newWrap.style.display = '';
     allHeading.style.display = '';
     newList.innerHTML = newTracks.map(t2 => trackItemHtml(t2, isAdmin, tracks.findIndex(x => x._id === t2._id) + 1)).join('');
   } else {
     newWrap.style.display = 'none';
-    allHeading.style.display = (tracks.length && !trackSearchQuery) ? 'none' : ''; // ja vispār nav dziesmu, tik un tā parādi virsrakstu ar tukšu ziņu
+    allHeading.style.display = tracks.length ? 'none' : ''; // ja vispār nav dziesmu, tik un tā parādi virsrakstu ar tukšu ziņu
   }
 
-  // ── Visas dziesmas (ar iespējamu meklēšanas filtru) ──
+  // ── Visas dziesmas ──
   if (!tracks.length) { list.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`; return; }
-
-  const q = trackSearchQuery.trim().toLowerCase();
-  const filtered = q
-    ? tracks.filter(t2 => (t2.title || '').toLowerCase().includes(q) || (t2.artist || '').toLowerCase().includes(q))
-    : tracks;
-
-  if (!filtered.length) {
-    list.innerHTML = `<p class="empty-msg">${currentLang === 'lv' ? '🔍 Nekas netika atrasts' : '🔍 No results found'}</p>`;
-    applyTrackViewMode();
-    return;
-  }
-
-  list.innerHTML = filtered.map(t2 => trackItemHtml(t2, isAdmin, tracks.findIndex(x => x._id === t2._id) + 1)).join('');
+  list.innerHTML = tracks.map((t2, idx) => trackItemHtml(t2, isAdmin, idx + 1)).join('');
   applyTrackViewMode();
 
-  if (isAdmin && !trackSearchQuery) {
+  if (isAdmin) {
     document.querySelectorAll('#track-list .admin-only, #new-track-list .admin-only').forEach(el => el.style.display = '');
     attachDragHandlers();
-  } else if (isAdmin) {
-    document.querySelectorAll('#track-list .admin-only, #new-track-list .admin-only').forEach(el => el.style.display = '');
   }
-}
-
-function handleTrackSearch(value) {
-  trackSearchQuery = value;
-  renderTracks();
 }
 
 function attachDragHandlers() {
@@ -1184,7 +1023,6 @@ document.getElementById('track-form').addEventListener('submit', async (e) => {
   fd.append('title', document.getElementById('t-title').value);
   fd.append('artist', document.getElementById('t-artist').value);
   fd.append('genre', document.getElementById('t-genre').value);
-  fd.append('lyrics', document.getElementById('t-lyrics').value);
   fd.append('audio', audioFile);
   const coverFile = document.getElementById('t-cover').files[0];
   if (coverFile) fd.append('cover', coverFile);
@@ -1521,70 +1359,15 @@ function scrollToTop() {
   await loadGallery();
   await loadTracks();
   registerVisit();
-  initScrollReveal();
-  checkDeepLinkTrack();
 })();
-
-// ══════════════════════════════════════════════════
-//  Smalka animācija — sadaļas parādās, ritinot tām klāt
-//  (progresīvs uzlabojums: ja JS kāda iemesla dēļ nenostrādā,
-//  saturs paliek vienkārši vienmēr redzams — nekas nesalūzt)
-// ══════════════════════════════════════════════════
-// ══════════════════════════════════════════════════
-//  Smalka animācija — sadaļas parādās, ritinot tām klāt
-//  (progresīvs uzlabojums: ja JS kāda iemesla dēļ nenostrādā,
-//  saturs paliek vienkārši vienmēr redzams — nekas nesalūzt)
-//
-//  DROŠĪBAS TĪKLI pret "iestrēgušu" neredzamu saturu (tas, kas
-//  iepriekš sabojāja mūzikas sadaļu):
-//  1) Ja sadaļa JAU ir redzeslaukā uzreiz pēc ielādes (piem. lapa
-//     atvērta ar #music saiti) — parādām to UZREIZ, negaidot ritināšanu.
-//  2) rootMargin liek animācijai iedarboties NEDAUDZ ĀTRĀK, nevis
-//     tieši uz robežas — mazāk iespēju "nepaķert" momentu garām.
-//  3. Absolūts drošības taimeris: ja pēc 2.5 sekundēm kāda sadaļa
-//     joprojām nav parādīta (jebkāda neparedzēta iemesla dēļ) —
-//     piespiedu kārtā to parādām. Saturs NEKAD nevar palikt
-//     neredzams uz visiem laikiem.
-// ══════════════════════════════════════════════════
-function initScrollReveal() {
-  const targets = document.querySelectorAll('#about, #gallery, #music');
-  if (!targets.length) return;
-  if (!('IntersectionObserver' in window)) {
-    targets.forEach(el => el.classList.add('revealed')); // veci pārlūki — vienmēr redzams
-    return;
-  }
-  targets.forEach(el => el.classList.add('reveal'));
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('revealed');
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0, rootMargin: '0px 0px -5% 0px' });
-
-  targets.forEach(el => {
-    const rect = el.getBoundingClientRect();
-    const alreadyVisible = rect.top < window.innerHeight && rect.bottom > 0;
-    if (alreadyVisible) {
-      el.classList.add('revealed'); // jau redzama uzreiz — nav jāgaida ritināšana
-    } else {
-      observer.observe(el);
-    }
-  });
-
-  // Absolūtais drošības tīkls — nekas nedrīkst palikt neredzams uz visiem laikiem
-  setTimeout(() => {
-    targets.forEach(el => el.classList.add('revealed'));
-    observer.disconnect();
-  }, 2500);
-}
 
 // ══════════════════════════════════════════════════
 //  Apmeklējumu skaitītājs
 // ══════════════════════════════════════════════════
 function registerVisit() {
+  // Admin paša apmeklējumus nemaz nesūtam — arī serveris tāpat tos
+  // neieskaitītu, bet šādi ietaupām liekas tīkla darbības.
+  if (isAdmin) return;
   // Skaita reizi uz pārlūka cilnes sesiju (nevis katru pārlādi/atsvaidzināšanu),
   // lai skaitlis rupji atspoguļotu apmeklējumus, nevis F5 spiešanu.
   if (sessionStorage.getItem('sp_visit_counted')) return;
@@ -1599,6 +1382,20 @@ async function loadVisitCount() {
     const data = await r.json();
     const el = document.getElementById('visit-counter');
     const numEl = document.getElementById('visit-count-num');
-    if (el && numEl) { numEl.textContent = data.total; el.style.display = 'flex'; }
+    const monthEl = document.getElementById('visit-count-month');
+    const onlineEl = document.getElementById('visit-count-online');
+    if (el && numEl) {
+      numEl.textContent = data.total;
+      if (monthEl) monthEl.textContent = data.month;
+      if (onlineEl) onlineEl.textContent = data.online;
+      el.style.display = 'flex';
+    }
   } catch (e) {}
 }
+
+// Reāllaika "tiešsaistē tagad" skaitlis — atjaunojas uzreiz, kad kāds
+// pieslēdzas/atslēdzas, bez lapas atsvaidzināšanas (skat. server.js).
+socket.on('online-count', (count) => {
+  const onlineEl = document.getElementById('visit-count-online');
+  if (onlineEl) onlineEl.textContent = count;
+});
