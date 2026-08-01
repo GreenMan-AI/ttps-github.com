@@ -3,19 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- OG:START -->
 <title id="page-title">DJ Gajon</title>
 <meta name="description" content="DJ Gajon — klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="DJ Gajon">
 <meta property="og:title" content="DJ Gajon">
 <meta property="og:description" content="Klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
-<meta property="og:image" content="https://gajon.id.lv/logo512.png">
+<meta property="og:image" content="https://gajon.id.lv/og-image.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
 <meta property="og:url" content="https://gajon.id.lv">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="DJ Gajon">
 <meta name="twitter:description" content="Klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
-<meta name="twitter:image" content="https://gajon.id.lv/logo512.png">
+<meta name="twitter:image" content="https://gajon.id.lv/og-image.png?v=1">
 <link rel="canonical" href="https://gajon.id.lv/">
+<!-- OG:END -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -30,7 +35,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=23">
+<link rel="stylesheet" href="/design.css?v=22">
 </head>
 <body>
 
@@ -168,10 +173,8 @@
 </div>
 
 <!-- Apmeklējumu skaitītājs (redzams tikai adminam) -->
-<div id="visit-counter" style="display:none; flex-direction:column; gap:2px; font-size:13px;" title="Apmeklējumu statistika (bez tavējiem)">
-  <span>🟢 Tiešsaistē tagad: <b id="visit-count-online">0</b></span>
-  <span>📅 Šomēnes: <b id="visit-count-month">0</b></span>
-  <span>👁 Kopā (vēsturiski): <b id="visit-count-num">0</b></span>
+<div id="visit-counter" style="display:none" title="Kopējais apmeklējumu skaits">
+  👁 <span id="visit-count-num">0</span>
 </div>
 
 <!-- Peldošā čata poga (kreisajā apakšējā stūrī) -->
@@ -473,6 +476,6 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=23"></script>
+<script src="/app.js?v=22"></script>
 </body>
 </html>

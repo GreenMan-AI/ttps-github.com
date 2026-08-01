@@ -280,13 +280,13 @@ section h2::before{content:'';width:4px;height:20px;background:var(--accent);bor
 
 /* ══ APMEKLĒJUMU SKAITĪTĀJS (admin) ══ */
 #visit-counter{
-  position:fixed;top:130px;left:20px;z-index:180;
+  position:fixed;top:70px;left:20px;z-index:180;
   background:rgba(21,21,31,.9);backdrop-filter:blur(10px);
   border:1px solid var(--border2);border-radius:20px;
   padding:6px 14px;font-size:13px;font-weight:700;color:var(--accent);
   align-items:center;gap:6px;box-shadow:0 4px 16px rgba(0,0,0,.35);
 }
-@media(max-width:640px){#visit-counter{top:150px;left:10px;font-size:12px;padding:5px 10px}}
+@media(max-width:640px){#visit-counter{top:64px;left:10px;font-size:12px;padding:5px 10px}}
 
 /* ══ ČATA PELDOŠAIS PANELIS ══ */
 #chat-fab{

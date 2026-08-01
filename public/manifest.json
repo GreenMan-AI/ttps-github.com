@@ -1,7 +1,7 @@
 {
-  "name": "SoundPulse Music Platform",
-  "short_name": "SoundPulse",
-  "description": "SoundPulse — Latvijas mūzikas straumēšanas platforma",
+  "name": "DJ Gajon Music Platform",
+  "short_name": "DJ Gajon",
+  "description": "DJ Gajon — Latvijas mūzikas straumēšanas platforma",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

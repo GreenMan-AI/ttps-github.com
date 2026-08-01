@@ -1,7 +1,7 @@
 {
-  "name": "soundpulse-simple",
+  "name": "dj-gajon",
   "version": "1.0.0",
-  "description": "SoundPulse — vienkārša mājas lapa ar 1 admin kontu (teksts, bildes, mūzika, čats)",
+  "description": "DJ Gajon — vienkārša mājas lapa ar 1 admin kontu (teksts, bildes, mūzika, čats)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

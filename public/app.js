@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════
-//  SoundPulse — vienkāršā versija — klienta JS
+//  DJ Gajon — vienkāršā versija — klienta JS
 // ══════════════════════════════════════════════════
 
 // Izslēdz jebkuru VECU Service Worker (no laika, kad lapai bija PWA/offline
@@ -166,7 +166,7 @@ function setAdminUI(isAdmin) {
 //  1) UZRAKSTI vārdu "gajon" jebkurā vietā lapā (kad neesi rakstlaukumā) —
 //     nomaini šo vārdu pēc saviem ieskatiem uz kaut ko tikai TEV zināmu.
 //  2) Atver saiti ar slepenu fragmentu, piem.:
-//     https://gajon.id.lv/agnis
+//     https://gajon.id.lv/!gajon-privats-1512
 //     (arī šo maini uz savu — ērti glabāt grāmatzīmēs vai iesviest sev
 //     WhatsApp/Notes, lai var atvērt arī no telefona).
 //
@@ -175,7 +175,7 @@ function setAdminUI(isAdmin) {
 //  joprojām ir parole + 2FA + bloķēšana pēc neveiksmīgiem mēģinājumiem.
 // ══════════════════════════════════════════════════
 const SECRET_WORD = 'gajon';
-const SECRET_HASH = '/agnis';
+const SECRET_HASH = '!gajon-privats-1512';
 
 (function initHiddenAdminAccess() {
   let typedBuffer = '';
@@ -1515,19 +1515,21 @@ function scrollToTop() {
   const savedName = localStorage.getItem('sp_chat_name');
   if (savedName) document.getElementById('chat-name').value = savedName;
   applyStaticI18n();
-  // Katrs solis ir savā try/catch — ja viens pieprasījums neizdodas
-  // (piem. īslaicīga tīkla problēma), tas nedrīkst apturēt pārējos
-  // soļus (tai skaitā scroll-reveal un apmeklējumu skaitītāju).
-  try { await checkAdmin(); } catch (e) {}
-  try { await loadContent(); } catch (e) {}
-  try { await loadBgSlideshow(); } catch (e) {}
-  try { await loadGallery(); } catch (e) {}
-  try { await loadTracks(); } catch (e) {}
+  await checkAdmin();
+  await loadContent();
+  await loadBgSlideshow();
+  await loadGallery();
+  await loadTracks();
   registerVisit();
   initScrollReveal();
   checkDeepLinkTrack();
 })();
 
+// ══════════════════════════════════════════════════
+//  Smalka animācija — sadaļas parādās, ritinot tām klāt
+//  (progresīvs uzlabojums: ja JS kāda iemesla dēļ nenostrādā,
+//  saturs paliek vienkārši vienmēr redzams — nekas nesalūzt)
+// ══════════════════════════════════════════════════
 // ══════════════════════════════════════════════════
 //  Smalka animācija — sadaļas parādās, ritinot tām klāt
 //  (progresīvs uzlabojums: ja JS kāda iemesla dēļ nenostrādā,
@@ -1560,7 +1562,7 @@ function initScrollReveal() {
         observer.unobserve(entry.target);
       }
     });
-  }, { threshold: 0, rootMargin: '0px 0px 5% 0px' });
+  }, { threshold: 0, rootMargin: '0px 0px -5% 0px' });
 
   targets.forEach(el => {
     const rect = el.getBoundingClientRect();
@@ -1583,9 +1585,6 @@ function initScrollReveal() {
 //  Apmeklējumu skaitītājs
 // ══════════════════════════════════════════════════
 function registerVisit() {
-  // Admin paša apmeklējumus nemaz nesūtam — arī serveris tāpat tos
-  // neieskaitītu, bet šādi ietaupām liekas tīkla darbības.
-  if (isAdmin) return;
   // Skaita reizi uz pārlūka cilnes sesiju (nevis katru pārlādi/atsvaidzināšanu),
   // lai skaitlis rupji atspoguļotu apmeklējumus, nevis F5 spiešanu.
   if (sessionStorage.getItem('sp_visit_counted')) return;
@@ -1600,20 +1599,6 @@ async function loadVisitCount() {
     const data = await r.json();
     const el = document.getElementById('visit-counter');
     const numEl = document.getElementById('visit-count-num');
-    const monthEl = document.getElementById('visit-count-month');
-    const onlineEl = document.getElementById('visit-count-online');
-    if (el && numEl) {
-      numEl.textContent = data.total;
-      if (monthEl) monthEl.textContent = data.month;
-      if (onlineEl) onlineEl.textContent = data.online;
-      el.style.display = 'flex';
-    }
+    if (el && numEl) { numEl.textContent = data.total; el.style.display = 'flex'; }
   } catch (e) {}
 }
-
-// Reāllaika "tiešsaistē tagad" skaitlis — atjaunojas uzreiz, kad kāds
-// pieslēdzas/atslēdzas, bez lapas atsvaidzināšanas (skat. server.js).
-socket.on('online-count', (count) => {
-  const onlineEl = document.getElementById('visit-count-online');
-  if (onlineEl) onlineEl.textContent = count;
-});

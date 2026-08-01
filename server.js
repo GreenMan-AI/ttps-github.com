@@ -82,8 +82,10 @@ app.use((req, res, next) => {
 });
 
 // Static files — no-cache priekš CSS/JS/HTML, lai pēc katra deploy pārlūks
-// vienmēr paņem jaunāko versiju (nevis veco no kešatmiņas)
-app.use(express.static(path.join(__dirname, 'public'), { setHeaders: (res) => {
+// vienmēr paņem jaunāko versiju (nevis veco no kešatmiņas).
+// index:false — jo "/" apkalpojam paši zemāk (skat. renderIndexHtml),
+// lai varam ielikt katras dziesmas savu vāciņa bildi dalīšanās priekšskatam.
+app.use(express.static(path.join(__dirname, 'public'), { index: false, setHeaders: (res) => {
   res.setHeader('Cache-Control', 'no-cache, must-revalidate');
 }}));
 
@@ -133,7 +135,7 @@ const audioFilter = (req, file, cb) => {
 const galleryStorage = new CloudinaryStorage({
   cloudinary,
   params: async () => ({
-    folder: 'SoundPulse/gallery',
+    folder: 'Gajon/gallery',
     resource_type: 'image',
     public_id: 'gal_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
     transformation: [{ width: 1600, height: 1600, crop: 'limit', quality: 'auto' }],
@@ -142,7 +144,7 @@ const galleryStorage = new CloudinaryStorage({
 const coverStorage = new CloudinaryStorage({
   cloudinary,
   params: async () => ({
-    folder: 'SoundPulse/covers',
+    folder: 'Gajon/covers',
     resource_type: 'image',
     public_id: 'cover_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
     transformation: [{ width: 500, height: 500, crop: 'fill', quality: 'auto' }],
@@ -151,7 +153,7 @@ const coverStorage = new CloudinaryStorage({
 const bgStorage = new CloudinaryStorage({
   cloudinary,
   params: async () => ({
-    folder: 'SoundPulse/background',
+    folder: 'Gajon/background',
     resource_type: 'image',
     public_id: 'bg_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
     transformation: [{ width: 1920, height: 1920, crop: 'limit', quality: 'auto' }],
@@ -171,7 +173,7 @@ const uploadBgImg = multer({ storage: bgStorage, fileFilter: imageFilter, limits
 const avatarStorage = new CloudinaryStorage({
   cloudinary,
   params: async () => ({
-    folder: 'SoundPulse/avatar',
+    folder: 'Gajon/avatar',
     resource_type: 'image',
     public_id: 'avatar_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
     transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face', quality: 'auto' }],
@@ -213,6 +215,7 @@ const TrackSchema = new mongoose.Schema({
   publicId: { type: String, required: true },
   coverUrl: { type: String, default: '' },
   coverPublicId: { type: String, default: '' },
+  lyrics: { type: String, default: '' },
   fileHash: { type: String, index: true }, // SHA-256 no audio faila satura — dublikātu noteikšanai
   playCount: { type: Number, default: 0 },
   order: { type: Number, default: 0, index: true },
@@ -237,11 +240,11 @@ const BgSlide = mongoose.model('BgSlide', BgSlideSchema);
 // Noklusējuma satura lauki — admins tos var mainīt no admin paneļa.
 // Tulkojamie lauki tiek glabāti divreiz — ar _lv un _en galotni.
 const DEFAULT_CONTENT = {
-  siteTitle: 'SoundPulse',
+  siteTitle: 'DJ Gajon',
   tagline_lv: 'Mana mūzika. Mana pasaule.',
   tagline_en: 'My music. My world.',
-  heroTitle_lv: 'Sveiki, esmu SoundPulse!',
-  heroTitle_en: 'Hi, I\'m SoundPulse!',
+  heroTitle_lv: 'Sveiki, esmu DJ Gajon!',
+  heroTitle_en: 'Hi, I\'m DJ Gajon!',
   heroSubtitle_lv: 'Šeit klausies manu pašsacerēto mūziku un skaties bildes.',
   heroSubtitle_en: 'Listen to my original music and browse photos here.',
   aboutText_lv: 'Šeit vēlāk būs stāsts par mani un manu mūziku.',
@@ -307,7 +310,7 @@ if (!ADMIN_TOTP_SECRET || ADMIN_TOTP_SECRET.length < 16) {
   process.exit(1);
 }
 const totp = new OTPAuth.TOTP({
-  issuer: 'SoundPulse',
+  issuer: 'DJ Gajon',
   label: ADMIN_USER,
   algorithm: 'SHA1',
   digits: 6,
@@ -417,6 +420,12 @@ function fixMojibake(str) {
 
 function sanitize(str) {
   const clean = String(str || '').replace(/<[^>]*>/g, '').trim().slice(0, 2000);
+  return fixMojibake(clean);
+}
+
+// Dziesmu vārdiem vajag lielāku garuma limitu nekā parastiem laukiem
+function sanitizeLyrics(str) {
+  const clean = String(str || '').replace(/<[^>]*>/g, '').trim().slice(0, 6000);
   return fixMojibake(clean);
 }
 
@@ -575,42 +584,21 @@ app.post('/api/admin/logout', requireAdmin, (req, res) => {
 app.get('/api/admin/check', requireAdmin, (req, res) => res.json({ ok: true }));
 
 // ══════════════════════════════════════════════════
-//  APMEKLĒJUMU SKAITĪTĀJS — pa mēnešiem (ne tikai kopējais lifetime), un
-//  NEKAD nepieskaita admin paša apmeklējumus (pārbauda sesiju servera pusē,
-//  nevis tikai paļaujas uz klienta JS — to nevar apiet no pārlūka puses).
+//  APMEKLĒJUMU SKAITĪTĀJS — vienkāršs (ne unikālu apmeklētāju) skaitītājs.
+//  Klients izsauc /ping vienreiz uz sesiju (skat. app.js), admins redz
+//  kopskaitu lapas augšā kreisajā stūrī.
 // ══════════════════════════════════════════════════
-function currentMonthKey() {
-  const d = new Date();
-  return `visits:${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-}
 const visitLimiter = rateLimit(20, 60000, 'visit');
 app.post('/api/visits/ping', visitLimiter, async (req, res) => {
   try {
-    const token = getSessionToken(req);
-    if (token && isValidSession(token)) {
-      // Admin — neskaitām, tikai atgriežam pašreizējo skaitli.
-      const stat = await Stat.findOne({ key: currentMonthKey() }).lean();
-      return res.json({ ok: true, counted: false, month: stat?.count || 0 });
-    }
-    const stat = await Stat.findOneAndUpdate(
-      { key: currentMonthKey() }, { $inc: { count: 1 } }, { upsert: true, new: true }
-    );
-    // Paralēli uzturam arī lifetime kopskaitu (ērtai vēsturiskai statistikai).
-    await Stat.findOneAndUpdate({ key: 'totalVisits' }, { $inc: { count: 1 } }, { upsert: true });
-    res.json({ ok: true, counted: true, month: stat.count });
+    const stat = await Stat.findOneAndUpdate({ key: 'totalVisits' }, { $inc: { count: 1 } }, { upsert: true, new: true });
+    res.json({ ok: true, total: stat.count });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.get('/api/visits', requireAdmin, async (req, res) => {
   try {
-    const [monthStat, totalStat] = await Promise.all([
-      Stat.findOne({ key: currentMonthKey() }).lean(),
-      Stat.findOne({ key: 'totalVisits' }).lean(),
-    ]);
-    res.json({
-      month: monthStat?.count || 0,
-      total: totalStat?.count || 0,
-      online: onlineVisitors.size,
-    });
+    const stat = await Stat.findOne({ key: 'totalVisits' }).lean();
+    res.json({ total: stat?.count || 0 });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -814,7 +802,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       const audioFile = req.files?.audio?.[0];
       const coverFile = req.files?.cover?.[0];
       if (!audioFile) return res.status(400).json({ error: 'Audio fails obligāts' });
-      const { title, artist, genre } = req.body || {};
+      const { title, artist, genre, lyrics } = req.body || {};
       if (!title?.trim()) return res.status(400).json({ error: 'Nosaukums obligāts' });
 
       // ── Dublikātu pārbaude PIRMS Cloudinary augšupielādes ──
@@ -844,7 +832,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       }
 
       const audioResult = await uploadBufferToCloudinary(audioFile.buffer, {
-        folder: 'SoundPulse/audio',
+        folder: 'Gajon/audio',
         resource_type: 'video', // Cloudinary glabā audio zem "video" resursa tipa
         public_id: 'track_' + Date.now() + '_' + crypto.randomBytes(6).toString('hex'),
       });
@@ -852,7 +840,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       let coverResult = null;
       if (coverBuffer) {
         coverResult = await uploadBufferToCloudinary(coverBuffer, {
-          folder: 'SoundPulse/covers',
+          folder: 'Gajon/covers',
           resource_type: 'image',
           public_id: 'cover_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
           transformation: [{ width: 500, height: 500, crop: 'fill', quality: 'auto' }],
@@ -863,6 +851,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
         title: sanitize(title),
         artist: sanitize(artist || ''),
         genre: sanitize(genre || ''),
+        lyrics: sanitizeLyrics(lyrics || ''),
         cloudUrl: audioResult.secure_url,
         publicId: audioResult.public_id,
         coverUrl: coverResult?.secure_url || '',
@@ -904,11 +893,12 @@ app.post('/api/tracks/:id/play', playLimiter, async (req, res) => {
 app.put('/api/tracks/:id', requireAdmin, async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Nederīgs ID' });
-    const { title, artist, genre } = req.body || {};
+    const { title, artist, genre, lyrics } = req.body || {};
     const update = {};
     if (title?.trim()) update.title = sanitize(title);
     if (typeof artist === 'string') update.artist = sanitize(artist);
     if (typeof genre === 'string') update.genre = sanitize(genre);
+    if (typeof lyrics === 'string') update.lyrics = sanitizeLyrics(lyrics);
     const track = await Track.findByIdAndUpdate(req.params.id, update, { new: true });
     res.json({ track });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -928,41 +918,13 @@ app.delete('/api/tracks/:id', requireAdmin, async (req, res) => {
 
 // ══════════════════════════════════════════════════
 //  ČATS — reāllaika, apmeklētājiem (Socket.IO, atmiņā)
-//  + TIEŠSAISTES APMEKLĒTĀJU SKAITĪTĀJS (izmanto to pašu savienojumu)
 // ══════════════════════════════════════════════════
 const chatHistory = [];
 const CHAT_MAX_MSGS = 8;
 const CHAT_WINDOW_MS = 10000;
-
-// Visi PAŠREIZ pieslēgtie apmeklētāju (ne-admin) socket ID.
-const onlineVisitors = new Set();
-
-function isAdminSocket(socket) {
-  const cookieHeader = socket.handshake.headers?.cookie || '';
-  const match = cookieHeader.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
-  const token = match ? decodeURIComponent(match[1]) : null;
-  return !!(token && isValidSession(token));
-}
-
-function broadcastOnlineCount() {
-  io.emit('online-count', onlineVisitors.size);
-}
-
 io.on('connection', socket => {
   socket.emit('chat-history', chatHistory.slice(-50));
   const chatTimestamps = [];
-
-  // Admin pats sevi NEKAD nepieskaita "tiešsaistes apmeklētājiem" —
-  // tā admin var redzēt reālo, no viņa paša neietekmētu skaitli.
-  if (!isAdminSocket(socket)) {
-    onlineVisitors.add(socket.id);
-    broadcastOnlineCount();
-  }
-  socket.emit('online-count', onlineVisitors.size);
-
-  socket.on('disconnect', () => {
-    if (onlineVisitors.delete(socket.id)) broadcastOnlineCount();
-  });
 
   socket.on('chat-msg', data => {
     const now = Date.now();
@@ -1002,16 +964,75 @@ app.get('/privacy', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
 });
 
+// ══════════════════════════════════════════════════
+//  Dinamisks priekšskats sociālajiem tīkliem (Facebook/WhatsApp/X/Telegram u.c.)
+//  Kad kāds kopīgo konkrētas dziesmas saiti (?track=ID), robots, kas nolasa
+//  saiti, neizpilda JavaScript — tāpēc tam JĀREDZ jau gatavā HTML atbildē
+//  pareizais dziesmas vāciņš un nosaukums, nevis vispārīgā lapas bilde.
+//  Parastam apmeklētājam tas nekādi netraucē — lapa strādā tāpat kā agrāk.
+// ══════════════════════════════════════════════════
+const indexHtmlPath = path.join(__dirname, 'public', 'index.html');
+
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+async function renderIndexHtml(req) {
+  let html = fs.readFileSync(indexHtmlPath, 'utf8');
+  const trackId = req.query.track;
+  if (!trackId) return html;
+
+  let track = null;
+  try { track = await Track.findById(trackId).lean(); } catch (e) { track = null; }
+  if (!track) return html; // nederīgs ID — atgriežam parasto lapu
+
+  const title = escapeHtml((track.artist ? track.artist + ' - ' : '') + track.title);
+  const description = 'Klausies šo dziesmu vietnē DJ Gajon';
+  const image = escapeHtml(track.coverUrl || 'https://gajon.id.lv/og-image.png?v=1');
+  const pageUrl = escapeHtml(`https://gajon.id.lv/?track=${encodeURIComponent(trackId)}`);
+
+  const block = `<!-- OG:START -->
+<title id="page-title">${title}</title>
+<meta name="description" content="${description}">
+<meta property="og:type" content="music.song">
+<meta property="og:site_name" content="DJ Gajon">
+<meta property="og:title" content="${title}">
+<meta property="og:description" content="${description}">
+<meta property="og:image" content="${image}">
+<meta property="og:url" content="${pageUrl}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${title}">
+<meta name="twitter:description" content="${description}">
+<meta name="twitter:image" content="${image}">
+<link rel="canonical" href="${pageUrl}">
+<!-- OG:END -->`;
+
+  html = html.replace(/<!-- OG:START -->[\s\S]*?<!-- OG:END -->/, block);
+  return html;
+}
+
+app.get('/', async (req, res) => {
+  try {
+    const html = await renderIndexHtml(req);
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    res.send(html);
+  } catch (e) {
+    res.sendFile(indexHtmlPath);
+  }
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(indexHtmlPath);
 });
 
 mongoose.connection.once('open', async () => {
   await seedContent();
   server.listen(PORT, () => console.log(`
 ╔═══════════════════════════════════════════╗
-║  SoundPulse — vienkāršā versija            ║
+║  DJ Gajon — vienkāršā versija              ║
 ║  http://localhost:${PORT}                     ║
 ║  Admin: ${ADMIN_USER}                                ║
 ╚═══════════════════════════════════════════╝`));

@@ -1,4 +1,4 @@
-# SoundPulse — vienkāršā versija
+# DJ Gajon — vienkāršā versija
 
 Vienkārša mājas lapa ar **1 admin kontu**. Admins var:
 - mainīt lapas tekstus (LV un EN valodā)
@@ -38,7 +38,7 @@ Atver `http://localhost:3000`.
 
 ```bash
 # 1. Dodies uz sava vecā projekta mapi
-cd ceļš/uz/veco-soundpulse-projektu
+cd ceļš/uz/vecais-projekts
 
 # 2. Izdzēs vecos failus, KURUS aizstāj šī jaunā versija
 #    (nepieskaries .git mapei un .env failam!)
@@ -47,9 +47,9 @@ rm -f package.json package-lock.json
 rm -rf public
 
 # 3. Iekopē šīs jaunās versijas failus tajā pašā mapē
-#    (izpako lejupielādēto soundpulse-simple.zip un iekopē saturu)
-cp -r ceļš/uz/soundpulse-simple/* .
-cp ceļš/uz/soundpulse-simple/.gitignore .
+#    (izpako lejupielādēto dj-gajon.zip un iekopē saturu)
+cp -r ceļš/uz/dj-gajon/* .
+cp ceļš/uz/dj-gajon/.gitignore .
 
 # 4. Pārbaudi, ka viss izskatās pareizi
 ls
@@ -64,7 +64,7 @@ git push
 **Ja projekta vēl nav Git repozitorijā** — izveido to no jauna:
 
 ```bash
-cd ceļš/uz/soundpulse-simple
+cd ceļš/uz/dj-gajon
 git init
 git add -A
 git commit -m "Sākotnējā vienkāršotā versija"

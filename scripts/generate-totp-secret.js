@@ -22,7 +22,7 @@ const QRCode = require('qrcode');
 const secret = new OTPAuth.Secret({ size: 20 });
 
 const totp = new OTPAuth.TOTP({
-  issuer: 'SoundPulse',
+  issuer: 'DJ Gajon',
   label: process.env.ADMIN_USER || 'admin',
   algorithm: 'SHA1',
   digits: 6,
