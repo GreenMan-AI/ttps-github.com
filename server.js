@@ -1040,8 +1040,8 @@ async function renderIndexHtml(req) {
 
   const title = escapeHtml((track.artist ? track.artist + ' - ' : '') + track.title);
   const description = 'Klausies šo dziesmu vietnē DJ Gajon';
-  const image = escapeHtml(track.coverUrl || 'https://gajon.id.lv/og-image.png?v=2');
-  const pageUrl = escapeHtml(`https://gajon.id.lv/?track=${encodeURIComponent(trackId)}`);
+  const image = escapeHtml(track.coverUrl || 'https://www.gajon.id.lv/og-image.png?v=2');
+  const pageUrl = escapeHtml(`https://www.gajon.id.lv/?track=${encodeURIComponent(trackId)}`);
 
   const block = `<!-- OG:START -->
 <title id="page-title">${title}</title>
