@@ -584,21 +584,43 @@ app.post('/api/admin/logout', requireAdmin, (req, res) => {
 app.get('/api/admin/check', requireAdmin, (req, res) => res.json({ ok: true }));
 
 // ══════════════════════════════════════════════════
-//  APMEKLĒJUMU SKAITĪTĀJS — vienkāršs (ne unikālu apmeklētāju) skaitītājs.
-//  Klients izsauc /ping vienreiz uz sesiju (skat. app.js), admins redz
-//  kopskaitu lapas augšā kreisajā stūrī.
+//  APMEKLĒJUMU SKAITĪTĀJS — pa mēnešiem (ne tikai kopējais lifetime), un
+//  NEKAD nepieskaita admin paša apmeklējumus (pārbauda sesiju servera pusē,
+//  nevis tikai paļaujas uz klienta JS — to nevar apiet no pārlūka puses).
 // ══════════════════════════════════════════════════
+function currentMonthKey() {
+  const d = new Date();
+  return `visits:${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
 const visitLimiter = rateLimit(20, 60000, 'visit');
 app.post('/api/visits/ping', visitLimiter, async (req, res) => {
   try {
-    const stat = await Stat.findOneAndUpdate({ key: 'totalVisits' }, { $inc: { count: 1 } }, { upsert: true, new: true });
-    res.json({ ok: true, total: stat.count });
+    const token = getSessionToken(req);
+    if (token && isValidSession(token)) {
+      // Admin — neskaitām, tikai atgriežam pašreizējo skaitli.
+      const stat = await Stat.findOne({ key: currentMonthKey() }).lean();
+      return res.json({ ok: true, counted: false, month: stat?.count || 0 });
+    }
+    const stat = await Stat.findOneAndUpdate(
+      { key: currentMonthKey() }, { $inc: { count: 1 } }, { upsert: true, new: true }
+    );
+    // Paralēli uzturam arī lifetime kopskaitu (ērtai vēsturiskai statistikai).
+    await Stat.findOneAndUpdate({ key: 'totalVisits' }, { $inc: { count: 1 } }, { upsert: true });
+    res.json({ ok: true, counted: true, month: stat.count });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.get('/api/visits', requireAdmin, async (req, res) => {
   try {
-    const stat = await Stat.findOne({ key: 'totalVisits' }).lean();
-    res.json({ total: stat?.count || 0 });
+    const [monthStat, totalStat] = await Promise.all([
+      Stat.findOne({ key: currentMonthKey() }).lean(),
+      Stat.findOne({ key: 'totalVisits' }).lean(),
+    ]);
+    res.json({
+      month: monthStat?.count || 0,
+      total: totalStat?.count || 0,
+      online: onlineVisitors.size,
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -918,13 +940,41 @@ app.delete('/api/tracks/:id', requireAdmin, async (req, res) => {
 
 // ══════════════════════════════════════════════════
 //  ČATS — reāllaika, apmeklētājiem (Socket.IO, atmiņā)
+//  + TIEŠSAISTES APMEKLĒTĀJU SKAITĪTĀJS (izmanto to pašu savienojumu)
 // ══════════════════════════════════════════════════
 const chatHistory = [];
 const CHAT_MAX_MSGS = 8;
 const CHAT_WINDOW_MS = 10000;
+
+// Visi PAŠREIZ pieslēgtie apmeklētāju (ne-admin) socket ID.
+const onlineVisitors = new Set();
+
+function isAdminSocket(socket) {
+  const cookieHeader = socket.handshake.headers?.cookie || '';
+  const match = cookieHeader.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
+  const token = match ? decodeURIComponent(match[1]) : null;
+  return !!(token && isValidSession(token));
+}
+
+function broadcastOnlineCount() {
+  io.emit('online-count', onlineVisitors.size);
+}
+
 io.on('connection', socket => {
   socket.emit('chat-history', chatHistory.slice(-50));
   const chatTimestamps = [];
+
+  // Admin pats sevi NEKAD nepieskaita "tiešsaistes apmeklētājiem" —
+  // tā admin var redzēt reālo, no viņa paša neietekmētu skaitli.
+  if (!isAdminSocket(socket)) {
+    onlineVisitors.add(socket.id);
+    broadcastOnlineCount();
+  }
+  socket.emit('online-count', onlineVisitors.size);
+
+  socket.on('disconnect', () => {
+    if (onlineVisitors.delete(socket.id)) broadcastOnlineCount();
+  });
 
   socket.on('chat-msg', data => {
     const now = Date.now();
@@ -990,7 +1040,7 @@ async function renderIndexHtml(req) {
 
   const title = escapeHtml((track.artist ? track.artist + ' - ' : '') + track.title);
   const description = 'Klausies šo dziesmu vietnē DJ Gajon';
-  const image = escapeHtml(track.coverUrl || 'https://gajon.id.lv/og-image.png?v=1');
+  const image = escapeHtml(track.coverUrl || 'https://gajon.id.lv/og-image.png?v=2');
   const pageUrl = escapeHtml(`https://gajon.id.lv/?track=${encodeURIComponent(trackId)}`);
 
   const block = `<!-- OG:START -->
