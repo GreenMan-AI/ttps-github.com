@@ -3,481 +3,797 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- OG:START -->
-<title id="page-title">DJ Gajon</title>
-<meta name="description" content="DJ Gajon — klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="DJ Gajon">
-<meta property="og:title" content="DJ Gajon">
-<meta property="og:description" content="Klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
-<meta property="og:image" content="https://www.gajon.id.lv/og-image.png?v=4">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:type" content="image/png">
-<meta property="og:url" content="https://www.gajon.id.lv">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="DJ Gajon">
-<meta name="twitter:description" content="Klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
-<meta name="twitter:image" content="https://www.gajon.id.lv/og-image.png?v=4">
-<link rel="canonical" href="https://www.gajon.id.lv/">
-<!-- OG:END -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "DJ Gajon",
-  "url": "https://www.gajon.id.lv/"
-}
-</script>
-<link rel="icon" href="/favicon.ico?v=2">
-<link rel="icon" type="image/png" sizes="192x192" href="/logo192.png?v=2">
-<link rel="icon" type="image/png" sizes="512x512" href="/logo512.png?v=2">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
-<!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
-     tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=22">
+<title>PULSS — atklāj skaņu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #12081f;
+    --bg-2: #1a0f2b;
+    --card: #1e1330;
+    --card-hi: #281a3d;
+    --line: #38264f;
+    --text: #f4eefc;
+    --text-dim: #b6a6cc;
+    --pink: #ff3d81;
+    --cyan: #00e5c7;
+    --yellow: #ffd23f;
+    --grad: linear-gradient(120deg, var(--pink), #a63dff 55%, var(--cyan));
+    --radius: 18px;
+    --shadow: 0 20px 60px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 85% -10%, rgba(255,61,129,.25), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 5% 10%, rgba(0,229,199,.18), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Manrope', sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  ::selection{ background:var(--pink); color:#fff; }
+  a{color:inherit;}
+  :focus-visible{ outline:2px solid var(--cyan); outline-offset:3px; border-radius:6px; }
+
+  .wrap{ max-width:1180px; margin:0 auto; padding:0 28px; }
+
+  header{
+    position:sticky; top:0; z-index:40;
+    backdrop-filter: blur(14px);
+    background: rgba(18,8,31,.75);
+    border-bottom:1px solid var(--line);
+  }
+  nav{ display:flex; align-items:center; justify-content:space-between; padding:18px 0; }
+  .logo{
+    font-family:'Unbounded', sans-serif; font-weight:800; font-size:22px;
+    letter-spacing:.5px; cursor:pointer; user-select:none; display:flex; align-items:center; gap:8px;
+  }
+  .logo span{ color:var(--pink); }
+  .logo .dot{
+    width:10px; height:10px; border-radius:50%; background:var(--grad);
+    display:inline-block; box-shadow:0 0 14px var(--pink);
+  }
+  .navlinks{ display:flex; gap:24px; font-size:14px; font-weight:600; color:var(--text-dim); align-items:center; }
+  .navlinks a{ transition:color .2s; }
+  .navlinks a:hover{ color:var(--text); }
+  #syncStatus{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-dim); white-space:nowrap; }
+  @media (max-width:640px){ .navlinks a{ display:none; } }
+
+  .hero{ padding:90px 0 60px; position:relative; }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace; font-size:12px; letter-spacing:2px;
+    color:var(--cyan); text-transform:uppercase; margin-bottom:18px; display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{ content:''; width:26px; height:1px; background:var(--cyan); }
+  h1.hero-title{
+    font-family:'Unbounded', sans-serif; font-weight:900; line-height:.98;
+    font-size:clamp(40px, 8vw, 92px); letter-spacing:-1px;
+  }
+  h1.hero-title .grad{
+    background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .hero p.sub{ max-width:560px; margin-top:22px; color:var(--text-dim); font-size:17px; line-height:1.6; }
+  .hero-cta{ display:flex; gap:14px; margin-top:34px; flex-wrap:wrap; }
+  .btn{
+    font-family:'Manrope'; font-weight:700; font-size:14px; padding:14px 26px; border-radius:100px;
+    border:none; cursor:pointer; transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .btn-primary{ background:var(--grad); color:#12081f; }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 10px 30px rgba(255,61,129,.35); }
+  .btn-ghost{ background:transparent; color:var(--text); border:1px solid var(--line); }
+  .btn-ghost:hover{ border-color:var(--cyan); color:var(--cyan); }
+
+  .pulse-viz{ display:flex; align-items:flex-end; gap:4px; height:54px; margin-top:44px; }
+  .pulse-viz i{
+    width:5px; border-radius:3px; background:var(--grad); opacity:.85;
+    animation: bump 1.1s ease-in-out infinite;
+  }
+  @keyframes bump{ 0%,100%{ transform:scaleY(.3);} 50%{ transform:scaleY(1);} }
+
+  .toolbar{ display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin:70px 0 26px; }
+  .search{
+    flex:1; min-width:220px; display:flex; align-items:center; gap:10px;
+    background:var(--card); border:1px solid var(--line); border-radius:100px; padding:12px 20px;
+  }
+  .search input{
+    background:transparent; border:none; outline:none; color:var(--text); font-family:'Manrope'; font-size:14px; width:100%;
+  }
+  .search input::placeholder{ color:var(--text-dim); }
+  .chips{ display:flex; gap:8px; flex-wrap:wrap; }
+  .chip{
+    font-family:'JetBrains Mono', monospace; font-size:12px; padding:9px 16px; border-radius:100px;
+    border:1px solid var(--line); background:var(--card); color:var(--text-dim); cursor:pointer;
+    transition:all .18s;
+  }
+  .chip:hover{ border-color:var(--cyan); color:var(--text); }
+  .chip.active{ background:var(--grad); color:#12081f; border-color:transparent; font-weight:700; }
+
+  h2.section-title{
+    font-family:'Unbounded', sans-serif; font-weight:800; font-size:26px; margin:50px 0 20px;
+    display:flex; align-items:center; gap:12px;
+  }
+  h2.section-title small{
+    font-family:'JetBrains Mono'; font-size:12px; color:var(--text-dim); font-weight:400;
+    border:1px solid var(--line); padding:4px 10px; border-radius:100px;
+  }
+
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:18px; padding-bottom:60px; }
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:20px; cursor:default; transition:transform .2s ease, border-color .2s ease, background .2s ease;
+    position:relative; overflow:hidden;
+  }
+  .card:hover{ transform:translateY(-4px); border-color:var(--pink); background:var(--card-hi); }
+  .card .cover{
+    height:130px; border-radius:12px; margin-bottom:16px;
+    display:flex; align-items:flex-end; padding:10px; position:relative; overflow:hidden;
+  }
+  .card .cover .bars{ display:flex; gap:3px; align-items:flex-end; height:38px; }
+  .card .cover .bars i{ width:4px; background:rgba(255,255,255,.9); border-radius:2px; }
+  .card .track{ font-family:'Unbounded'; font-weight:600; font-size:16px; margin-bottom:2px; }
+  .card .artist{ color:var(--text-dim); font-size:13px; margin-bottom:14px; }
+  .card .meta{ display:flex; justify-content:space-between; align-items:center; }
+  .genre-tag{
+    font-family:'JetBrains Mono'; font-size:11px; padding:5px 11px; border-radius:100px;
+    background:rgba(255,255,255,.06); border:1px solid var(--line); color:var(--cyan);
+  }
+  .dur{ font-family:'JetBrains Mono'; font-size:11px; color:var(--text-dim); }
+  .card-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+  .share-btn{
+    font-family:'JetBrains Mono'; font-size:11px; background:transparent; border:1px solid var(--line);
+    color:var(--text-dim); padding:6px 12px; border-radius:100px; cursor:pointer; transition:all .18s;
+  }
+  .share-btn:hover{ border-color:var(--cyan); color:var(--cyan); }
+  .toast{
+    position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(20px);
+    background:var(--card-hi); border:1px solid var(--cyan); color:var(--text);
+    font-family:'JetBrains Mono'; font-size:13px; padding:12px 22px; border-radius:100px;
+    box-shadow:var(--shadow); z-index:200; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .song-modal-overlay{
+    position:fixed; inset:0; background:rgba(8,4,14,.7); backdrop-filter:blur(6px);
+    display:none; align-items:center; justify-content:center; z-index:110; padding:20px;
+  }
+  .song-modal-overlay.open{ display:flex; }
+  .song-modal{
+    width:100%; max-width:420px; background:var(--bg-2); border:1px solid var(--cyan);
+    border-radius:20px; box-shadow:var(--shadow); padding:28px; text-align:center;
+  }
+  .song-modal .cover{ height:150px; border-radius:14px; margin-bottom:18px; }
+  .song-modal .track{ font-family:'Unbounded'; font-weight:700; font-size:20px; margin-bottom:4px; }
+  .song-modal .artist{ color:var(--text-dim); font-size:14px; margin-bottom:16px; }
+  .trending-badge{
+    position:absolute; top:14px; right:14px; font-family:'JetBrains Mono'; font-size:10px;
+    background:var(--yellow); color:#12081f; padding:4px 9px; border-radius:100px; font-weight:700;
+  }
+  .empty{ color:var(--text-dim); font-family:'JetBrains Mono'; font-size:13px; padding:30px 0; }
+
+  footer{ border-top:1px solid var(--line); margin-top:60px; padding:34px 0 60px; color:var(--text-dim); font-size:13px; text-align:center; }
+  footer span{ color:var(--pink); }
+
+  .admin-overlay{
+    position:fixed; inset:0; background:rgba(8,4,14,.7); backdrop-filter:blur(6px);
+    display:none; align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .admin-overlay.open{ display:flex; }
+  .admin-panel{
+    width:100%; max-width:860px; max-height:86vh; overflow-y:auto;
+    background:var(--bg-2); border:1px solid var(--pink); border-radius:20px; box-shadow:var(--shadow);
+    padding:30px;
+  }
+  .admin-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .admin-head h3{ font-family:'Unbounded'; font-size:20px; }
+  .admin-head .close{ background:none; border:none; color:var(--text-dim); font-size:22px; cursor:pointer; line-height:1; }
+  .admin-sub{ color:var(--text-dim); font-size:13px; margin-bottom:24px; font-family:'JetBrains Mono'; }
+  .admin-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+  @media (max-width:640px){ .admin-grid{ grid-template-columns:1fr; } }
+  .field label{ display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px; font-family:'JetBrains Mono'; }
+  .field input, .field select{
+    width:100%; background:var(--card); border:1px solid var(--line); border-radius:10px;
+    padding:11px 14px; color:var(--text); font-family:'Manrope'; font-size:14px; outline:none;
+  }
+  .field input:focus, .field select:focus{ border-color:var(--cyan); }
+  .detect-row{ display:flex; gap:10px; align-items:end; margin-top:4px; margin-bottom:18px; }
+  .detect-result{
+    font-family:'JetBrains Mono'; font-size:12px; padding:11px 16px; border-radius:10px;
+    background:rgba(0,229,199,.1); border:1px dashed var(--cyan); color:var(--cyan); flex:1;
+  }
+  .form-error{
+    font-family:'JetBrains Mono'; font-size:12px; padding:11px 16px; border-radius:10px;
+    background:rgba(255,61,129,.1); border:1px dashed var(--pink); color:var(--pink); margin-bottom:14px; display:none;
+  }
+  .admin-actions{ display:flex; gap:10px; margin:18px 0 26px; }
+  .admin-list{ border-top:1px solid var(--line); padding-top:18px; display:flex; flex-direction:column; gap:10px; }
+  .admin-row{
+    display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line);
+    border-radius:12px; padding:12px 14px; flex-wrap:wrap;
+  }
+  .admin-row .info{ flex:1; min-width:140px; }
+  .admin-row .info b{ font-family:'Unbounded'; font-size:13px; display:block; }
+  .admin-row .info small{ color:var(--text-dim); font-size:11px; font-family:'JetBrains Mono'; }
+  .admin-row select{ background:var(--bg); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:7px 10px; font-family:'JetBrains Mono'; font-size:11px; }
+  .icon-btn{
+    border:1px solid var(--line); background:transparent; color:var(--text-dim); border-radius:8px;
+    padding:7px 11px; cursor:pointer; font-size:12px; font-family:'JetBrains Mono';
+  }
+  .icon-btn:hover{ border-color:var(--pink); color:var(--pink); }
+  .icon-btn.trend.active{ background:var(--yellow); color:#12081f; border-color:var(--yellow); }
+  .inline-edit{
+    background:transparent; border:1px solid transparent; border-radius:6px; color:var(--text);
+    font-family:'Manrope'; font-size:13px; padding:4px 6px; width:100%; outline:none;
+  }
+  .inline-edit:hover, .inline-edit:focus{ border-color:var(--line); background:var(--bg); }
+  .inline-edit.title-edit{ font-family:'Unbounded'; font-weight:600; font-size:13px; }
+  .inline-edit.small{ font-family:'JetBrains Mono'; font-size:11px; color:var(--text-dim); }
+  .admin-stats{
+    display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; font-family:'JetBrains Mono'; font-size:11px;
+  }
+  .admin-stats span{ background:var(--card); border:1px solid var(--line); padding:6px 12px; border-radius:100px; color:var(--text-dim); }
+  .admin-stats span b{ color:var(--cyan); font-weight:700; }
+</style>
 </head>
 <body>
 
-<div id="site-bg-a" class="site-bg-layer"></div>
-<div id="site-bg-b" class="site-bg-layer"></div>
-<div id="site-bg-overlay"></div>
-
-
 <header>
-  <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" id="logo-text">DJ Gajon</div>
-  <nav>
-    <a href="#about" data-i18n="nav_about">Informācīja</a>
-    <a href="#gallery" data-i18n="nav_gallery">Bildes</a>
-    <a href="#music" data-i18n="nav_music">Mūzika</a>
-    <a href="javascript:void(0)" onclick="toggleChatPanel(true)" data-i18n="nav_chat">Čats</a>
-    <button class="btn sm" onclick="openShareModal(location.origin, document.getElementById('page-title').textContent)" title="Dalies ar lapu" data-i18n="nav_share">🔗 Dalies</button>
-    <button class="btn sm lang-switch" id="lang-toggle" onclick="toggleLang()" title="Switch language / Mainīt valodu">🌐 EN</button>
-  </nav>
+  <div class="wrap">
+    <nav>
+      <div class="logo" id="logoTrigger">
+        <span class="dot"></span>Gajon<span>🎼🎧</span>
+      </div>
+      <div class="navlinks">
+        <a href="#trending">Trendos</a>
+        <a href="#zanri">Žanri</a>
+        <a href="#kolekcija">Kolekcija</a>
+        <span id="syncStatus">● savienojas...</span>
+      </div>
+    </nav>
+  </div>
 </header>
 
-<div id="admin-bar">
-  <span data-i18n="admin_bar">🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot bildes un mūziku</span>
-  <div style="display:flex;gap:8px">
-    <button class="btn sm" onclick="runFixEncoding()" title="Salabo esošos sabojātos LV burtus/emocijzīmes datubāzē">🛠 Salabot kodējumu</button>
-    <button class="btn sm danger" onclick="adminLogout()" data-i18n="logout">Iziet</button>
-  </div>
-</div>
-
 <section class="hero">
-  <img id="hero-profile-img" class="hero-avatar" src="" alt="" style="display:none">
-  <h1 id="hero-title">Sveiki, esmu DJ Gajon!</h1>
-  <p id="hero-subtitle">Šeit klausies manu pašsacerēto mūziku un skaties bildes.</p>
-  <div class="btn-row admin-only" style="display:none;margin-top:16px;justify-content:center">
-    <button class="btn sm" onclick="openContentModal()" data-i18n="edit_text">✏️ Rediģēt tekstu</button>
-    <button class="btn sm" onclick="openBgModal()" data-i18n="edit_bg">🖼️ Fona bilde</button>
-    <button class="btn sm" onclick="openHeroImgModal()" data-i18n="edit_hero_img">🙂 Profila bilde</button>
+  <div class="wrap">
+    <div class="eyebrow">jaunā skaņa katru dienu</div>
+    <h1 class="hero-title">Skaņa, kas<br>seko <span class="grad">pulsam.</span></h1>
+    <p class="sub">Šeit ir vieta, kur atrast dziesmas pēc noskaņojuma, nevis pēc algoritma. Meklē, dziesmas pēc žanra un ļauj mūzikai pašai plūst cauri jaunā mūzikālā veidā.</p>
+    <div class="hero-cta">
+      <button class="btn btn-primary" onclick="document.getElementById('kolekcija').scrollIntoView({behavior:'smooth'})">Sākt klausīties</button>
+      <a href="#zanri"><button class="btn btn-ghost">Pārlūkot žanrus</button></a>
+    </div>
+    <div class="pulse-viz" id="heroViz"></div>
   </div>
 </section>
 
-<!-- Profila bildes modālais logs -->
-<div class="modal-overlay" id="hero-img-modal">
-  <div class="modal">
-    <h3 data-i18n="hero_img_title">Profila bilde</h3>
-    <p class="hint" data-i18n="hero_img_hint">Neliela apļveida bilde, kas parādās virs virsraksta.</p>
-    <div class="field">
-      <label data-i18n="image_label">Bilde</label>
-      <input type="file" id="f-heroImg" accept="image/*">
+<div class="wrap" id="kolekcija">
+  <div class="toolbar">
+    <div class="search">
+      <span style="color:var(--text-dim)">⌕</span>
+      <input id="searchInput" placeholder="Meklē dziesmu, izpildītāju vai žanru..." />
     </div>
-    <div id="hero-img-preview" style="margin-bottom:10px"></div>
-    <div class="msg-err" id="hero-img-err"></div>
-    <div class="modal-actions" style="justify-content:space-between">
-      <button type="button" class="btn sm danger" id="hero-img-remove-btn" style="display:none" onclick="removeHeroImage()" data-i18n="hero_img_remove">🗑️ Noņemt</button>
-      <div style="display:flex;gap:10px">
-        <button type="button" class="btn" onclick="closeModal('hero-img-modal')" data-i18n="close">Aizvērt</button>
-        <button type="button" class="btn primary" id="hero-img-upload-btn" onclick="uploadHeroImage()" data-i18n="upload">Augšupielādēt</button>
-      </div>
+  </div>
+
+  <div id="genreChips" class="chips" style="margin-bottom:10px;"></div>
+
+  <h2 class="section-title" id="trending">🔥 Trendos <small id="trendCount">0</small></h2>
+  <div class="grid" id="trendingGrid"></div>
+
+  <h2 class="section-title" id="zanri">Visa kolekcija <small id="allCount">0</small></h2>
+  <div class="grid" id="allGrid"></div>
+</div>
+
+<footer>
+  izgatavots ar <span>♥</span> mūzdienīgai jaunatnei — PULSS © 2026
+</footer>
+
+<div class="admin-overlay" id="loginOverlay">
+  <div class="admin-panel" style="max-width:360px; text-align:center;">
+    <div class="admin-head" style="justify-content:center;"><h3>🔒 Admin pieeja</h3></div>
+    <div class="admin-sub">Ievadi paroli, lai piekļūtu kontroles panelim.</div>
+    <div class="field" style="margin-bottom:14px; text-align:left;">
+      <input type="password" id="adminPasswordInput" placeholder="Parole" autocomplete="current-password">
+    </div>
+    <div class="form-error" id="loginError"></div>
+    <div class="admin-actions" style="justify-content:center;">
+      <button class="btn btn-primary" id="loginSubmitBtn">Ieiet</button>
     </div>
   </div>
 </div>
 
-<section id="about">
-  <h2 data-i18n="about_title">Informācīja</h2>
-  <p class="about-text" id="about-text">...</p>
-</section>
-
-<section id="gallery">
-  <h2 data-i18n="gallery_title">Bildes</h2>
-  <button class="btn sm admin-only" style="display:none;margin-bottom:14px" onclick="openGalleryModal()" data-i18n="add_image">➕ Pievienot bildi</button>
-  <div class="cat-tabs" id="cat-tabs"></div>
-  <div class="gallery-grid" id="gallery-grid"></div>
-</section>
-
-<section id="music">
-  <div class="section-header-row">
-    <h2 data-i18n="music_title">Mūzika</h2>
-    <button class="btn sm view-toggle-btn" id="view-toggle-btn" onclick="toggleTrackView()" title="Pārslēgt skatu">🔲 Režģa skats</button>
-  </div>
-  <div class="btn-row admin-only" style="display:none;margin-bottom:14px">
-    <button class="btn sm" onclick="openTrackModal()" data-i18n="add_track">➕ Pievienot dziesmu</button>
-    <button class="btn sm" onclick="openBulkModal()" data-i18n="add_bulk">📦 Pievienot vairākas uzreiz</button>
-  </div>
-  <p class="hint admin-only" id="drag-hint" style="display:none" data-i18n="drag_hint">Padoms: adminā vari dziesmas pārkārtot, velkot aiz ⠿ ikonas.</p>
-
-  <div id="new-tracks-wrap" style="display:none">
-    <h3 class="sub-h" data-i18n="new_this_week">🆕 Šīs nedēļas jaunumi</h3>
-    <div class="track-list" id="new-track-list"></div>
-  </div>
-
-  <h3 class="sub-h" id="all-tracks-heading" data-i18n="all_tracks">🎵 Visas dziesmas</h3>
-  <input type="text" id="track-search" class="track-search" data-i18n-ph="track_search_ph" placeholder="🔍 Meklēt dziesmu vai izpildītāju..." oninput="handleTrackSearch(this.value)">
-  <div class="track-list" id="track-list"></div>
-</section>
-
-<footer id="footer-text">DJ Gajon</footer>
-
-<div id="player-bar">
-  <div class="pb-track-info">
-    <div class="pb-cover-wrap">
-      <img id="pb-cover" class="cover" src="" alt="">
-      <div class="waveform" id="pb-waveform">
-        <span></span><span></span><span></span><span></span><span></span>
-      </div>
+<div class="admin-overlay" id="adminOverlay">
+  <div class="admin-panel">
+    <div class="admin-head">
+      <h3>⚙ Kontroles panelis</h3>
+      <button class="close" id="adminClose">✕</button>
     </div>
-    <div class="info">
-      <div class="t" id="pb-title">—</div>
-      <div class="a" id="pb-artist"></div>
-    </div>
-  </div>
+    <div class="admin-sub">Šeit var pievienot, rediģēt vai dzēst dziesmas, un automātiski noteikt žanru pēc atslēgvārdiem. Izmaiņas tiek saglabātas datubāzē uzreiz.</div>
 
-  <div class="pb-center">
-    <div class="pb-controls">
-      <button class="pb-btn pb-toggle" id="pb-shuffle" title="Jaukt secību">🔀</button>
-      <button class="pb-btn" id="pb-prev" title="Iepriekšējā">⏮</button>
-      <button class="pb-btn pb-play" id="pb-playpause" title="Atskaņot/Pauze">▶</button>
-      <button class="pb-btn" id="pb-next" title="Nākamā">⏭</button>
-      <button class="pb-btn pb-toggle" id="pb-repeat" title="Atkārtot">🔁</button>
-    </div>
-    <div class="pb-seek-row">
-      <span class="pb-time" id="pb-current">0:00</span>
-      <div class="pb-progress" id="pb-progress">
-        <div class="pb-progress-fill" id="pb-progress-fill"></div>
-        <div class="pb-progress-handle" id="pb-progress-handle"></div>
+    <div class="form-error" id="formError"></div>
+
+    <div class="admin-stats" id="adminStats"></div>
+
+    <div class="admin-grid">
+      <div class="field"><label>Dziesmas nosaukums</label><input id="fTitle" placeholder="piem. Naktsvidus"></div>
+      <div class="field"><label>Izpildītājs</label><input id="fArtist" placeholder="piem. Nakts Kods"></div>
+      <div class="field"><label>Garums (mm:ss)</label><input id="fDur" placeholder="piem. 2:41"></div>
+      <div class="field"><label>Žanrs (var noteikt automātiski zemāk)</label>
+        <select id="fGenre"></select>
       </div>
-      <span class="pb-time" id="pb-duration">0:00</span>
-    </div>
-  </div>
-
-  <div class="pb-volume">
-    <span id="pb-vol-icon">🔊</span>
-    <input type="range" id="pb-volume-slider" min="0" max="1" step="0.01" value="1">
-    <button class="pb-btn" id="pb-download" title="Lejupielādēt šo dziesmu" onclick="downloadCurrentTrack()">⬇</button>
-  </div>
-
-  <audio id="pb-audio"></audio>
-</div>
-
-<!-- Apmeklējumu skaitītājs (redzams tikai adminam) -->
-<div id="visit-counter" style="display:none; flex-direction:column; gap:2px; font-size:13px;" title="Apmeklējumu statistika (bez tavējiem)">
-  <span>🟢 Tiešsaistē tagad: <b id="visit-count-online">0</b></span>
-  <span>📅 Šomēnes: <b id="visit-count-month">0</b></span>
-  <span>👁 Kopā (vēsturiski): <b id="visit-count-num">0</b></span>
-</div>
-
-<!-- Peldošā čata poga (kreisajā apakšējā stūrī) -->
-<button id="chat-fab" title="Čats" onclick="toggleChatPanel()">
-  💬<span id="chat-badge" class="chat-badge" style="display:none">0</span>
-</button>
-
-<!-- Peldošais čata panelis -->
-<div id="chat-panel">
-  <div class="chat-panel-header">
-    <span data-i18n="chat_title">Čats</span>
-    <button class="chat-panel-close" onclick="toggleChatPanel(false)" title="Aizvērt">✕</button>
-  </div>
-  <div id="chat-msgs"></div>
-  <form class="chat-form" id="chat-form">
-    <input id="chat-name" type="text" data-i18n-ph="chat_name_ph" placeholder="Tavs vārds" maxlength="30" required>
-    <input id="chat-text" type="text" data-i18n-ph="chat_text_ph" placeholder="Raksti ziņu..." maxlength="500" required>
-    <button type="button" class="chat-translate-btn" title="Iztulkot manu ziņu" onclick="translateChatDraft()">T</button>
-    <button class="btn sm primary" type="submit" data-i18n="chat_send">Sūtīt</button>
-  </form>
-  <button class="btn sm danger admin-only" style="display:none;margin:10px" onclick="clearChat()" data-i18n="clear_chat">🗑️ Notīrīt čatu</button>
-</div>
-
-<!-- Admin login FAB — TĪŠI noņemts no redzamā HTML. Piekļuve ir tikai
-     caur slēpto mehānismu app.js failā (skat. "SLĒPTĀ ADMIN PIEKĻUVE"). -->
-<div id="admin-fab" style="display:none;"></div>
-
-<!-- Atpakaļ uz augšu poga -->
-<button id="back-to-top" title="Uz augšu" onclick="scrollToTop()">⬆</button>
-
-<!-- Share modal -->
-<div class="modal-overlay" id="share-modal">
-  <div class="modal">
-    <h3 data-i18n="share_title">Dalies ar draugiem</h3>
-    <div class="share-preview">
-      <div class="share-preview-title" id="share-preview-title">—</div>
-      <div class="share-preview-url" id="share-preview-url">—</div>
-    </div>
-    <div class="share-btn-grid">
-      <button class="share-btn share-fb" onclick="shareVia('facebook')">
-        <span class="share-icon">📘</span> Facebook
-      </button>
-      <button class="share-btn share-wa" onclick="shareVia('whatsapp')">
-        <span class="share-icon">💬</span> WhatsApp
-      </button>
-      <button class="share-btn share-x" onclick="shareVia('x')">
-        <span class="share-icon">✖️</span> X
-      </button>
-      <button class="share-btn share-tg" onclick="shareVia('telegram')">
-        <span class="share-icon">✈️</span> Telegram
-      </button>
-      <button class="share-btn share-copy" onclick="shareVia('copy')">
-        <span class="share-icon">🔗</span> <span data-i18n="share_copy">Kopēt saiti</span>
-      </button>
-      <button class="share-btn share-more admin-only-hide-if-unsupported" id="share-native-btn" onclick="shareVia('native')" style="display:none">
-        <span class="share-icon">📤</span> <span data-i18n="share_more">Vairāk...</span>
-      </button>
-    </div>
-    <div class="modal-actions">
-      <button type="button" class="btn" onclick="closeModal('share-modal')" data-i18n="cancel">Atcelt</button>
-    </div>
-  </div>
-</div>
-
-<!-- Login modal -->
-<div class="modal-overlay" id="login-modal">
-  <div class="modal">
-    <h3 data-i18n="login_title">Admin ielogošanās</h3>
-    <form id="login-form">
-      <div class="field">
-        <label data-i18n="login_user">Lietotājvārds</label>
-        <input type="text" id="login-user" required autocomplete="username">
-      </div>
-      <div class="field">
-        <label data-i18n="login_pass">Parole</label>
-        <input type="password" id="login-pass" required autocomplete="current-password">
-      </div>
-      <div class="field">
-        <label data-i18n="login_totp">Autentifikācijas kods (2FA)</label>
-        <input type="text" id="login-totp" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="123456">
-      </div>
-      <!-- Honeypot lauks pret botiem — cilvēkam neredzams (aizsegts ar CSS un
-           izņemts no Tab secības), bet automātiskie skenējošie boti to bieži
-           aizpilda un tā nodod sevi. NEDZĒST un NEPADARĪT redzamu. -->
-      <div class="field" aria-hidden="true" style="position:absolute; left:-9999px; top:-9999px; height:0; width:0; overflow:hidden;">
-        <label for="login-website">Website</label>
-        <input type="text" id="login-website" name="website" tabindex="-1" autocomplete="off">
-      </div>
-      <div class="msg-err" id="login-err"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('login-modal')" data-i18n="cancel">Atcelt</button>
-        <button type="submit" class="btn primary" data-i18n="login_btn">Ielogoties</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Content edit modal -->
-<div class="modal-overlay" id="content-modal">
-  <div class="modal">
-    <h3 data-i18n="edit_content_title">Rediģēt lapas tekstu</h3>
-    <form id="content-form">
-      <div class="field"><label data-i18n="site_title_label">Lapas nosaukums</label><input id="f-siteTitle"></div>
-
-      <div class="lang-row">
-        <div class="field"><label>Virsraksta krāsa (hero)</label><input type="color" id="f-heroTitleColor" value="#eef2f7"></div>
-        <div class="field"><label>Apakšvirsraksta krāsa (hero)</label><input type="color" id="f-heroSubtitleColor" value="#9aa4b2"></div>
-        <div class="field"><label>"Informācīja" teksta krāsa</label><input type="color" id="f-aboutTextColor" value="#9aa4b2"></div>
-      </div>
-
-      <div class="lang-row lang-row-translate">
-        <div class="field"><label>Sauklis 🇱🇻 (LV)</label><input id="f-tagline_lv" data-pair="f-tagline_en" data-lv="1"></div>
-        <button type="button" class="translate-btn" title="Pārtulkot LV → EN" onclick="autoTranslatePair('f-tagline_lv','f-tagline_en',true)">🌐</button>
-        <div class="field"><label>Tagline 🇬🇧 (EN)</label><input id="f-tagline_en" data-pair="f-tagline_lv" data-lv="0"></div>
-      </div>
-      <div class="lang-row lang-row-translate">
-        <div class="field"><label>Virsraksts 🇱🇻 (LV)</label><input id="f-heroTitle_lv" data-pair="f-heroTitle_en" data-lv="1"></div>
-        <button type="button" class="translate-btn" title="Pārtulkot LV → EN" onclick="autoTranslatePair('f-heroTitle_lv','f-heroTitle_en',true)">🌐</button>
-        <div class="field"><label>Hero title 🇬🇧 (EN)</label><input id="f-heroTitle_en" data-pair="f-heroTitle_lv" data-lv="0"></div>
-      </div>
-      <div class="lang-row lang-row-translate">
-        <div class="field"><label>Apakšvirsraksts 🇱🇻 (LV)</label><input id="f-heroSubtitle_lv" data-pair="f-heroSubtitle_en" data-lv="1"></div>
-        <button type="button" class="translate-btn" title="Pārtulkot LV → EN" onclick="autoTranslatePair('f-heroSubtitle_lv','f-heroSubtitle_en',true)">🌐</button>
-        <div class="field"><label>Hero subtitle 🇬🇧 (EN)</label><input id="f-heroSubtitle_en" data-pair="f-heroSubtitle_lv" data-lv="0"></div>
-      </div>
-      <div class="lang-row lang-row-translate">
-        <div class="field"><label>"Informācīja" 🇱🇻 (LV)</label><textarea id="f-aboutText_lv" data-pair="f-aboutText_en" data-lv="1"></textarea></div>
-        <button type="button" class="translate-btn" title="Pārtulkot LV → EN" onclick="autoTranslatePair('f-aboutText_lv','f-aboutText_en',true)">🌐</button>
-        <div class="field"><label>"About" 🇬🇧 (EN)</label><textarea id="f-aboutText_en" data-pair="f-aboutText_lv" data-lv="0"></textarea></div>
-      </div>
-      <p class="hint" style="margin:-6px 0 12px">🌐 = pārtulkot no jauna (pārraksta EN). Ja EN lauks tukšs, tas aizpildās automātiski, kad pabeidz rakstīt LV pusē (un otrādi).</p>
-
-      <div class="field"><label data-i18n="contact_email_label">Kontakta e-pasts</label><input id="f-contactEmail"></div>
-      <div class="field"><label data-i18n="social_link_label">Sociālo tīklu saite</label><input id="f-socialLink"></div>
-      <div class="msg-err" id="content-err"></div>
-      <div class="msg-ok" id="content-ok"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('content-modal')" data-i18n="close">Aizvērt</button>
-        <button type="submit" class="btn primary" data-i18n="save">Saglabāt</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Fona bildes modālais logs (atsevišķi no teksta) -->
-<div class="modal-overlay" id="bg-modal">
-  <div class="modal">
-    <h3 data-i18n="edit_bg_title">Fona bilde</h3>
-    <p class="hint" data-i18n="bg_hint">Vari pievienot vienu bildi vai vairākas — ja ir vairākas, tās automātiski mainīsies aiz visas lapas.</p>
-
-    <div class="field">
-      <label data-i18n="bg_add_label">Pievienot bildi(-es) fonam</label>
-      <input type="file" id="f-bgImage" accept="image/*" multiple>
-      <button type="button" class="btn sm primary" id="bg-upload-btn" style="margin-top:8px" onclick="uploadBgSlides()" data-i18n="bg_upload">⬆️ Augšupielādēt</button>
-    </div>
-    <div id="bg-upload-progress"></div>
-    <div class="msg-err" id="bg-err"></div>
-
-    <div class="field">
-      <label data-i18n="bg_current_label">Pašreizējās fona bildes</label>
-      <div id="bg-slides-list" class="bg-slides-grid"></div>
     </div>
 
     <div class="field">
-      <label data-i18n="bg_size_label">Bildes izmērs</label>
-      <select id="f-bgSize">
-        <option value="cover" data-i18n="size_cover">Aizpildīt ekrānu (var apgriezt malas)</option>
-        <option value="contain" data-i18n="size_contain">Rādīt visu bildi (var būt tukšas malas)</option>
+      <label>Atslēgvārdi žanra noteikšanai (noskaņojums, instrumenti, stils)</label>
+      <div class="detect-row">
+        <input id="fKeywords" placeholder="piem. bass, 808, tumšs, repa" style="flex:1; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:11px 14px; color:var(--text);">
+        <button class="btn btn-ghost" id="detectBtn" style="white-space:nowrap;">Noteikt žanru</button>
+      </div>
+      <div class="detect-result" id="detectResult">Ievadi atslēgvārdus un nospied "Noteikt žanru" — sistēma piedāvās vistuvāko žanru.</div>
+    </div>
+
+    <div class="admin-actions">
+      <button class="btn btn-primary" id="addSongBtn">+ Pievienot dziesmu</button>
+      <button class="btn btn-ghost" id="clearFormBtn">Notīrīt formu</button>
+    </div>
+
+    <div class="admin-list" id="adminList"></div>
+  </div>
+</div>
+
+<!-- individuālas dziesmas skats no dalīšanās saites -->
+<div class="song-modal-overlay" id="songModalOverlay">
+  <div class="song-modal" id="songModalContent"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- ŽANRU KLASIFICĒŠANAS "SMADZENES" (strādā pārlūkā) ---------- */
+const GENRE_RULES = {
+  "Trap / Hip-Hop": ["trap","808","repa","bass","flow","haiterss","rime","spitot","betons"],
+  "Synthwave": ["synth","retro","neons","80","analogs","nakts brauciens","vhs"],
+  "Lo-fi": ["lofi","lo-fi","čills","mierīgs","lietus","kafija","mācības","relaks"],
+  "EDM / Electro": ["drop","festivāls","electro","dejot","bpm","klubs","bass drop"],
+  "Indie / Alt": ["ģitāra","dzīvi ierakstīts","alternatīvs","garāža","live","akustika"],
+  "Pop": ["refrēns","radio","vasara","dejot kopā","piparmētra","pop"],
+  "R&B / Soul": ["dvēsele","mīksts vokāls","nakts skaņa","jūtīgs","romantika"],
+  "Rock": ["ģitārsolo","bungas","enerģisks","koncerts","skaļš"],
+  "Reggaeton": ["reggaeton","latino","dejo","ritms","vasaras hits"]
+};
+function classifyGenre(text){
+  const t = text.toLowerCase();
+  let best = null, bestScore = 0;
+  for(const [genre, words] of Object.entries(GENRE_RULES)){
+    let score = 0;
+    for(const w of words){ if(t.includes(w)) score++; }
+    if(score > bestScore){ bestScore = score; best = genre; }
+  }
+  return best ? {genre: best, confidence: Math.min(95, 40 + bestScore*20)} : {genre:"Nenoteikts", confidence:0};
+}
+const ALL_GENRES = Object.keys(GENRE_RULES).concat(["Nenoteikts"]);
+
+/* ---------- API SASAUCE AR BACKEND ---------- */
+const API_BASE = '/api/songs';
+let songs = [];
+let activeGenreFilter = "Visi";
+let searchQuery = "";
+let adminToken = null; // glabājas tikai atmiņā — pazūd, pārlādējot lapu (drošības apsvērumu dēļ)
+
+function setSyncStatus(ok){
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  el.textContent = ok ? '● savienots ar datubāzi' : '● nav savienojuma ar serveri';
+  el.style.color = ok ? 'var(--cyan)' : 'var(--pink)';
+}
+
+/* centralizēts fetch admin darbībām — pievieno tokenu, apstrādā 401 */
+async function adminFetch(url, options = {}){
+  const headers = Object.assign({}, options.headers, { 'x-admin-token': adminToken || '' });
+  const res = await fetch(url, Object.assign({}, options, { headers }));
+  if(res.status === 401){
+    adminToken = null;
+    closeAdmin();
+    showToast('Sesija beigusies — ieej vēlreiz.');
+    openLogin();
+    throw new Error('Nav autorizēts');
+  }
+  return res;
+}
+
+async function loadSongsFromAPI(){
+  try{
+    const res = await fetch(API_BASE);
+    if(!res.ok) throw new Error('Servera kļūda: ' + res.status);
+    songs = await res.json();
+    setSyncStatus(true);
+  } catch(err){
+    console.error('Neizdevās ielādēt dziesmas', err);
+    setSyncStatus(false);
+  }
+}
+async function addSongAPI(song){
+  const res = await adminFetch(API_BASE, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(song)
+  });
+  if(!res.ok){ const e = await res.json().catch(()=>({})); throw new Error(e.error || 'Neizdevās pievienot dziesmu'); }
+  return res.json();
+}
+async function updateSongAPI(id, patch){
+  const res = await adminFetch(`${API_BASE}/${id}`, {
+    method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(patch)
+  });
+  if(!res.ok) throw new Error('Neizdevās atjaunināt dziesmu');
+  return res.json();
+}
+async function deleteSongAPI(id){
+  const res = await adminFetch(`${API_BASE}/${id}`, { method:'DELETE' });
+  if(!res.ok) throw new Error('Neizdevās dzēst dziesmu');
+  return res.json();
+}
+
+/* ---------- RENDER PALĪGI ---------- */
+function barsHTML(n, animated){
+  let h = '<div class="bars">';
+  for(let i=0;i<n;i++){
+    const height = 8 + Math.round(Math.random()*30);
+    h += `<i style="height:${height}px;${animated?`animation:bump ${0.8+Math.random()}s ease-in-out infinite;`:''}"></i>`;
+  }
+  return h + '</div>';
+}
+function coverGradient(seed){
+  const grads = [
+    'linear-gradient(135deg,#ff3d81,#a63dff)',
+    'linear-gradient(135deg,#00e5c7,#3d5aff)',
+    'linear-gradient(135deg,#ffd23f,#ff3d81)',
+    'linear-gradient(135deg,#a63dff,#00e5c7)',
+  ];
+  let hash = 0;
+  for(const c of String(seed)) hash += c.charCodeAt(0);
+  return grads[hash % grads.length];
+}
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function songCard(s){
+  return `
+  <div class="card">
+    ${s.trending ? '<div class="trending-badge">TRENDS</div>' : ''}
+    <div class="cover" style="background:${coverGradient(s._id)}">${barsHTML(14, true)}</div>
+    <div class="track">${escapeHtml(s.title)}</div>
+    <div class="artist">${escapeHtml(s.artist)}</div>
+    <div class="meta">
+      <span class="genre-tag">${escapeHtml(s.genre)}</span>
+      <span class="dur">${escapeHtml(s.dur)}</span>
+    </div>
+    <div class="card-actions">
+      <button class="share-btn" data-share-id="${s._id}">↗ Dalīties</button>
+    </div>
+  </div>`;
+}
+function matchesFilters(s){
+  const q = searchQuery.trim().toLowerCase();
+  const matchQ = !q || s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q) || s.genre.toLowerCase().includes(q);
+  const matchG = activeGenreFilter === "Visi" || s.genre === activeGenreFilter;
+  return matchQ && matchG;
+}
+function renderChips(){
+  const genresPresent = ["Visi", ...new Set(songs.map(s=>s.genre))];
+  const el = document.getElementById('genreChips');
+  el.innerHTML = genresPresent.map(g =>
+    `<div class="chip ${g===activeGenreFilter?'active':''}" data-g="${g}">${g}</div>`
+  ).join('');
+  el.querySelectorAll('.chip').forEach(c=>{
+    c.addEventListener('click', ()=>{ activeGenreFilter = c.dataset.g; renderGrids(); renderChips(); });
+  });
+}
+function renderGrids(){
+  const filtered = songs.filter(matchesFilters);
+  const trending = filtered.filter(s=>s.trending);
+  const trendGrid = document.getElementById('trendingGrid');
+  const allGrid = document.getElementById('allGrid');
+  trendGrid.innerHTML = trending.length ? trending.map(songCard).join('') : '<div class="empty">Nekas trendos neatbilst meklējumam.</div>';
+  allGrid.innerHTML = filtered.length ? filtered.map(songCard).join('') : '<div class="empty">Nekas neatbilst — pamēģini citu meklējumu vai žanru.</div>';
+  document.getElementById('trendCount').textContent = trending.length;
+  document.getElementById('allCount').textContent = filtered.length;
+}
+function renderAll(){ renderChips(); renderGrids(); renderAdminList(); renderAdminStats(); }
+
+/* ---------- TOASTS ---------- */
+let toastTimer = null;
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), 2600);
+}
+
+/* ---------- DALĪTIES AR INDIVIDUĀLU DZIESMU ---------- */
+function songShareUrl(id){
+  return `${location.origin}${location.pathname}?song=${id}`;
+}
+async function shareSong(id){
+  const song = songs.find(s=>s._id===id);
+  if(!song) return;
+  const url = songShareUrl(id);
+  if(navigator.share){
+    try{ await navigator.share({ title: song.title, text: `${song.title} — ${song.artist} (${song.genre})`, url }); return; }
+    catch(e){ /* lietotājs atcēla — turpinām uz kopēšanu */ }
+  }
+  try{
+    await navigator.clipboard.writeText(url);
+    showToast('Saite nokopēta starpliktuvē!');
+  } catch(e){
+    window.prompt('Nokopē saiti manuāli:', url);
+  }
+}
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('[data-share-id]');
+  if(btn){ shareSong(btn.dataset.shareId); }
+});
+
+function openSongModal(song){
+  const content = document.getElementById('songModalContent');
+  content.innerHTML = `
+    <div class="cover" style="background:${coverGradient(song._id)}"></div>
+    <div class="track">${escapeHtml(song.title)}</div>
+    <div class="artist">${escapeHtml(song.artist)} · ${escapeHtml(song.genre)} · ${escapeHtml(song.dur)}</div>
+    <button class="btn btn-primary" id="modalCloseBtn" style="width:100%;">Skatīt visu kolekciju</button>
+  `;
+  document.getElementById('songModalOverlay').classList.add('open');
+  document.getElementById('modalCloseBtn').addEventListener('click', closeSongModal);
+}
+function closeSongModal(){
+  document.getElementById('songModalOverlay').classList.remove('open');
+  const url = new URL(location.href);
+  url.searchParams.delete('song');
+  history.replaceState({}, '', url);
+}
+document.getElementById('songModalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'songModalOverlay') closeSongModal();
+});
+
+document.getElementById('searchInput').addEventListener('input', (e)=>{
+  searchQuery = e.target.value; renderGrids();
+});
+
+(function(){
+  const viz = document.getElementById('heroViz');
+  let h = '';
+  for(let i=0;i<40;i++){
+    const height = 10 + Math.round(Math.random()*44);
+    const dur = (0.7+Math.random()*0.9).toFixed(2);
+    h += `<i style="height:${height}px; animation-duration:${dur}s; animation-delay:${(Math.random()*0.6).toFixed(2)}s;"></i>`;
+  }
+  viz.innerHTML = h;
+})();
+
+/* ---------- NEREDZAMAIS ADMIN PANELIS (aiz paroles) ---------- */
+const overlay = document.getElementById('adminOverlay');
+const loginOverlay = document.getElementById('loginOverlay');
+let clickCount = 0, clickTimer = null;
+document.getElementById('logoTrigger').addEventListener('click', ()=>{
+  clickCount++;
+  clearTimeout(clickTimer);
+  clickTimer = setTimeout(()=>{ clickCount = 0; }, 1400);
+  if(clickCount >= 5){ clickCount = 0; adminToken ? openAdmin() : openLogin(); }
+});
+
+/* ieraksti šo vārdu jebkurā vietā lapā (nav jāklikšķina uz lauka) — atveras admin pieteikšanās */
+const SECRET_WORD = 'tups';
+let typedBuffer = '';
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){ closeAdmin(); closeLogin(); return; }
+  const tag = document.activeElement && document.activeElement.tagName;
+  if(tag === 'INPUT' || tag === 'TEXTAREA') return; // neuztver rakstīšanu formas laukos
+  if(e.key.length !== 1) return; // ignorē Shift, Ctrl, bultiņas u.c.
+  typedBuffer = (typedBuffer + e.key.toLowerCase()).slice(-SECRET_WORD.length);
+  if(typedBuffer === SECRET_WORD){
+    typedBuffer = '';
+    adminToken ? openAdmin() : openLogin();
+  }
+});
+
+function openLogin(){
+  document.getElementById('adminPasswordInput').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  loginOverlay.classList.add('open');
+  setTimeout(()=> document.getElementById('adminPasswordInput').focus(), 60);
+}
+function closeLogin(){ loginOverlay.classList.remove('open'); }
+
+async function attemptLogin(){
+  const pass = document.getElementById('adminPasswordInput').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if(!pass){ errEl.textContent = 'Ieraksti paroli.'; errEl.style.display = 'block'; return; }
+  try{
+    const res = await fetch('/api/admin/login', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: pass })
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){
+      errEl.textContent = data.error || 'Nepareiza parole.';
+      errEl.style.display = 'block';
+      return;
+    }
+    adminToken = data.token;
+    closeLogin();
+    openAdmin();
+  } catch(err){
+    errEl.textContent = 'Nav savienojuma ar serveri.';
+    errEl.style.display = 'block';
+  }
+}
+document.getElementById('loginSubmitBtn').addEventListener('click', attemptLogin);
+document.getElementById('adminPasswordInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') attemptLogin();
+});
+loginOverlay.addEventListener('click', (e)=>{ if(e.target.id === 'loginOverlay') closeLogin(); });
+
+function openAdmin(){
+  populateGenreSelect();
+  renderAdminList();
+  renderAdminStats();
+  overlay.classList.add('open');
+}
+function closeAdmin(){ overlay.classList.remove('open'); }
+document.getElementById('adminClose').addEventListener('click', closeAdmin);
+overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeAdmin(); });
+function populateGenreSelect(){
+  const sel = document.getElementById('fGenre');
+  sel.innerHTML = ALL_GENRES.map(g=>`<option value="${g}">${g}</option>`).join('');
+}
+function showFormError(msg){
+  const el = document.getElementById('formError');
+  el.textContent = msg; el.style.display = 'block';
+}
+function hideFormError(){
+  document.getElementById('formError').style.display = 'none';
+}
+
+document.getElementById('detectBtn').addEventListener('click', ()=>{
+  const kw = document.getElementById('fKeywords').value;
+  if(!kw.trim()){
+    document.getElementById('detectResult').textContent = "Vispirms ieraksti dažus atslēgvārdus.";
+    return;
+  }
+  const result = classifyGenre(kw);
+  document.getElementById('detectResult').textContent =
+    result.genre === "Nenoteikts"
+      ? "Nevar droši noteikt žanru — izvēlies to manuāli sarakstā."
+      : `Ieteiktais žanrs: ${result.genre} (paļāvība ~${result.confidence}%)`;
+  document.getElementById('fGenre').value = result.genre;
+});
+
+document.getElementById('addSongBtn').addEventListener('click', async ()=>{
+  hideFormError();
+  const title = document.getElementById('fTitle').value.trim();
+  const artist = document.getElementById('fArtist').value.trim();
+  const dur = document.getElementById('fDur').value.trim() || "0:00";
+  const genre = document.getElementById('fGenre').value || "Nenoteikts";
+  if(!title || !artist){
+    showFormError("Ieraksti gan nosaukumu, gan izpildītāju, lai pievienotu dziesmu.");
+    return;
+  }
+  try{
+    await addSongAPI({ title, artist, dur, genre, trending:false });
+    clearForm();
+    await loadSongsFromAPI();
+    renderAll();
+  } catch(err){
+    showFormError(err.message || 'Neizdevās saglabāt dziesmu datubāzē.');
+  }
+});
+document.getElementById('clearFormBtn').addEventListener('click', clearForm);
+function clearForm(){
+  document.getElementById('fTitle').value = '';
+  document.getElementById('fArtist').value = '';
+  document.getElementById('fDur').value = '';
+  document.getElementById('fKeywords').value = '';
+  document.getElementById('fGenre').value = ALL_GENRES[0];
+  document.getElementById('detectResult').textContent = 'Ievadi atslēgvārdus un nospied "Noteikt žanru" — sistēma piedāvās vistuvāko žanru.';
+  hideFormError();
+}
+
+function renderAdminStats(){
+  const el = document.getElementById('adminStats');
+  if(!el) return;
+  const total = songs.length;
+  const trending = songs.filter(s=>s.trending).length;
+  const genreCounts = {};
+  songs.forEach(s=>{ genreCounts[s.genre] = (genreCounts[s.genre]||0)+1; });
+  const topGenre = Object.entries(genreCounts).sort((a,b)=>b[1]-a[1])[0];
+  el.innerHTML = `
+    <span>Kopā: <b>${total}</b> dziesmas</span>
+    <span>Trendos: <b>${trending}</b></span>
+    <span>Populārākais žanrs: <b>${topGenre ? escapeHtml(topGenre[0]) : '—'}</b></span>
+  `;
+}
+
+function renderAdminList(){
+  const list = document.getElementById('adminList');
+  list.innerHTML = songs.map(s => `
+    <div class="admin-row" data-id="${s._id}">
+      <div class="info">
+        <input class="inline-edit title-edit" data-field="title" data-id="${s._id}" value="${escapeHtml(s.title)}">
+        <div style="display:flex; gap:6px; margin-top:2px;">
+          <input class="inline-edit small" data-field="artist" data-id="${s._id}" value="${escapeHtml(s.artist)}" placeholder="izpildītājs" style="flex:1;">
+          <input class="inline-edit small" data-field="dur" data-id="${s._id}" value="${escapeHtml(s.dur)}" placeholder="0:00" style="max-width:64px;">
+        </div>
+      </div>
+      <select class="genre-select" data-id="${s._id}">
+        ${ALL_GENRES.map(g=>`<option value="${g}" ${g===s.genre?'selected':''}>${g}</option>`).join('')}
       </select>
+      <button class="icon-btn trend ${s.trending?'active':''}" data-action="trend" data-id="${s._id}">★ trends</button>
+      <button class="icon-btn" data-share-id="${s._id}">↗ saite</button>
+      <button class="icon-btn" data-action="delete" data-id="${s._id}">✕ dzēst</button>
     </div>
-    <div class="field">
-      <label data-i18n="bg_position_label">Bildes novietojums (centrējums)</label>
-      <select id="f-bgPosition">
-        <option value="center" data-i18n="pos_center">Centrā</option>
-        <option value="top" data-i18n="pos_top">Augšā</option>
-        <option value="bottom" data-i18n="pos_bottom">Apakšā</option>
-        <option value="left" data-i18n="pos_left">Kreisajā pusē</option>
-        <option value="right" data-i18n="pos_right">Labajā pusē</option>
-        <option value="top left" data-i18n="pos_top_left">Augšā kreisi</option>
-        <option value="top right" data-i18n="pos_top_right">Augšā labi</option>
-        <option value="bottom left" data-i18n="pos_bottom_left">Apakšā kreisi</option>
-        <option value="bottom right" data-i18n="pos_bottom_right">Apakšā labi</option>
-      </select>
-    </div>
-    <div class="field">
-      <label data-i18n="bg_overlay_label">Tumšuma pārklājums (lai teksts būtu salasāms)</label>
-      <input type="range" id="f-bgOverlay" min="0" max="0.85" step="0.05" value="0.4" oninput="document.getElementById('bg-overlay-val').textContent = Math.round(this.value*100)+'%'">
-      <span id="bg-overlay-val" style="font-size:12px;color:var(--mut)">40%</span>
-    </div>
-    <div class="field">
-      <label data-i18n="bg_interval_label">Nomaiņas intervāls (sekundēs, ja vairākas bildes)</label>
-      <input type="number" id="f-bgInterval" min="2" max="60" value="6">
-    </div>
+  `).join('');
 
-    <div class="msg-ok" id="bg-settings-ok"></div>
-    <div class="modal-actions">
-      <button type="button" class="btn" onclick="closeModal('bg-modal')" data-i18n="close">Aizvērt</button>
-      <button type="button" class="btn primary" onclick="saveBgSettings()" data-i18n="save">Saglabāt</button>
-    </div>
-  </div>
-</div>
+  list.querySelectorAll('.inline-edit').forEach(inp=>{
+    inp.addEventListener('blur', async (e)=>{
+      const id = e.target.dataset.id;
+      const field = e.target.dataset.field;
+      const value = e.target.value.trim();
+      const song = songs.find(s=>s._id===id);
+      if(!song || song[field] === value) return;
+      if((field === 'title' || field === 'artist') && !value){
+        e.target.value = song[field];
+        showToast('Šo lauku nevar atstāt tukšu.');
+        return;
+      }
+      try{
+        await updateSongAPI(id, { [field]: value });
+        song[field] = value;
+        renderGrids();
+        renderAdminStats();
+      } catch(err){ showToast('Neizdevās saglabāt izmaiņas.'); }
+    });
+  });
+  list.querySelectorAll('.genre-select').forEach(sel=>{
+    sel.addEventListener('change', async (e)=>{
+      const id = e.target.dataset.id;
+      try{ await updateSongAPI(id, { genre: e.target.value }); await loadSongsFromAPI(); renderAll(); }
+      catch(err){ console.error(err); }
+    });
+  });
+  list.querySelectorAll('[data-action="trend"]').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const id = e.currentTarget.dataset.id;
+      const song = songs.find(s=>s._id===id);
+      try{ await updateSongAPI(id, { trending: !song.trending }); await loadSongsFromAPI(); renderAll(); }
+      catch(err){ console.error(err); }
+    });
+  });
+  list.querySelectorAll('[data-action="delete"]').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const id = e.currentTarget.dataset.id;
+      if(!confirm('Vai tiešām dzēst šo dziesmu?')) return;
+      try{ await deleteSongAPI(id); await loadSongsFromAPI(); renderAll(); }
+      catch(err){ console.error(err); }
+    });
+  });
+}
 
-<!-- Gallery upload modal -->
-<div class="modal-overlay" id="gallery-modal">
-  <div class="modal">
-    <h3 data-i18n="add_image_title">Pievienot bildi</h3>
-    <form id="gallery-form">
-      <div class="field"><label data-i18n="image_label">Bilde</label><input type="file" id="g-file" accept="image/*" required></div>
-      <div class="field"><label data-i18n="category_label">Kategorija</label><input id="g-category" list="cat-list" placeholder="piem. Koncerti, Studija..."><datalist id="cat-list"></datalist></div>
-      <div class="field"><label data-i18n="caption_label">Paraksts (nav obligāts)</label><input id="g-caption"></div>
-      <div class="msg-err" id="gallery-err"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('gallery-modal')" data-i18n="cancel">Atcelt</button>
-        <button type="submit" class="btn primary" data-i18n="upload">Augšupielādēt</button>
-      </div>
-    </form>
-  </div>
-</div>
+/* ---------- START ---------- */
+(async function init(){
+  await loadSongsFromAPI();
+  renderAll();
 
-<!-- Track upload modal -->
-<div class="modal-overlay" id="track-modal">
-  <div class="modal">
-    <h3 data-i18n="add_track_title">Pievienot dziesmu</h3>
-    <form id="track-form">
-      <div class="field"><label data-i18n="title_label">Nosaukums</label><input id="t-title" required></div>
-      <div class="field"><label data-i18n="artist_label">Izpildītājs (nav obligāts)</label><input id="t-artist"></div>
-      <div class="field"><label data-i18n="genre_label">Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)</label><input id="t-genre" list="genre-list"><datalist id="genre-list"></datalist></div>
-      <div class="field"><label data-i18n="audio_file_label">Audio fails (MP3, WAV, OGG...)</label><input type="file" id="t-audio" accept="audio/*" required></div>
-      <div class="field"><label data-i18n="cover_label">Vāciņa bilde (nav obligāta)</label><input type="file" id="t-cover" accept="image/*"></div>
-      <div class="field"><label data-i18n="lyrics_label">Dziesmas vārdi (nav obligāti)</label><textarea id="t-lyrics" rows="5" placeholder="Ielīmē dziesmas vārdus šeit, ja vēlies..."></textarea></div>
-      <div class="msg-err" id="track-err"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('track-modal')" data-i18n="cancel">Atcelt</button>
-        <button type="submit" class="btn primary" data-i18n="upload">Augšupielādēt</button>
-      </div>
-    </form>
-  </div>
-</div>
+  const params = new URLSearchParams(location.search);
+  const sharedId = params.get('song');
+  if(sharedId){
+    const song = songs.find(s=>s._id===sharedId);
+    if(song) openSongModal(song);
+  }
 
-<!-- Dziesmas rediģēšanas modālis (nosaukums/izpildītājs/žanrs/vārdi) -->
-<div class="modal-overlay" id="edit-track-modal">
-  <div class="modal">
-    <h3>✏️ Rediģēt dziesmu</h3>
-    <form id="edit-track-form">
-      <input type="hidden" id="et-id">
-      <div class="field"><label>Nosaukums</label><input id="et-title" required></div>
-      <div class="field"><label>Izpildītājs</label><input id="et-artist"></div>
-      <div class="field"><label>Žanrs</label><input id="et-genre" list="genre-list"></div>
-      <div class="field"><label>Dziesmas vārdi</label><textarea id="et-lyrics" rows="6" placeholder="Ielīmē dziesmas vārdus šeit, ja vēlies..."></textarea></div>
-      <div class="msg-err" id="edit-track-err"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('edit-track-modal')">Atcelt</button>
-        <button type="submit" class="btn primary">Saglabāt</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Dziesmas vārdu skatīšanas modālis -->
-<div class="modal-overlay" id="lyrics-modal">
-  <div class="modal">
-    <h3 id="lyrics-modal-title">📜 Dziesmas vārdi</h3>
-    <p class="about-text" id="lyrics-modal-text" style="white-space:pre-wrap;max-height:50vh;overflow-y:auto"></p>
-    <div class="modal-actions">
-      <button type="button" class="btn" onclick="closeModal('lyrics-modal')">Aizvērt</button>
-    </div>
-  </div>
-</div>
-
-<!-- Bulk track upload modal -->
-<div class="modal-overlay" id="bulk-modal">
-  <div class="modal">
-    <h3 data-i18n="add_bulk_title">Pievienot vairākas dziesmas uzreiz</h3>
-    <form id="bulk-form">
-      <div class="field">
-        <label data-i18n="audio_files_label">Audio faili (vari izvēlēties vairākus)</label>
-        <input type="file" id="b-files" accept="audio/*" multiple required>
-      </div>
-      <div class="field">
-        <label data-i18n="artist_label">Izpildītājs visām (nav obligāts)</label>
-        <input id="b-artist">
-      </div>
-      <div class="field">
-        <label data-i18n="genre_label">Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)</label>
-        <input id="b-genre" list="genre-list">
-      </div>
-      <p class="hint" data-i18n="bulk_hint">Nosaukumi tiks ņemti no failu nosaukumiem — pēc tam tos vari rediģēt atsevišķi.</p>
-      <div id="bulk-progress"></div>
-      <div class="msg-err" id="bulk-err"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('bulk-modal')" data-i18n="close">Aizvērt</button>
-        <button type="submit" class="btn primary" id="bulk-submit-btn" data-i18n="upload">Augšupielādēt</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Toast paziņojumi -->
-<div id="toast-container"></div>
-
-<script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=23"></script>
+  setInterval(async ()=>{
+    await loadSongsFromAPI();
+    renderAll();
+  }, 5000);
+})();
+</script>
 </body>
 </html>

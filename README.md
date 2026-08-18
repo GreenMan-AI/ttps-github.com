@@ -1,122 +1,95 @@
-# DJ Gajon — vienkāršā versija
+# PULSS — mūzikas mājaslapa
 
-Vienkārša mājas lapa ar **1 admin kontu**. Admins var:
-- mainīt lapas tekstus (LV un EN valodā)
-- pievienot/dzēst bildes galerijā, sadalot pa **kategorijām**
-- pievienot/dzēst savu mūziku un **pārkārtot dziesmas ar peli (drag & drop)**
-- notīrīt čata vēsturi
+Pilns projekts: Node.js/Express serveris + MongoDB Atlas datubāze + frontend ar neredzamu admin paneli un žanra automātisko noteikšanu.
 
-Apmeklētāji var:
-- skatīties bildes (ar kategoriju filtriem) un lasīt tekstu
-- pārslēgt lapu starp **LV / EN**
-- klausīties mūziku
-- rakstīt reāllaika čatā (norādot vārdu)
+## Kā strādā
+
+- `server.js` — Express serveris, kas apkalpo gan API, gan frontend failus
+- `models/Song.js` — datu struktūra dziesmām MongoDB
+- `routes/songs.js` — API: GET / POST / PATCH / DELETE dziesmām
+- `public/index.html` — visa mājaslapa (dizains + loģika), sarunājas ar API
+- `seed.js` — palaižams vienu reizi, lai datubāzē ieliktu 12 sākotnējās dziesmas
+
+Admin panelis: ievadi jebkurā vietā lapā (nevis kādā laukā, vienkārši rakstot uz tastatūras) slepeno vārdu **`tups`** — tad parādīsies paroles logs. (Rezerves variants: 5x klikšķis uz logo `PULSS`.) Bez pareizas paroles neko mainīt nevar — serveris to pārbauda, ne tikai pārlūks.
+
+**Admin parole:** `Pulss-Skana-44!`
+*(Iepriekšējā parole `.env` failā bija redzama arī vairākos citos servisos (Cloudinary, u.c.), tāpēc drošības pēc uzģenerēju un ieliku jaunu tikai admin panelim. Pārējās atslēgas — MongoDB, Cloudinary, JWT — nomainīju NAV, bet iesaku tās arī rotēt, jo tās bija redzamas augšupielādētajā failā.)*
 
 ---
 
-## 1. Sagatavošana (konti, kas vajadzīgi)
+## 1. solis — MongoDB Atlas
 
-1. **MongoDB Atlas** (datubāze) — https://www.mongodb.com/cloud/atlas — izveido klasteri, dabū "Connection string" (`MONGODB_URI`).
-2. **Cloudinary** (bilžu/audio glabāšana) — https://cloudinary.com — dashboard'ā redzēsi `Cloud name`, `API Key`, `API Secret`.
+1. Ej uz [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas) un ielogojies savā kontā.
+2. Ja tev jau ir klasteris — izmanto to. Ja nav, izveido bezmaksas M0 klasteri.
+3. **Database Access** → izveido lietotāju ar paroli (atceries to!).
+4. **Network Access** → pievieno IP adresi `0.0.0.0/0` (ļauj piekļuvi no jebkurienes — nepieciešams, lai Render varētu savienoties).
+5. **Connect** → **Drivers** → nokopē savienojuma virkni (izskatās apmēram šādi):
+   ```
+   mongodb+srv://lietotajs:parole@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
+   ```
+6. Pievieno tai beigās datubāzes nosaukumu `/pulss` pirms jautājuma zīmes:
+   ```
+   mongodb+srv://lietotajs:parole@cluster0.xxxxx.mongodb.net/pulss?retryWrites=true&w=majority
+   ```
 
-## 2. Lokāla palaišana (testēšanai)
+## 2. solis — pārbaude lokāli (nav obligāti, bet ieteicams)
 
 ```bash
 npm install
 cp .env.example .env
-# atver .env un ievieto savus datus
-npm start
+# atver .env failu un ieraksti savu MONGO_URI
+
+npm run seed     # ieliek 12 sākotnējās dziesmas datubāzē
+npm start        # palaiž serveri uz http://localhost:3000
 ```
 
-Atver `http://localhost:3000`.
+Atver `http://localhost:3000` pārlūkā — ja redzi dziesmas un `● savienots ar datubāzi` statusu augšā, viss strādā.
 
----
-
-## 3. Kā aizstāt veco projektu ar šo un aizsūtīt uz GitHub → Render
-
-**Ja tavs vecais projekts jau ir Git repozitorijā** (mapē, kur ir `.git` apakšmape):
+## 3. solis — GitHub
 
 ```bash
-# 1. Dodies uz sava vecā projekta mapi
-cd ceļš/uz/vecais-projekts
-
-# 2. Izdzēs vecos failus, KURUS aizstāj šī jaunā versija
-#    (nepieskaries .git mapei un .env failam!)
-rm -f server.js index.html design.css i18n.js sw.js
-rm -f package.json package-lock.json
-rm -rf public
-
-# 3. Iekopē šīs jaunās versijas failus tajā pašā mapē
-#    (izpako lejupielādēto dj-gajon.zip un iekopē saturu)
-cp -r ceļš/uz/dj-gajon/* .
-cp ceļš/uz/dj-gajon/.gitignore .
-
-# 4. Pārbaudi, ka viss izskatās pareizi
-ls
-git status
-
-# 5. Commit un push uz GitHub
-git add -A
-git commit -m "Vienkāršota versija: 1 admin konts, kategorijas, drag&drop, LV/EN"
-git push
-```
-
-**Ja projekta vēl nav Git repozitorijā** — izveido to no jauna:
-
-```bash
-cd ceļš/uz/dj-gajon
 git init
-git add -A
-git commit -m "Sākotnējā vienkāršotā versija"
+git add .
+git commit -m "PULSS mājaslapa"
 git branch -M main
-git remote add origin https://github.com/TAVS-LIETOTAJVARDS/TAVA-REPO.git
+git remote add origin https://github.com/<tavs-lietotajvards>/pulss.git
 git push -u origin main
 ```
 
-**Render.com puse:**
-- Ja Render Web Service jau bija savienots ar šo GitHub repo — pēc `git push` tas automātiski uzsāks jaunu deploy (vai nospied "Manual Deploy" → "Deploy latest commit").
-- Environment mainīgie (`MONGODB_URI`, `CLOUDINARY_*`, `ADMIN_USER`, `ADMIN_PASS`) paliek tie paši, kas jau bija iestatīti — nekas nav jāmaina, ja izmanto to pašu MongoDB/Cloudinary kontu.
-- **Svarīgi:** `.env` fails NEKAD netiek sūtīts uz GitHub (tas ir `.gitignore` sarakstā) — Render vides mainīgie jāievada Render dashboard'ā, cilnē "Environment".
+(`.env` fails **netiks** augšupielādēts — tas ir `.gitignore` sarakstā ar nolūku, lai parole nenonāktu publiskā repo.)
 
-## 4. Citi vecā projekta faili — vai tos vajag?
+## 4. solis — Render
 
-| Fails | Ko darīt |
-|---|---|
-| `privacy.html` | ✅ Jau iekļauts šajā versijā (`public/privacy.html`), pieejams zem `/privacy` |
-| `_gitignore` | ✅ Aizstāts ar jaunu `.gitignore` (vecajā bija kļūda — tas ignorēja `public/` mapi, kas šeit ir svarīga) |
-| `i18n.js` (vecais, 36KB) | ❌ Nav vajadzīgs — jaunajā versijā ir sava, daudz vienkāršāka LV/EN sistēma iekš `app.js` |
-| `sw.js` (Service Worker / PWA) | ❌ Izlaists vienkāršības labad. Ja gribi lapu darīt instalējamu kā PWA (offline režīms, "Pievienot sākuma ekrānam"), pasaki — to var pievienot atsevišķi |
-| `App.tsx` (Expo/React Native mobilā app) | ❌ Nav daļa no šīs vienkāršās web versijas — tā ir atsevišķa mobilā aplikācija. Ja kādreiz gribēsi arī mobilo app, tas ir cits projekts |
+1. Ej uz [render.com](https://render.com) → **New** → **Web Service**.
+2. Savieno savu GitHub repo (`pulss`).
+3. Iestatījumi:
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Environment**: Node
+4. **Environment Variables** → pievieno:
+   - `MONGODB_URI` = tava Atlas savienojuma virkne no 1. soļa
+   - `ADMIN_PASS` = parole, ar kuru atvērsi admin paneli (jau iestatīta tavā `.env` failā — skaties augšā)
+5. Nospied **Create Web Service**. Render uzbūvēs un palaidīs projektu — tas prasa 1-3 minūtes.
+6. Kad statuss ir "Live", atver piedāvāto saiti (piem. `https://pulss.onrender.com`).
 
-Ja tev ir vēl kādi faili no vecā projekta, ko domā izmantot (piem. logo, bg attēls, fonti) — vari tos vienkārši iemest `public/` mapē un tie būs pieejami pēc adreses `/faila-vards.jpg`.
+## 5. solis — sākotnējie dati datubāzē
 
----
+Ja vēl neesi palaidis `npm run seed` lokāli 2. solī, vari to izdarīt caur Render:
+- Render panelī atver savu servisu → **Shell** cilne → ieraksti:
+  ```
+  npm run seed
+  ```
+  (Šai komandai vajadzīgs pieejams `MONGO_URI` — Render Shell to jau redz no vides mainīgajiem.)
 
-## 5. Jaunās funkcijas šajā versijā
-
-### 🗂️ Galerijas kategorijas
-Augšupielādējot bildi, admin var ierakstīt kategoriju (piem. "Koncerti", "Studija"). Apmeklētāji virs galerijas redz filtru pogas un var skatīt tikai vienu kategoriju vai visas.
-
-### 🔀 Dziesmu secības maiņa (drag & drop)
-Admin režīmā pie katras dziesmas ir ⠿ ikona — aiz tās var dziesmu ievilkt citā vietā sarakstā, un jaunā secība automātiski saglabājas visiem apmeklētājiem.
-
-### 🌐 LV / EN valodu pārslēgs
-Augšējā labajā stūrī poga "EN"/"LV" pārslēdz visu statisko tekstu (pogas, virsraksti u.c.). Admin panelī teksta rediģēšanas logā ir atsevišķi lauki latviešu un angļu valodā — aizpildi abus, ja gribi, lai lapa strādā abās valodās.
+Vai arī vienkārši sāc ar tukšu datubāzi un pievieno dziesmas caur admin paneli tiešsaistē.
 
 ---
 
-## Faili
+## Gatavs!
 
-- `server.js` — serveris (Express + MongoDB + Cloudinary + Socket.IO čats)
-- `public/index.html` — lapas struktūra
-- `public/design.css` — dizains
-- `public/app.js` — visa klienta puses loģika (i18n, admin panelis, drag&drop, čats)
-- `public/privacy.html` — privātuma politikas lapa
-- `.env.example` — vides mainīgo paraugs
-- `.gitignore` — pareizi iestatīts jaunajai failu struktūrai
+Tava saite (`https://pulss.onrender.com` vai kā to nosauksi) tagad ir īsta, dzīva mājaslapa:
+- dati glabājas MongoDB Atlas datubāzē — nepazūd, pārlādējot lapu
+- visi, kas atver saiti, redz vienus un tos pašus datus
+- admin panelis (ieraksti vārdu **tups** jebkurā vietā lapā, vai 5x klikšķis uz logo) ļauj pārvaldīt visu tiešsaistē no jebkuras ierīces, aiz paroles
 
-## Ielogošanās kā admins
-
-Apakšējā labajā stūrī 🔒 ikona → ievadi `ADMIN_USER`/`ADMIN_PASS` no `.env` / Render Environment.
-
-**Noteikti nomaini `ADMIN_PASS`, pirms lapa ir publiski pieejama!**
+**Piezīme par bezmaksas Render plānu:** ja serviss kādu laiku nav lietots, tas "aizmieg" un pirmais pieprasījums pēc pauzes var aizņemt 30-60 sekundes, lai to "uzmodinātu". Tas ir normāli bezmaksas plānam.
