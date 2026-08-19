@@ -14,10 +14,10 @@ function generateToken() {
 // POST /api/admin/login — pārbauda paroli, atgriež sesijas tokenu
 router.post('/login', (req, res) => {
   const { password } = req.body || {};
-  const correct = process.env.ADMIN_PASS || process.env.ADMIN_PASSWORD;
+  const correct = process.env.ADMIN_PASSWORD || process.env.ADMIN_PASS;
 
   if (!correct) {
-    return res.status(500).json({ error: 'Serverim nav iestatīta ADMIN_PASS (vai ADMIN_PASSWORD) vides mainīgā.' });
+    return res.status(500).json({ error: 'Serverim nav iestatīta ADMIN_PASSWORD (vai ADMIN_PASS) vides mainīgā.' });
   }
   if (!password || password !== correct) {
     return res.status(401).json({ error: 'Nepareiza parole.' });

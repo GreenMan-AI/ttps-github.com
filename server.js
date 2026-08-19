@@ -10,19 +10,15 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
-// ══════════════════════════════════════════════════
-//  MONGODB
-// ══════════════════════════════════════════════════
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 if (!MONGO_URI) {
-  console.error('❌ KĻŪDA: MONGODB_URI nav iestatīts Environment Variables!');
-  process.exit(1);
+  console.error('TRŪKST MONGO_URI vides mainīgā! Skaties .env.example failu.');
 }
+
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ MongoDB savienots!'))
-  .catch(e => console.error('❌ MongoDB kļūda:', e.message));
+  .then(() => console.log('✓ Savienots ar MongoDB Atlas'))
+  .catch(err => console.error('✗ MongoDB savienojuma kļūda:', err.message));
 
 const songRoutes = require('./routes/songs');
 const { router: adminRoutes } = require('./routes/admin');

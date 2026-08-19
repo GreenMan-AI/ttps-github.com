@@ -314,9 +314,14 @@
 
     <div class="admin-stats" id="adminStats"></div>
 
+    <div class="field">
+      <label>Noklusējuma izpildītājs (aizpildās automātiski, ja lauku atstāj tukšu)</label>
+      <input id="fDefaultArtist" placeholder="piem. Es & AI">
+    </div>
+
     <div class="admin-grid">
       <div class="field"><label>Dziesmas nosaukums</label><input id="fTitle" placeholder="piem. Naktsvidus"></div>
-      <div class="field"><label>Izpildītājs</label><input id="fArtist" placeholder="piem. Nakts Kods"></div>
+      <div class="field"><label>Izpildītājs (var atstāt tukšu)</label><input id="fArtist" placeholder="aizpildīsies automātiski"></div>
       <div class="field"><label>Garums (mm:ss)</label><input id="fDur" placeholder="piem. 2:41"></div>
       <div class="field"><label>Žanrs (var noteikt automātiski zemāk)</label>
         <select id="fGenre"></select>
@@ -335,6 +340,16 @@
     <div class="admin-actions">
       <button class="btn btn-primary" id="addSongBtn">+ Pievienot dziesmu</button>
       <button class="btn btn-ghost" id="clearFormBtn">Notīrīt formu</button>
+    </div>
+
+    <div class="field" style="margin-top:22px;">
+      <label>Vairāku dziesmu pievienošana uzreiz — viena rinda = viena dziesma. Formāts: <code>Nosaukums - Izpildītājs</code> (izpildītāju var arī izlaist, tad izmantos noklusējuma izpildītāju; žanrs katrai rindai tiek noteikts automātiski no nosaukuma)</label>
+      <textarea id="fBulk" rows="5" placeholder="Naktsvidus - Nakts Kods&#10;Betona Sapnis&#10;Lietus Refrēns - maijs." style="width:100%; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:11px 14px; color:var(--text); font-family:inherit; resize:vertical;"></textarea>
+      <div class="admin-actions" style="margin-top:10px;">
+        <button class="btn btn-primary" id="bulkAddBtn">+ Pievienot visas rindas</button>
+        <button class="btn btn-ghost" id="exportCsvBtn">⇩ Eksportēt CSV</button>
+      </div>
+      <div class="detect-result" id="bulkResult"></div>
     </div>
 
     <div class="admin-list" id="adminList"></div>
@@ -572,26 +587,28 @@ document.getElementById('searchInput').addEventListener('input', (e)=>{
 /* ---------- NEREDZAMAIS ADMIN PANELIS (aiz paroles) ---------- */
 const overlay = document.getElementById('adminOverlay');
 const loginOverlay = document.getElementById('loginOverlay');
-let clickCount = 0, clickTimer = null;
-document.getElementById('logoTrigger').addEventListener('click', ()=>{
-  clickCount++;
-  clearTimeout(clickTimer);
-  clickTimer = setTimeout(()=>{ clickCount = 0; }, 1400);
-  if(clickCount >= 5){ clickCount = 0; adminToken ? openAdmin() : openLogin(); }
-});
 
-/* ieraksti šo vārdu jebkurā vietā lapā (nav jāklikšķina uz lauka) — atveras admin pieteikšanās */
-const SECRET_WORD = 'tups';
+// Ieraksti šo vārdu jebkur lapā (nevis kādā laukā), lai atvērtu admin pieteikšanos.
+const ADMIN_TRIGGER_WORD = 'tups';
 let typedBuffer = '';
+let typedResetTimer = null;
+
 document.addEventListener('keydown', (e)=>{
   if(e.key === 'Escape'){ closeAdmin(); closeLogin(); return; }
+
+  // neklausāmies, kamēr lietotājs raksta kādā ievades laukā (formā, meklēšanā u.c.)
   const tag = document.activeElement && document.activeElement.tagName;
-  if(tag === 'INPUT' || tag === 'TEXTAREA') return; // neuztver rakstīšanu formas laukos
-  if(e.key.length !== 1) return; // ignorē Shift, Ctrl, bultiņas u.c.
-  typedBuffer = (typedBuffer + e.key.toLowerCase()).slice(-SECRET_WORD.length);
-  if(typedBuffer === SECRET_WORD){
-    typedBuffer = '';
-    adminToken ? openAdmin() : openLogin();
+  if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+  if(e.key.length === 1 && /[a-zāčēģīķļņšūž]/i.test(e.key)){
+    typedBuffer = (typedBuffer + e.key).toLowerCase().slice(-ADMIN_TRIGGER_WORD.length);
+    clearTimeout(typedResetTimer);
+    typedResetTimer = setTimeout(()=>{ typedBuffer = ''; }, 2000);
+
+    if(typedBuffer === ADMIN_TRIGGER_WORD){
+      typedBuffer = '';
+      adminToken ? openAdmin() : openLogin();
+    }
   }
 });
 
@@ -636,6 +653,7 @@ function openAdmin(){
   populateGenreSelect();
   renderAdminList();
   renderAdminStats();
+  document.getElementById('fDefaultArtist').value = getDefaultArtist();
   overlay.classList.add('open');
 }
 function closeAdmin(){ overlay.classList.remove('open'); }
@@ -667,14 +685,27 @@ document.getElementById('detectBtn').addEventListener('click', ()=>{
   document.getElementById('fGenre').value = result.genre;
 });
 
+/* ---------- NOKLUSĒJUMA IZPILDĪTĀJS (atceras pārlūkā) ---------- */
+const DEFAULT_ARTIST_KEY = 'pulss-default-artist';
+function getDefaultArtist(){
+  try{ return localStorage.getItem(DEFAULT_ARTIST_KEY) || ''; }catch(e){ return ''; }
+}
+function setDefaultArtist(v){
+  try{ localStorage.setItem(DEFAULT_ARTIST_KEY, v); }catch(e){}
+}
+document.getElementById('fDefaultArtist').addEventListener('change', (e)=>{
+  setDefaultArtist(e.target.value.trim());
+});
+
 document.getElementById('addSongBtn').addEventListener('click', async ()=>{
   hideFormError();
   const title = document.getElementById('fTitle').value.trim();
-  const artist = document.getElementById('fArtist').value.trim();
+  const defaultArtist = getDefaultArtist() || 'Es & AI';
+  const artist = document.getElementById('fArtist').value.trim() || defaultArtist;
   const dur = document.getElementById('fDur').value.trim() || "0:00";
   const genre = document.getElementById('fGenre').value || "Nenoteikts";
-  if(!title || !artist){
-    showFormError("Ieraksti gan nosaukumu, gan izpildītāju, lai pievienotu dziesmu.");
+  if(!title){
+    showFormError("Ieraksti vismaz dziesmas nosaukumu — izpildītājs aizpildīsies automātiski.");
     return;
   }
   try{
@@ -696,6 +727,71 @@ function clearForm(){
   document.getElementById('detectResult').textContent = 'Ievadi atslēgvārdus un nospied "Noteikt žanru" — sistēma piedāvās vistuvāko žanru.';
   hideFormError();
 }
+
+/* ---------- MASVEIDA PIEVIENOŠANA ---------- */
+document.getElementById('bulkAddBtn').addEventListener('click', async ()=>{
+  const raw = document.getElementById('fBulk').value;
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  const bulkResultEl = document.getElementById('bulkResult');
+
+  if(!lines.length){
+    bulkResultEl.textContent = 'Ieliec vismaz vienu rindu.';
+    return;
+  }
+
+  const defaultArtist = getDefaultArtist() || 'Es & AI';
+  let added = 0, failed = 0;
+  bulkResultEl.textContent = `Pievienoju... (0/${lines.length})`;
+
+  for(let i=0; i<lines.length; i++){
+    const line = lines[i];
+    let title, artist;
+    if(line.includes(' - ')){
+      const parts = line.split(' - ');
+      title = parts[0].trim();
+      artist = parts.slice(1).join(' - ').trim() || defaultArtist;
+    } else {
+      title = line;
+      artist = defaultArtist;
+    }
+    if(!title) continue;
+
+    const detected = classifyGenre(title);
+    const genre = detected.genre;
+
+    try{
+      await addSongAPI({ title, artist, dur: '0:00', genre, trending:false });
+      added++;
+    }catch(err){
+      failed++;
+    }
+    bulkResultEl.textContent = `Pievienoju... (${i+1}/${lines.length})`;
+  }
+
+  bulkResultEl.textContent = failed
+    ? `Gatavs — pievienotas ${added} dziesmas, ${failed} neizdevās.`
+    : `Gatavs — pievienotas visas ${added} dziesmas!`;
+  document.getElementById('fBulk').value = '';
+  await loadSongsFromAPI();
+  renderAll();
+});
+
+/* ---------- CSV EKSPORTS ---------- */
+document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
+  if(!songs.length){ return; }
+  const header = ['Nosaukums','Izpildītājs','Garums','Žanrs','Trends'];
+  const rows = songs.map(s => [s.title, s.artist, s.dur, s.genre, s.trending ? 'jā' : 'nē']);
+  const csv = [header, ...rows]
+    .map(row => row.map(cell => `"${String(cell ?? '').replace(/"/g,'""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'pulss-dziesmas.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
 
 function renderAdminStats(){
   const el = document.getElementById('adminStats');

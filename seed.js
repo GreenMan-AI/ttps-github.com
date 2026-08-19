@@ -18,11 +18,12 @@ const seedSongs = [
 ];
 
 async function run() {
-  if (!process.env.MONGO_URI) {
+  const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
+  if (!MONGO_URI) {
     console.error('Trūkst MONGO_URI vides mainīgā. Izveido .env failu pēc .env.example parauga.');
     process.exit(1);
   }
-  await mongoose.connect(process.env.MONGO_URI);
+  await mongoose.connect(MONGO_URI);
   await Song.deleteMany({});
   await Song.insertMany(seedSongs);
   console.log(`Ielādētas ${seedSongs.length} sākotnējās dziesmas datubāzē!`);

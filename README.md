@@ -10,10 +10,7 @@ Pilns projekts: Node.js/Express serveris + MongoDB Atlas datubāze + frontend ar
 - `public/index.html` — visa mājaslapa (dizains + loģika), sarunājas ar API
 - `seed.js` — palaižams vienu reizi, lai datubāzē ieliktu 12 sākotnējās dziesmas
 
-Admin panelis: ievadi jebkurā vietā lapā (nevis kādā laukā, vienkārši rakstot uz tastatūras) slepeno vārdu **`tups`** — tad parādīsies paroles logs. (Rezerves variants: 5x klikšķis uz logo `PULSS`.) Bez pareizas paroles neko mainīt nevar — serveris to pārbauda, ne tikai pārlūks.
-
-**Admin parole:** `Pulss-Skana-44!`
-*(Iepriekšējā parole `.env` failā bija redzama arī vairākos citos servisos (Cloudinary, u.c.), tāpēc drošības pēc uzģenerēju un ieliku jaunu tikai admin panelim. Pārējās atslēgas — MongoDB, Cloudinary, JWT — nomainīju NAV, bet iesaku tās arī rotēt, jo tās bija redzamas augšupielādētajā failā.)*
+Admin panelis: noklikšķini uz logo **PULSS** 5 reizes pēc kārtas, vai spied **Ctrl+Shift+A** — tad prasīs paroli (`ADMIN_PASSWORD` no vides mainīgajiem). Bez pareizas paroles neko mainīt nevar — serveris to pārbauda, ne tikai pārlūks.
 
 ---
 
@@ -67,8 +64,8 @@ git push -u origin main
    - **Start Command**: `npm start`
    - **Environment**: Node
 4. **Environment Variables** → pievieno:
-   - `MONGODB_URI` = tava Atlas savienojuma virkne no 1. soļa
-   - `ADMIN_PASS` = parole, ar kuru atvērsi admin paneli (jau iestatīta tavā `.env` failā — skaties augšā)
+   - `MONGO_URI` = tava Atlas savienojuma virkne no 1. soļa
+   - `ADMIN_PASSWORD` = parole, ar kuru atvērsi admin paneli (izvēlies kaut ko drošu — ne "admin123")
 5. Nospied **Create Web Service**. Render uzbūvēs un palaidīs projektu — tas prasa 1-3 minūtes.
 6. Kad statuss ir "Live", atver piedāvāto saiti (piem. `https://pulss.onrender.com`).
 
@@ -90,6 +87,6 @@ Vai arī vienkārši sāc ar tukšu datubāzi un pievieno dziesmas caur admin pa
 Tava saite (`https://pulss.onrender.com` vai kā to nosauksi) tagad ir īsta, dzīva mājaslapa:
 - dati glabājas MongoDB Atlas datubāzē — nepazūd, pārlādējot lapu
 - visi, kas atver saiti, redz vienus un tos pašus datus
-- admin panelis (ieraksti vārdu **tups** jebkurā vietā lapā, vai 5x klikšķis uz logo) ļauj pārvaldīt visu tiešsaistē no jebkuras ierīces, aiz paroles
+- admin panelis (5x klikšķis uz logo vai Ctrl+Shift+A) ļauj pārvaldīt visu tiešsaistē no jebkuras ierīces
 
 **Piezīme par bezmaksas Render plānu:** ja serviss kādu laiku nav lietots, tas "aizmieg" un pirmais pieprasījums pēc pauzes var aizņemt 30-60 sekundes, lai to "uzmodinātu". Tas ir normāli bezmaksas plānam.
