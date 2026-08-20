@@ -1,94 +1,122 @@
-# PULSS — mūzikas mājaslapa (izlabota un papildināta versija)
+# DJ Gajon — vienkāršā versija
 
-## Kas bija salauzts un kāpēc
+Vienkārša mājas lapa ar **1 admin kontu**. Admins var:
+- mainīt lapas tekstus (LV un EN valodā)
+- pievienot/dzēst bildes galerijā, sadalot pa **kategorijām**
+- pievienot/dzēst savu mūziku un **pārkārtot dziesmas ar peli (drag & drop)**
+- notīrīt čata vēsturi
 
-Salīdzinot veco un jauno projektu, atradu īsto iemeslu, kāpēc dziesmas, kas
-jau bija augšupielādētas serverī, neparādījās mājaslapā:
+Apmeklētāji var:
+- skatīties bildes (ar kategoriju filtriem) un lasīt tekstu
+- pārslēgt lapu starp **LV / EN**
+- klausīties mūziku
+- rakstīt reāllaika čatā (norādot vārdu)
 
-1. **Dziesmas glabājās nepareizā vietā.** Vecajā versijā dziesmas tika
-   saglabātas MongoDB kolekcijā `tracks` (ar audio saiti uz Cloudinary,
-   vāciņu, ilgumu u.c.). Jaunajā (pusgatavajā) versijā datu modelis bija
-   pilnībā pārtaisīts par vienkāršu `Song` modeli, kas glabājas kolekcijā
-   `songs` — **tukšā** kolekcijā. Tāpēc lapa rādīja "nav dziesmu", lai gan
-   datubāzē tavas ~simtiem dziesmu bija — tikai citā "atvilktnē".
-2. **"Pievienot dziesmu" funkcija nemaz nestrādāja ar audio failiem.**
-   Jaunajā versijā admin forma bija tikai teksta lauki (nosaukums,
-   izpildītājs, ilgums, žanrs) — bez faila augšupielādes iespējas vispār.
-   Tā arī radās tā kļūdas ziņa "Ieraksti gan nosaukumu, gan izpildītāju,
-   lai pievienotu dziesmu" — sistēma prasīja to visu ierakstīt ar roku,
-   jo nebija nekāda mehānisma, kas to izlasītu no paša faila.
+---
 
-## Kas tagad ir izlabots un pievienots
+## 1. Sagatavošana (konti, kas vajadzīgi)
 
-- **Dati atkal savienoti ar īsto kolekciju** (`tracks`) — kolīdz ievadīsi
-  savu īsto `MONGODB_URI`, visas iepriekš augšupielādētās dziesmas uzreiz
-  parādīsies mājaslapā, nekas nav jāpārceļ vai jāimportē no jauna.
-- **Īsta audio augšupielāde ar automātisku atpazīšanu.** Admin panelī tagad
-  ir faila ievilkšanas lauks (drag & drop) — ievelc MP3/WAV/OGG/FLAC/M4A/AAC
-  failu, un sistēma **pati** mēģina noteikt nosaukumu un izpildītāju:
-  1. vispirms no faila ID3 tagiem (ja AI rīks tos jau ierakstījis),
-  2. ja to nav — no faila nosaukuma (atpazīst formātu `Izpildītājs -
-     Nosaukums.mp3`).
-  Admins REDZ, kas tika atpazīts, un var to izlabot, bet nav spiests
-  rakstīt visu no nulles. Vāciņa attēlu, ja tāda nav pievienota, sistēma
-  arī mēģina izgūt no faila ID3 taga.
-- **Vairāk admin iespēju:** labot dziesmas nosaukumu/izpildītāju/žanru,
-  atzīmēt kā "populāru", dzēst (ar apstiprinājumu, kas notīra arī
-  Cloudinary failus), mainīt secību ar velkot-un-metot, pārskata cilne ar
-  kopējo dziesmu skaitu, klausīšanos skaitu un populāro dziesmu skaitu.
-- **Divas valodas — latviešu un angļu, pilnībā, bez izņēmumiem.** Katrs
-  teksta gabaliņš lapā (arī admin panelī) iet caur `data-i18n` sistēmu
-  (`public/js/i18n.js`) — nav neviena teksta, kas paliktu netulkots, kad
-  pārslēdz valodu pogā augšā labajā stūrī.
-- **Ziņojums visiem lietotājiem ar automātisku tulkošanu.** Admin panelī
-  ("Ziņojums lietotājiem") admins uzraksta ziņu VIENĀ valodā (izvēlas, kurā),
-  un serveris automātiski notulko uz otru, izmantojot bezmaksas tulkošanas
-  servisu — publicētā ziņa parādās kā baneris lapas augšā TAJĀ valodā, kuru
-  lietotājs tobrīd ir izvēlējies.
-- **Modernāks, pilnvērtīgs mūzikas atskaņotājs:** fiksēta apakšējā josla ar
-  vāciņu, progresa joslu (var pārtīt), skaļuma regulatoru, shuffle/repeat,
-  klaviatūras īsceļiem (atstarpe = play/pause), un integrāciju ar tālruņa/
-  pārlūka multivides vadību (var pauzēt no bloķēšanas ekrāna vai austiņām).
+1. **MongoDB Atlas** (datubāze) — https://www.mongodb.com/cloud/atlas — izveido klasteri, dabū "Connection string" (`MONGODB_URI`).
+2. **Cloudinary** (bilžu/audio glabāšana) — https://cloudinary.com — dashboard'ā redzēsi `Cloud name`, `API Key`, `API Secret`.
 
-## Svarīgi PIRMS palaišanas
-
-Atkopi savu **īsto** `.env` failu (to, kas jau bija tavā vecajā projektā ar
-`MONGODB_URI`, `CLOUDINARY_*`) un pārkopē vērtības uz `.env` šajā projektā —
-skaties `.env.example` par formātu. **Neizmanto** iepriekšējā "pulss-fixed"
-projekta piemēra vērtības — tur bija cita, tukša datubāze.
+## 2. Lokāla palaišana (testēšanai)
 
 ```bash
 npm install
 cp .env.example .env
-# atver .env un ieraksti savu īsto MONGODB_URI, CLOUDINARY_* un ADMIN_PASS
-
-npm run check-db   # parāda, cik dziesmu tavā datubāzē jau ir — bez izmaiņām
-npm start          # palaiž serveri uz http://localhost:3000
+# atver .env un ievieto savus datus
+npm start
 ```
 
-Ja `check-db` parāda skaitli, kas atbilst tavām reālajām dziesmām — viss
-savienots pareizi, un tās tūlīt parādīsies arī mājaslapā.
+Atver `http://localhost:3000`.
 
-## Admin pieeja
+---
 
-Ieraksti vārdu **`tups`** jebkurā vietā lapā (nevis kādā laukā, vienkārši
-rakstot ar tastatūru), vai 5x noklikšķini uz logo "PULSS". Pieslēdzies ar
-`ADMIN_USER` / `ADMIN_PASS` no sava `.env` faila.
+## 3. Kā aizstāt veco projektu ar šo un aizsūtīt uz GitHub → Render
 
-## Izvietošana uz Render (tāpat kā iepriekš)
+**Ja tavs vecais projekts jau ir Git repozitorijā** (mapē, kur ir `.git` apakšmape):
 
-1. `git init && git add . && git commit -m "PULSS v2" && git push` uz GitHub.
-2. Render.com → New → Web Service → savieno repo.
-3. Build Command: `npm install`, Start Command: `npm start`.
-4. Environment Variables: pievieno visus no sava `.env` (MONGODB_URI,
-   CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET,
-   ADMIN_USER, ADMIN_PASS).
-5. Kad "Live" — atver saiti, un tavas dziesmas jau būs tur.
+```bash
+# 1. Dodies uz sava vecā projekta mapi
+cd ceļš/uz/vecais-projekts
 
-## Piezīme par automātisko tulkošanu
+# 2. Izdzēs vecos failus, KURUS aizstāj šī jaunā versija
+#    (nepieskaries .git mapei un .env failam!)
+rm -f server.js index.html design.css i18n.js sw.js
+rm -f package.json package-lock.json
+rm -rf public
 
-Ziņojumu tulkošanai izmantots bezmaksas **MyMemory** API (nav vajadzīga
-atslēga, strādā uzreiz). Kvalitāte ir pietiekama īsiem paziņojumiem, bet
-ne ideāla. Ja vēlāk gribi precīzāku tulkojumu, `utils/translate.js` ir
-viena vieta, kur to nomainīt uz DeepL vai Google Translate API (vajadzēs
-API atslēgu no attiecīgā pakalpojuma).
+# 3. Iekopē šīs jaunās versijas failus tajā pašā mapē
+#    (izpako lejupielādēto dj-gajon.zip un iekopē saturu)
+cp -r ceļš/uz/dj-gajon/* .
+cp ceļš/uz/dj-gajon/.gitignore .
+
+# 4. Pārbaudi, ka viss izskatās pareizi
+ls
+git status
+
+# 5. Commit un push uz GitHub
+git add -A
+git commit -m "Vienkāršota versija: 1 admin konts, kategorijas, drag&drop, LV/EN"
+git push
+```
+
+**Ja projekta vēl nav Git repozitorijā** — izveido to no jauna:
+
+```bash
+cd ceļš/uz/dj-gajon
+git init
+git add -A
+git commit -m "Sākotnējā vienkāršotā versija"
+git branch -M main
+git remote add origin https://github.com/TAVS-LIETOTAJVARDS/TAVA-REPO.git
+git push -u origin main
+```
+
+**Render.com puse:**
+- Ja Render Web Service jau bija savienots ar šo GitHub repo — pēc `git push` tas automātiski uzsāks jaunu deploy (vai nospied "Manual Deploy" → "Deploy latest commit").
+- Environment mainīgie (`MONGODB_URI`, `CLOUDINARY_*`, `ADMIN_USER`, `ADMIN_PASS`) paliek tie paši, kas jau bija iestatīti — nekas nav jāmaina, ja izmanto to pašu MongoDB/Cloudinary kontu.
+- **Svarīgi:** `.env` fails NEKAD netiek sūtīts uz GitHub (tas ir `.gitignore` sarakstā) — Render vides mainīgie jāievada Render dashboard'ā, cilnē "Environment".
+
+## 4. Citi vecā projekta faili — vai tos vajag?
+
+| Fails | Ko darīt |
+|---|---|
+| `privacy.html` | ✅ Jau iekļauts šajā versijā (`public/privacy.html`), pieejams zem `/privacy` |
+| `_gitignore` | ✅ Aizstāts ar jaunu `.gitignore` (vecajā bija kļūda — tas ignorēja `public/` mapi, kas šeit ir svarīga) |
+| `i18n.js` (vecais, 36KB) | ❌ Nav vajadzīgs — jaunajā versijā ir sava, daudz vienkāršāka LV/EN sistēma iekš `app.js` |
+| `sw.js` (Service Worker / PWA) | ❌ Izlaists vienkāršības labad. Ja gribi lapu darīt instalējamu kā PWA (offline režīms, "Pievienot sākuma ekrānam"), pasaki — to var pievienot atsevišķi |
+| `App.tsx` (Expo/React Native mobilā app) | ❌ Nav daļa no šīs vienkāršās web versijas — tā ir atsevišķa mobilā aplikācija. Ja kādreiz gribēsi arī mobilo app, tas ir cits projekts |
+
+Ja tev ir vēl kādi faili no vecā projekta, ko domā izmantot (piem. logo, bg attēls, fonti) — vari tos vienkārši iemest `public/` mapē un tie būs pieejami pēc adreses `/faila-vards.jpg`.
+
+---
+
+## 5. Jaunās funkcijas šajā versijā
+
+### 🗂️ Galerijas kategorijas
+Augšupielādējot bildi, admin var ierakstīt kategoriju (piem. "Koncerti", "Studija"). Apmeklētāji virs galerijas redz filtru pogas un var skatīt tikai vienu kategoriju vai visas.
+
+### 🔀 Dziesmu secības maiņa (drag & drop)
+Admin režīmā pie katras dziesmas ir ⠿ ikona — aiz tās var dziesmu ievilkt citā vietā sarakstā, un jaunā secība automātiski saglabājas visiem apmeklētājiem.
+
+### 🌐 LV / EN valodu pārslēgs
+Augšējā labajā stūrī poga "EN"/"LV" pārslēdz visu statisko tekstu (pogas, virsraksti u.c.). Admin panelī teksta rediģēšanas logā ir atsevišķi lauki latviešu un angļu valodā — aizpildi abus, ja gribi, lai lapa strādā abās valodās.
+
+---
+
+## Faili
+
+- `server.js` — serveris (Express + MongoDB + Cloudinary + Socket.IO čats)
+- `public/index.html` — lapas struktūra
+- `public/design.css` — dizains
+- `public/app.js` — visa klienta puses loģika (i18n, admin panelis, drag&drop, čats)
+- `public/privacy.html` — privātuma politikas lapa
+- `.env.example` — vides mainīgo paraugs
+- `.gitignore` — pareizi iestatīts jaunajai failu struktūrai
+
+## Ielogošanās kā admins
+
+Apakšējā labajā stūrī 🔒 ikona → ievadi `ADMIN_USER`/`ADMIN_PASS` no `.env` / Render Environment.
+
+**Noteikti nomaini `ADMIN_PASS`, pirms lapa ir publiski pieejama!**

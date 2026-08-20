@@ -1,4 +1,20 @@
+# ══ Atkarības ══
 node_modules/
+package-lock.json
+
+# ══ Slepeni mainīgie — NEKAD GitHub! ══
 .env
+.env.local
+.env.production
+qr-code.png
+
+# ══ Logi ══
+*.log
+npm-debug.*
+
+# ══ macOS ══
 .DS_Store
-npm-debug.log
+*.pem
+
+# PIEZĪME: "public/" ŠOREIZ NAV jāignorē! Tur atrodas mūsu
+# index.html / design.css / app.js pirmkods, nevis auto-ģenerēti faili.
