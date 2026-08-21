@@ -937,12 +937,26 @@ function toggleTrackView() {
 let trackSearchQuery = '';
 let trackGenreFilter = 'Visi';
 let trackSortMode = 'manual'; // 'manual' | 'popular'
+let genreFolderView = true;   // true = rāda mapju režģi, false = rāda konkrētā žanra/meklēšanas sarakstu
 
 function renderTracks() {
   const tracks = window._tracks || [];
   const list = document.getElementById('track-list');
   const hasActiveFilter = !!trackSearchQuery || trackGenreFilter !== 'Visi' || trackSortMode === 'popular';
   document.getElementById('drag-hint').style.display = (isAdmin && !hasActiveFilter) ? '' : 'none';
+
+  renderGenreFolders(tracks);
+
+  const folderGrid = document.getElementById('genre-folder-grid');
+  const browseWrap = document.getElementById('genre-browse-wrap');
+  const showFolders = genreFolderView && !trackSearchQuery;
+  if (folderGrid) folderGrid.style.display = showFolders ? '' : 'none';
+  if (browseWrap) browseWrap.style.display = showFolders ? 'none' : '';
+  if (showFolders) {
+    document.getElementById('new-tracks-wrap').style.display = 'none';
+    document.getElementById('all-tracks-heading').style.display = 'none';
+    return;
+  }
 
   // ── Šīs nedēļas jaunumi ──
   const now = Date.now();
@@ -978,6 +992,11 @@ function renderTracks() {
 
   renderGenreChips(tracks);
 
+  const genreLabelEl = document.getElementById('genre-browse-label');
+  if (genreLabelEl) {
+    genreLabelEl.textContent = trackGenreFilter === 'Visi' ? '' : `📁 ${trackGenreFilter}`;
+  }
+
   if (!filtered.length) {
     list.innerHTML = `<p class="empty-msg">${currentLang === 'lv' ? '🔍 Nekas netika atrasts' : '🔍 No results found'}</p>`;
     applyTrackViewMode();
@@ -999,6 +1018,75 @@ function renderTracks() {
 
 function handleTrackSearch(value) {
   trackSearchQuery = value;
+  if (value.trim()) genreFolderView = false;
+  renderTracks();
+}
+
+// ── Krāsainās "mapes" pēc žanra ──
+const GENRE_FOLDER_STYLE = {
+  "Trap / Hip-Hop": { icon: "🔥", grad: "linear-gradient(135deg,#ff3d81,#a63dff)" },
+  "Synthwave":      { icon: "🌆", grad: "linear-gradient(135deg,#a63dff,#00e5c7)" },
+  "Lo-fi":          { icon: "☕", grad: "linear-gradient(135deg,#ffb37a,#ff3d81)" },
+  "EDM / Electro":  { icon: "⚡", grad: "linear-gradient(135deg,#00e5c7,#3d7bff)" },
+  "Indie / Alt":    { icon: "🎸", grad: "linear-gradient(135deg,#ffd23f,#ff3d81)" },
+  "Pop":            { icon: "✨", grad: "linear-gradient(135deg,#ff3d81,#ffd23f)" },
+  "R&B / Soul":     { icon: "💜", grad: "linear-gradient(135deg,#a63dff,#ff3d81)" },
+  "Rock":           { icon: "🤘", grad: "linear-gradient(135deg,#ff4d6d,#1a0f2b)" },
+  "Reggaeton":      { icon: "🌴", grad: "linear-gradient(135deg,#00e5c7,#ffd23f)" },
+  "Nenoteikts":     { icon: "❔", grad: "linear-gradient(135deg,#38264f,#1a0f2b)" },
+};
+const FALLBACK_GRADS = [
+  "linear-gradient(135deg,#ff3d81,#3d7bff)", "linear-gradient(135deg,#00e5c7,#a63dff)",
+  "linear-gradient(135deg,#ffd23f,#ff4d6d)", "linear-gradient(135deg,#3d7bff,#ffd23f)",
+];
+function genreFolderStyle(genre) {
+  if (GENRE_FOLDER_STYLE[genre]) return GENRE_FOLDER_STYLE[genre];
+  let hash = 0;
+  for (let i = 0; i < genre.length; i++) hash = (hash * 31 + genre.charCodeAt(i)) >>> 0;
+  return { icon: "🎵", grad: FALLBACK_GRADS[hash % FALLBACK_GRADS.length] };
+}
+
+function renderGenreFolders(tracks) {
+  const grid = document.getElementById('genre-folder-grid');
+  if (!grid) return;
+  const counts = {};
+  tracks.forEach(t2 => {
+    const g = t2.genre || 'Nenoteikts';
+    counts[g] = (counts[g] || 0) + 1;
+  });
+  const genres = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+
+  if (!genres.length) {
+    grid.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`;
+    return;
+  }
+
+  grid.innerHTML = genres.map(g => {
+    const style = genreFolderStyle(g);
+    const count = counts[g];
+    return `
+      <div class="genre-folder" data-g="${escapeAttr(g)}" style="--folder-grad:${style.grad}">
+        <div class="genre-folder-icon">${style.icon}</div>
+        <div class="genre-folder-name">${escapeHtml(g)}</div>
+        <div class="genre-folder-count">${count} ${count === 1 ? 'dziesma' : 'dziesmas'}</div>
+      </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.genre-folder').forEach(el => {
+    el.addEventListener('click', () => {
+      trackGenreFilter = el.dataset.g;
+      genreFolderView = false;
+      renderTracks();
+    });
+  });
+}
+
+function backToGenreFolders() {
+  trackGenreFilter = 'Visi';
+  trackSearchQuery = '';
+  const searchInput = document.getElementById('track-search');
+  if (searchInput) searchInput.value = '';
+  genreFolderView = true;
   renderTracks();
 }
 
@@ -1012,6 +1100,7 @@ function renderGenreChips(tracks) {
   row.querySelectorAll('.genre-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       trackGenreFilter = btn.dataset.g;
+      genreFolderView = false;
       renderTracks();
     });
   });

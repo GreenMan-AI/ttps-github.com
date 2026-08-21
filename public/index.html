@@ -33,6 +33,12 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/logo192.png?v=2">
 <link rel="icon" type="image/png" sizes="512x512" href="/logo512.png?v=2">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+<link rel="manifest" href="/manifest.json?v=2">
+<meta name="theme-color" content="#12081f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DJ Gajon">
 <!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
      tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -132,13 +138,22 @@
     <div class="track-list" id="new-track-list"></div>
   </div>
 
-  <h3 class="sub-h" id="all-tracks-heading" data-i18n="all_tracks">🎵 Visas dziesmas</h3>
-  <input type="text" id="track-search" class="track-search" data-i18n-ph="track_search_ph" placeholder="🔍 Meklēt dziesmu vai izpildītāju..." oninput="handleTrackSearch(this.value)">
-  <div class="genre-chip-row" id="genre-chip-row"></div>
-  <div class="btn-row" style="margin-bottom:12px">
-    <button class="btn sm" id="sort-toggle-btn" title="Pārslēgt starp manuālo secību un populārākajām">↕️ Manuālā secība</button>
+  <div class="genre-folder-grid" id="genre-folder-grid"></div>
+
+  <div id="genre-browse-wrap" style="display:none">
+    <div class="genre-browse-bar">
+      <button class="btn sm" onclick="backToGenreFolders()">◀ Visas mapes</button>
+      <span id="genre-browse-label" class="genre-browse-label"></span>
+    </div>
+
+    <h3 class="sub-h" id="all-tracks-heading" data-i18n="all_tracks">🎵 Visas dziesmas</h3>
+    <input type="text" id="track-search" class="track-search" data-i18n-ph="track_search_ph" placeholder="🔍 Meklēt dziesmu vai izpildītāju..." oninput="handleTrackSearch(this.value)">
+    <div class="genre-chip-row" id="genre-chip-row"></div>
+    <div class="btn-row" style="margin-bottom:12px">
+      <button class="btn sm" id="sort-toggle-btn" title="Pārslēgt starp manuālo secību un populārākajām">↕️ Manuālā secība</button>
+    </div>
+    <div class="track-list" id="track-list"></div>
   </div>
-  <div class="track-list" id="track-list"></div>
 </section>
 
 <footer id="footer-text">DJ Gajon</footer>
