@@ -1033,7 +1033,7 @@ const GENRE_FOLDER_STYLE = {
   "R&B / Soul":     { icon: "💜", grad: "linear-gradient(135deg,#a63dff,#ff3d81)" },
   "Rock":           { icon: "🤘", grad: "linear-gradient(135deg,#ff4d6d,#1a0f2b)" },
   "Reggaeton":      { icon: "🌴", grad: "linear-gradient(135deg,#00e5c7,#ffd23f)" },
-  "Nenoteikts":     { icon: "❔", grad: "linear-gradient(135deg,#38264f,#1a0f2b)" },
+  "Nenoteikts":     { icon: "🗂️", grad: "linear-gradient(135deg,#ff3d81,#ffd23f,#00e5c7)" },
 };
 const FALLBACK_GRADS = [
   "linear-gradient(135deg,#ff3d81,#3d7bff)", "linear-gradient(135deg,#00e5c7,#a63dff)",
@@ -1064,10 +1064,11 @@ function renderGenreFolders(tracks) {
   grid.innerHTML = genres.map(g => {
     const style = genreFolderStyle(g);
     const count = counts[g];
+    const isUnsorted = (g === 'Nenoteikts');
     return `
-      <div class="genre-folder" data-g="${escapeAttr(g)}" style="--folder-grad:${style.grad}">
+      <div class="genre-folder ${isUnsorted ? 'unsorted' : ''}" data-g="${escapeAttr(g)}" style="--folder-grad:${style.grad}">
         <div class="genre-folder-icon">${style.icon}</div>
-        <div class="genre-folder-name">${escapeHtml(g)}</div>
+        <div class="genre-folder-name">${isUnsorted ? 'Nesašķirotās' : escapeHtml(g)}</div>
         <div class="genre-folder-count">${count} ${count === 1 ? 'dziesma' : 'dziesmas'}</div>
       </div>`;
   }).join('');

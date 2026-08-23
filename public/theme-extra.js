@@ -76,6 +76,45 @@
     });
   }
 
+  // ── Auto-sašķirošana — visām "Nenoteikts" dziesmām mēģina noteikt
+  //    žanru pēc nosaukuma (un vārdiem, ja tādi ievadīti) ──
+  const autoClassifyBtn = document.getElementById('auto-classify-btn');
+  if (autoClassifyBtn) {
+    autoClassifyBtn.addEventListener('click', async () => {
+      const tracks = (window._tracks || []).filter(t2 => !t2.genre || t2.genre === 'Nenoteikts');
+      if (!tracks.length) {
+        if (window.toast) toast('Visām dziesmām jau ir noteikts žanrs.', 'ok');
+        return;
+      }
+      autoClassifyBtn.disabled = true;
+      autoClassifyBtn.textContent = '🪄 Strādā...';
+
+      let updated = 0, skipped = 0;
+      for (const tr of tracks) {
+        const result = classifyGenre((tr.title || '') + ' ' + (tr.lyrics || ''));
+        if (!result.genre) { skipped++; continue; }
+        try {
+          const res = await fetch(`/api/tracks/${tr._id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ genre: result.genre }),
+          });
+          if (res.ok) updated++; else skipped++;
+        } catch (e) { skipped++; }
+      }
+
+      autoClassifyBtn.disabled = false;
+      autoClassifyBtn.textContent = '🪄 Auto-sašķirot';
+      if (window.toast) {
+        toast(skipped
+          ? `Gatavs — sašķirotas ${updated}, ${skipped} palika nesašķirotas (par maz atslēgvārdu nosaukumā).`
+          : `Gatavs — sašķirotas visas ${updated} dziesmas!`, 'ok');
+      }
+      if (typeof loadTracks === 'function') { await loadTracks(); }
+    });
+  }
+
   // ── CSV eksports ──
   const exportBtn = document.getElementById('export-csv-btn');
   if (exportBtn) {
