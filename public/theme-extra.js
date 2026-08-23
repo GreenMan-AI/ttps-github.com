@@ -35,6 +35,159 @@
 })();
 
 // ══════════════════════════════════════════════════
+//  TIEŠRAIDES KLAUSĪTĀJU NOZĪMĪTE HEADERĪ
+//  (izmanto jau esošo online-count socket notikumu)
+// ══════════════════════════════════════════════════
+(function () {
+  if (typeof socket === 'undefined') return;
+  socket.on('online-count', (count) => {
+    const el = document.getElementById('live-badge-count');
+    if (el) el.textContent = count;
+  });
+})();
+
+// ══════════════════════════════════════════════════
+//  ĪSTAIS AUDIO VIZUALIZĒTĀJS — reāli reaģē uz skanošo mūziku
+//  (Web Audio API AnalyserNode). Ja pārlūks/audio avots to neatļauj
+//  (piem. CORS ierobežojums), klusi paliek vecā animētā aizvietotāja
+//  josliņas — atskaņošana nekad netiek pārtraukta šī iemesla dēļ.
+// ══════════════════════════════════════════════════
+(function () {
+  const pbAudio = document.getElementById('pb-audio');
+  const canvas = document.getElementById('pb-visualizer');
+  const fallback = document.getElementById('pb-waveform');
+  if (!pbAudio || !canvas) return;
+
+  let audioCtx, analyser, dataArray, rafId, ready = false, failed = false;
+
+  function setup() {
+    if (ready || failed) return ready;
+    try {
+      pbAudio.crossOrigin = 'anonymous';
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaElementSource(pbAudio);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      dataArray = new Uint8Array(analyser.frequencyBinCount);
+      source.connect(analyser);
+      analyser.connect(audioCtx.destination); // svarīgi — citādi skaņa apklust
+      ready = true;
+      return true;
+    } catch (e) {
+      failed = true; // piem. CORS neatļauj — turpinām ar vecajām josliņām, bez kļūdas lietotājam
+      return false;
+    }
+  }
+
+  const ctx2d = canvas.getContext('2d');
+  function draw() {
+    rafId = requestAnimationFrame(draw);
+    if (!analyser || pbAudio.paused) return;
+    analyser.getByteFrequencyData(dataArray);
+    const w = canvas.width, h = canvas.height;
+    ctx2d.clearRect(0, 0, w, h);
+    const bars = 12;
+    const step = Math.floor(dataArray.length / bars) || 1;
+    const barW = w / bars;
+    for (let i = 0; i < bars; i++) {
+      const v = dataArray[i * step] / 255;
+      const barH = Math.max(2, v * h);
+      ctx2d.fillStyle = i % 2 === 0 ? '#ff3d81' : '#00e5c7';
+      ctx2d.fillRect(i * barW, h - barH, barW - 1, barH);
+    }
+  }
+
+  pbAudio.addEventListener('play', () => {
+    if (!ready && !failed) {
+      const ok = setup();
+      if (ok) {
+        canvas.style.display = '';
+        if (fallback) fallback.style.display = 'none';
+        draw();
+      }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  });
+})();
+
+// ══════════════════════════════════════════════════
+//  PILNEKRĀNA "NOW PLAYING" REŽĪMS — atveras, uzspiežot uz vāciņa
+// ══════════════════════════════════════════════════
+(function () {
+  const pbAudio = document.getElementById('pb-audio');
+  const overlay = document.getElementById('nowplaying-overlay');
+  const pbCover = document.getElementById('pb-cover');
+  if (!pbAudio || !overlay || !pbCover) return;
+
+  const npBg = document.getElementById('np-bg');
+  const npCover = document.getElementById('np-cover');
+  const npTitle = document.getElementById('np-title');
+  const npArtist = document.getElementById('np-artist');
+  const npPlayBtn = document.getElementById('np-playpause');
+  const npProgress = document.getElementById('np-progress');
+  const npProgressFill = document.getElementById('np-progress-fill');
+  const npCurrent = document.getElementById('np-current');
+  const npDuration = document.getElementById('np-duration');
+
+  function formatTime(sec) {
+    if (!isFinite(sec) || sec < 0) return '0:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function syncFromMiniPlayer() {
+    npBg.style.backgroundImage = `url("${pbCover.src}")`;
+    npCover.src = pbCover.src;
+    npTitle.textContent = document.getElementById('pb-title')?.textContent || '—';
+    npArtist.textContent = document.getElementById('pb-artist')?.textContent || '';
+  }
+
+  function syncPlayIcon() {
+    npPlayBtn.textContent = pbAudio.paused ? '▶' : '⏸';
+  }
+
+  pbCover.addEventListener('click', () => {
+    syncFromMiniPlayer();
+    syncPlayIcon();
+    overlay.classList.add('open');
+  });
+  document.getElementById('np-close')?.addEventListener('click', () => {
+    overlay.classList.remove('open');
+  });
+
+  // ── Vadības pogas — pārsūta klikšķus uz jau esošajām reālajām pogām ──
+  const forwardMap = { 'np-shuffle': 'pb-shuffle', 'np-prev': 'pb-prev', 'np-next': 'pb-next', 'np-repeat': 'pb-repeat' };
+  Object.entries(forwardMap).forEach(([fromId, toId]) => {
+    document.getElementById(fromId)?.addEventListener('click', () => {
+      document.getElementById(toId)?.click();
+      setTimeout(syncFromMiniPlayer, 60); // ja nomainījās dziesma (prev/next)
+    });
+  });
+  npPlayBtn.addEventListener('click', () => {
+    if (pbAudio.paused) pbAudio.play().catch(() => {});
+    else pbAudio.pause();
+  });
+  pbAudio.addEventListener('play', syncPlayIcon);
+  pbAudio.addEventListener('pause', syncPlayIcon);
+  pbAudio.addEventListener('play', () => { if (overlay.classList.contains('open')) syncFromMiniPlayer(); });
+
+  // ── Progresa josla ──
+  pbAudio.addEventListener('timeupdate', () => {
+    if (!pbAudio.duration) return;
+    npProgressFill.style.width = `${(pbAudio.currentTime / pbAudio.duration) * 100}%`;
+    npCurrent.textContent = formatTime(pbAudio.currentTime);
+    npDuration.textContent = formatTime(pbAudio.duration);
+  });
+  npProgress.addEventListener('click', (e) => {
+    if (!pbAudio.duration) return;
+    const rect = npProgress.getBoundingClientRect();
+    const frac = (e.clientX - rect.left) / rect.width;
+    pbAudio.currentTime = Math.max(0, Math.min(1, frac)) * pbAudio.duration;
+  });
+})();
+
+// ══════════════════════════════════════════════════
 //  ŽANRA IETEIKŠANA PĒC ATSLĒGVĀRDIEM (papildu admin rīks)
 // ══════════════════════════════════════════════════
 (function () {

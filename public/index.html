@@ -59,6 +59,9 @@
 
 <header>
   <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" id="logo-text">DJ Gajon</div>
+  <div class="live-badge" id="live-badge" title="Cik cilvēku tagad ir lapā">
+    <span class="live-dot"></span> <span id="live-badge-count">0</span> klausās tagad
+  </div>
   <nav>
     <a href="#about" data-i18n="nav_about">Informācīja</a>
     <a href="#gallery" data-i18n="nav_gallery">Bildes</a>
@@ -166,6 +169,7 @@
       <div class="waveform" id="pb-waveform">
         <span></span><span></span><span></span><span></span><span></span>
       </div>
+      <canvas class="pb-visualizer" id="pb-visualizer" width="64" height="28" style="display:none"></canvas>
     </div>
     <div class="info">
       <div class="t" id="pb-title">—</div>
@@ -515,11 +519,37 @@
 <script src="/theme-extra.js?v=1"></script>
 <div class="quicksort-overlay" id="quicksort-overlay">
   <div class="quicksort-box">
-    <h3>🎧 Ātrā sašķirošana</h3>
+    <h3>🗂️ Ātrā sašķirošana</h3>
     <div class="qs-sub">Izvēlies žanru katrai dziesmai — saglabājas uzreiz, tiklīdz izvēlies.</div>
     <div id="quicksort-list"></div>
     <div class="qs-actions">
       <button class="btn sm" onclick="closeQuickSort()">Aizvērt</button>
+    </div>
+  </div>
+</div>
+
+<div class="nowplaying-overlay" id="nowplaying-overlay">
+  <div class="np-bg" id="np-bg"></div>
+  <button class="np-close" id="np-close" title="Aizvērt">✕</button>
+  <div class="np-content">
+    <img class="np-cover" id="np-cover" src="" alt="">
+    <div class="np-title" id="np-title">—</div>
+    <div class="np-artist" id="np-artist"></div>
+
+    <div class="np-seek-row">
+      <span class="pb-time" id="np-current">0:00</span>
+      <div class="np-progress" id="np-progress">
+        <div class="np-progress-fill" id="np-progress-fill"></div>
+      </div>
+      <span class="pb-time" id="np-duration">0:00</span>
+    </div>
+
+    <div class="np-controls">
+      <button class="pb-btn pb-toggle" id="np-shuffle" title="Jaukt secību">🔀</button>
+      <button class="pb-btn" id="np-prev" title="Iepriekšējā">⏮</button>
+      <button class="pb-btn pb-play np-play-big" id="np-playpause" title="Atskaņot/Pauze">▶</button>
+      <button class="pb-btn" id="np-next" title="Nākamā">⏭</button>
+      <button class="pb-btn pb-toggle" id="np-repeat" title="Atkārtot">🔁</button>
     </div>
   </div>
 </div>
