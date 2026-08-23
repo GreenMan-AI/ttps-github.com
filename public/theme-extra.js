@@ -115,6 +115,65 @@
     });
   }
 
+  // ── Ātrā sašķirošana — panelis ar dropdown katrai nesašķirotai dziesmai ──
+  const GENRE_OPTIONS = Object.keys(GENRE_RULES);
+  window.openQuickSort = function () {
+    const overlay = document.getElementById('quicksort-overlay');
+    const listEl = document.getElementById('quicksort-list');
+    if (!overlay || !listEl) return;
+
+    const unsorted = (window._tracks || []).filter(t2 => !t2.genre || t2.genre === 'Nenoteikts');
+    if (!unsorted.length) {
+      if (window.toast) toast('Visām dziesmām jau ir noteikts žanrs.', 'ok');
+      return;
+    }
+
+    listEl.innerHTML = unsorted.map(tr => `
+      <div class="quicksort-row" data-id="${tr._id}">
+        <div class="qs-title" title="${escapeAttr(tr.title || '')}">${escapeHtml(tr.title || '')}</div>
+        <select>
+          <option value="">— izvēlies —</option>
+          ${GENRE_OPTIONS.map(g => `<option value="${escapeAttr(g)}">${escapeHtml(g)}</option>`).join('')}
+        </select>
+        <span class="qs-saved">✓ saglabāts</span>
+      </div>
+    `).join('');
+
+    listEl.querySelectorAll('.quicksort-row select').forEach(sel => {
+      sel.addEventListener('change', async (e) => {
+        const row = e.target.closest('.quicksort-row');
+        const id = row.dataset.id;
+        const genre = e.target.value;
+        if (!genre) return;
+        try {
+          const res = await fetch(`/api/tracks/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ genre }),
+          });
+          if (res.ok) {
+            const savedEl = row.querySelector('.qs-saved');
+            savedEl.classList.add('show');
+            sel.disabled = true;
+            row.style.opacity = '.55';
+            if (typeof loadTracks === 'function') await loadTracks();
+          } else if (window.toast) {
+            toast('Neizdevās saglabāt — mēģini vēlreiz.', 'err');
+          }
+        } catch (err) {
+          if (window.toast) toast('Neizdevās saglabāt — pārbaudi savienojumu.', 'err');
+        }
+      });
+    });
+
+    overlay.classList.add('open');
+  };
+  window.closeQuickSort = function () {
+    const overlay = document.getElementById('quicksort-overlay');
+    if (overlay) overlay.classList.remove('open');
+  };
+
   // ── CSV eksports ──
   const exportBtn = document.getElementById('export-csv-btn');
   if (exportBtn) {

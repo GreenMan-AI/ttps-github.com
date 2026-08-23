@@ -538,14 +538,50 @@ footer{text-align:center;padding:30px;color:var(--mut);font-size:12px;border-top
 .genre-folder-count{ font-size:11px; color:var(--mut); position:relative; z-index:1; }
 
 .genre-folder.unsorted{
-  border:1.5px dashed var(--border2);
-  animation:unsorted-pulse 2.4s ease-in-out infinite;
+  border:1px solid var(--accent2);
+  background:linear-gradient(160deg, rgba(0,229,199,.10), var(--card) 60%);
 }
-@keyframes unsorted-pulse{
-  0%,100%{ box-shadow:0 0 0 0 rgba(255,61,129,0); }
-  50%{ box-shadow:0 0 0 6px rgba(255,61,129,.08); }
+.genre-folder.unsorted .genre-folder-icon{ opacity:.9; }
+.genre-folder.unsorted-action{
+  display:flex; flex-direction:row; align-items:center; justify-content:space-between;
+  text-align:left; gap:14px; padding:16px 20px; cursor:default;
+  grid-column:1 / -1; /* pilnā platumā, virs pārējām mapēm */
 }
-@media (prefers-reduced-motion: reduce){ .genre-folder.unsorted{ animation:none; } }
+.genre-folder.unsorted-action::before{ display:none; }
+.genre-folder.unsorted-action .uf-left{ display:flex; align-items:center; gap:14px; position:relative; z-index:1; }
+.genre-folder.unsorted-action .uf-icon{ font-size:26px; }
+.genre-folder.unsorted-action .uf-text b{ display:block; font-size:14px; }
+.genre-folder.unsorted-action .uf-text span{ font-size:12px; color:var(--mut); }
+.genre-folder.unsorted-action .uf-btn{
+  font-family:var(--mono); font-size:12px; font-weight:600; white-space:nowrap;
+  padding:9px 16px; border-radius:10px; border:1px solid var(--accent2); position:relative; z-index:1;
+  background:rgba(0,229,199,.12); color:var(--accent2); cursor:pointer; transition:all .15s;
+}
+.genre-folder.unsorted-action .uf-btn:hover{ background:var(--accent2); color:#08201c; }
 
 .genre-browse-bar{ display:flex; align-items:center; gap:12px; margin:14px 0; flex-wrap:wrap; }
 .genre-browse-label{ font-family:var(--font-display); font-weight:700; color:var(--accent); }
+
+/* ══ ĀTRĀ SAŠĶIROŠANA (bulk genre panelis) ══ */
+.quicksort-overlay{
+  display:none; position:fixed; inset:0; z-index:200; background:rgba(10,5,15,.75);
+  align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto;
+}
+.quicksort-overlay.open{ display:flex; }
+.quicksort-box{
+  background:var(--card); border:1px solid var(--border); border-radius:var(--r);
+  max-width:560px; width:100%; padding:24px; margin-top:20px;
+}
+.quicksort-box h3{ font-family:var(--font-display); margin-bottom:4px; }
+.quicksort-box .qs-sub{ color:var(--mut); font-size:13px; margin-bottom:18px; }
+.quicksort-row{
+  display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border);
+}
+.quicksort-row .qs-title{ flex:1; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.quicksort-row select{
+  background:var(--bg2); border:1px solid var(--border); border-radius:8px; color:var(--txt);
+  padding:6px 10px; font-family:var(--font); font-size:13px;
+}
+.quicksort-row .qs-saved{ font-size:12px; color:var(--accent2); opacity:0; transition:opacity .3s; }
+.quicksort-row .qs-saved.show{ opacity:1; }
+.quicksort-box .qs-actions{ margin-top:18px; display:flex; justify-content:flex-end; }

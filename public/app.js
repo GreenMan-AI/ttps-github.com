@@ -1064,11 +1064,23 @@ function renderGenreFolders(tracks) {
   grid.innerHTML = genres.map(g => {
     const style = genreFolderStyle(g);
     const count = counts[g];
-    const isUnsorted = (g === 'Nenoteikts');
+    if (g === 'Nenoteikts') {
+      return `
+        <div class="genre-folder unsorted unsorted-action" data-g="${escapeAttr(g)}" style="--folder-grad:${style.grad}">
+          <div class="uf-left">
+            <div class="uf-icon">🗂️</div>
+            <div class="uf-text">
+              <b>Nesašķirotās</b>
+              <span>${count} ${count === 1 ? 'dziesma' : 'dziesmas'} gaida žanru</span>
+            </div>
+          </div>
+          <button class="uf-btn" onclick="openQuickSort()">Sašķirot tagad</button>
+        </div>`;
+    }
     return `
-      <div class="genre-folder ${isUnsorted ? 'unsorted' : ''}" data-g="${escapeAttr(g)}" style="--folder-grad:${style.grad}">
+      <div class="genre-folder" data-g="${escapeAttr(g)}" style="--folder-grad:${style.grad}">
         <div class="genre-folder-icon">${style.icon}</div>
-        <div class="genre-folder-name">${isUnsorted ? 'Nesašķirotās' : escapeHtml(g)}</div>
+        <div class="genre-folder-name">${escapeHtml(g)}</div>
         <div class="genre-folder-count">${count} ${count === 1 ? 'dziesma' : 'dziesmas'}</div>
       </div>`;
   }).join('');
