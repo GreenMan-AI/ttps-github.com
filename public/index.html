@@ -62,6 +62,9 @@
   <div class="live-badge" id="live-badge" title="Cik cilvēku tagad ir lapā">
     <span class="live-dot"></span> <span id="live-badge-count">0</span> klausās tagad
   </div>
+  <button class="my-playlist-btn" id="my-playlist-btn" onclick="openMyPlaylist()" title="Mans klausīšanās saraksts šodienai">
+    🎵 Mans saraksts <span id="my-playlist-count">0</span>
+  </button>
   <nav>
     <a href="#about" data-i18n="nav_about">Informācīja</a>
     <a href="#gallery" data-i18n="nav_gallery">Bildes</a>
@@ -517,6 +520,20 @@
 <script src="/socket.io/socket.io.js"></script>
 <script src="/app.js?v=23"></script>
 <script src="/theme-extra.js?v=1"></script>
+<div class="quicksort-overlay" id="my-playlist-overlay">
+  <div class="quicksort-box">
+    <h3>🎵 Mans saraksts</h3>
+    <div class="qs-sub">Šis saraksts saglabājas tikai tavā ierīcē un pazūd pēc 24 stundām — katru dienu vari salikt ko citu.</div>
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn sm" id="my-playlist-play-btn" onclick="playMyPlaylistFromStart()">▶ Klausīties visu sarakstu</button>
+    </div>
+    <div class="track-list" id="my-playlist-list"></div>
+    <div class="qs-actions">
+      <button class="btn sm" onclick="closeMyPlaylist()">Aizvērt</button>
+    </div>
+  </div>
+</div>
+
 <div class="quicksort-overlay" id="quicksort-overlay">
   <div class="quicksort-box">
     <h3>🗂️ Ātrā sašķirošana</h3>

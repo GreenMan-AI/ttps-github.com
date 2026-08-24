@@ -644,3 +644,17 @@ footer{text-align:center;padding:30px;color:var(--mut);font-size:12px;border-top
 .np-play-big{ width:60px; height:60px; font-size:22px; }
 @media (max-width:480px){ .np-cover{ width:min(240px, 65vw); height:min(240px, 65vw); } }
 #player-bar .cover{ cursor:pointer; }
+
+/* ══ MANS SARAKSTS (personīgais 24h plejlists) ══ */
+.my-playlist-btn{
+  display:flex; align-items:center; gap:6px;
+  font-family:var(--mono); font-size:12px; font-weight:600;
+  padding:7px 14px; border-radius:20px; border:1px solid var(--border);
+  background:var(--card); color:var(--mut); cursor:pointer; transition:all .15s;
+}
+.my-playlist-btn:hover{ border-color:var(--accent); color:var(--txt); }
+.my-playlist-btn.has-items{ border-color:var(--accent); color:var(--accent); background:rgba(255,61,129,.08); }
+.my-playlist-btn span{ font-family:var(--mono); }
+@media (max-width:900px){ .my-playlist-btn{ font-size:11px; padding:6px 10px; } }
+
+.pl-toggle-btn{ font-weight:700; }

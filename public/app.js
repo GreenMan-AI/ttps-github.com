@@ -725,6 +725,78 @@ async function deleteGalleryItem(id) {
 let draggedId = null;
 let currentTrackId = null;
 
+// ══════════════════════════════════════════════════
+//  "MANS PLEJLISTS" — apmeklētājs pats saliek dziesmas,
+//  ko šodien vēlas klausīties. Glabājas TIKAI viņa pārlūkā
+//  (nevis serverī) un automātiski izzūd pēc 24 stundām,
+//  lai katru dienu var salikt ko citu.
+// ══════════════════════════════════════════════════
+const MY_PLAYLIST_KEY = 'sp_my_playlist';
+const MY_PLAYLIST_TTL_MS = 24 * 60 * 60 * 1000;
+let myPlaylistIds = [];
+let playingFromMyPlaylist = false;
+
+function loadMyPlaylist() {
+  try {
+    const raw = localStorage.getItem(MY_PLAYLIST_KEY);
+    if (!raw) return [];
+    const data = JSON.parse(raw);
+    if (!data || !Array.isArray(data.ids)) return [];
+    if (Date.now() - (data.createdAt || 0) > MY_PLAYLIST_TTL_MS) {
+      localStorage.removeItem(MY_PLAYLIST_KEY); // pagājušas 24h — sākam no tīras lapas
+      return [];
+    }
+    return data.ids;
+  } catch (e) { return []; }
+}
+function saveMyPlaylist(ids) {
+  try {
+    const existingRaw = localStorage.getItem(MY_PLAYLIST_KEY);
+    let createdAt = Date.now();
+    if (existingRaw) {
+      try { const existing = JSON.parse(existingRaw); if (existing && existing.createdAt) createdAt = existing.createdAt; } catch (e) {}
+    }
+    localStorage.setItem(MY_PLAYLIST_KEY, JSON.stringify({ ids, createdAt }));
+  } catch (e) { /* localStorage nepieejams — saraksts vienkārši nesaglabāsies */ }
+}
+function togglePlaylistTrack(id) {
+  const idx = myPlaylistIds.indexOf(id);
+  if (idx === -1) myPlaylistIds.push(id);
+  else myPlaylistIds.splice(idx, 1);
+  saveMyPlaylist(myPlaylistIds);
+  renderTracks();
+  updateMyPlaylistBadge();
+  const overlay = document.getElementById('my-playlist-overlay');
+  if (overlay && overlay.classList.contains('open')) openMyPlaylist();
+}
+function updateMyPlaylistBadge() {
+  const badge = document.getElementById('my-playlist-count');
+  if (badge) badge.textContent = myPlaylistIds.length;
+  const btn = document.getElementById('my-playlist-btn');
+  if (btn) btn.classList.toggle('has-items', myPlaylistIds.length > 0);
+}
+function openMyPlaylist() {
+  const overlay = document.getElementById('my-playlist-overlay');
+  const listEl = document.getElementById('my-playlist-list');
+  if (!overlay || !listEl) return;
+  const tracks = window._tracks || [];
+  const items = myPlaylistIds.map(id => tracks.find(t2 => t2._id === id)).filter(Boolean);
+  if (!items.length) {
+    listEl.innerHTML = `<p class="empty-msg">Saraksts vēl tukšs — spied ➕ pie jebkuras dziesmas, lai to pievienotu.</p>`;
+  } else {
+    listEl.innerHTML = items.map((t2, i) => trackItemHtml(t2, false, i + 1, null, 'playlist')).join('');
+  }
+  overlay.classList.add('open');
+}
+function closeMyPlaylist() {
+  document.getElementById('my-playlist-overlay')?.classList.remove('open');
+}
+function playMyPlaylistFromStart() {
+  if (!myPlaylistIds.length) { if (window.toast) toast('Saraksts vēl tukšs.', 'err'); return; }
+  playTrack(myPlaylistIds[0], 'playlist');
+  closeMyPlaylist();
+}
+
 async function loadTracks() {
   const r = await fetch(API + '/api/tracks');
   const { tracks } = await r.json();
@@ -732,14 +804,14 @@ async function loadTracks() {
   renderTracks();
 }
 
-function trackItemHtml(t2, isAdmin, num, popularRank) {
+function trackItemHtml(t2, isAdmin, num, popularRank, source) {
   const lastPlayedId = localStorage.getItem('sp_last_played');
   const isLastPlayed = lastPlayedId && t2._id === lastPlayedId && t2._id !== currentTrackId;
   const numBadge = popularRank
     ? `<span class="track-num">${popularRank <= 3 ? '🔥' : ''}${popularRank}</span>`
     : (num ? `<span class="track-num">${num}</span>` : '');
   return `
-    <div class="track ${t2._id === currentTrackId ? 'playing' : ''}" data-id="${t2._id}" draggable="${isAdmin}" onclick="playTrack('${t2._id}')">
+    <div class="track ${t2._id === currentTrackId ? 'playing' : ''}" data-id="${t2._id}" draggable="${isAdmin}" onclick="playTrack('${t2._id}', '${source || 'library'}')">
       ${isAdmin ? '<span class="drag-handle">⠿</span>' : ''}
       ${numBadge}
       <img class="cover" src="${t2.coverUrl || ''}" onerror="this.style.visibility='hidden'" alt="">
@@ -748,6 +820,7 @@ function trackItemHtml(t2, isAdmin, num, popularRank) {
         <div class="a">${escapeHtml(t2.artist || '')}${isAdmin ? `<span class="play-count" title="${currentLang === 'lv' ? 'Noklausīšanās skaits' : 'Play count'}">▶ ${t2.playCount || 0}</span>` : ''}</div>
       </div>
       <span class="play-ic">${t2._id === currentTrackId ? '⏸' : '▶'}</span>
+      <button class="btn sm dl-track pl-toggle-btn" title="${myPlaylistIds.includes(t2._id) ? 'Izņemt no mana saraksta' : 'Pievienot manam sarakstam'}" onclick="event.stopPropagation();togglePlaylistTrack('${t2._id}')">${myPlaylistIds.includes(t2._id) ? '✓' : '➕'}</button>
       ${t2.lyrics ? `<button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Dziesmas vārdi' : 'Lyrics'}" onclick="event.stopPropagation();openLyricsModal('${t2._id}')">📜</button>` : ''}
       <button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Dalīties' : 'Share'}" onclick="event.stopPropagation();shareTrack('${t2._id}')">🔗</button>
       <button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Lejupielādēt' : 'Download'}" onclick="event.stopPropagation();downloadTrack('${t2._id}')">⬇</button>
@@ -1054,7 +1127,10 @@ function renderGenreFolders(tracks) {
     const g = t2.genre || 'Nenoteikts';
     counts[g] = (counts[g] || 0) + 1;
   });
-  const genres = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  // Publiskajiem apmeklētājiem nesašķirotās dziesmas nemaz nerāda —
+  // šķirošana ir tikai admin ziņā, apmeklētājs redz tikai jau gatavo.
+  let genres = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  if (!isAdmin) genres = genres.filter(g => g !== 'Nenoteikts');
 
   if (!genres.length) {
     grid.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`;
@@ -1070,7 +1146,7 @@ function renderGenreFolders(tracks) {
           <div class="uf-left">
             <div class="uf-icon">🗂️</div>
             <div class="uf-text">
-              <b>Nesašķirotās</b>
+              <b>Nesašķirotās (redzi tikai tu, admin)</b>
               <span>${count} ${count === 1 ? 'dziesma' : 'dziesmas'} gaida žanru</span>
             </div>
           </div>
@@ -1157,11 +1233,12 @@ function attachDragHandlers() {
   });
 }
 
-function playTrack(id) {
+function playTrack(id, source) {
   const tracks = window._tracks || [];
   const track = tracks.find(t2 => t2._id === id);
   if (!track) return;
   currentTrackId = id;
+  playingFromMyPlaylist = (source === 'playlist');
   document.querySelectorAll('.track').forEach(el => {
     const isThis = el.dataset.id === id;
     el.classList.toggle('playing', isThis);
@@ -1204,8 +1281,25 @@ function playTrack(id) {
 }
 
 function playAdjacentTrack(dir) {
-  const tracks = window._tracks || [];
-  if (!tracks.length || !currentTrackId) return;
+  const allTracks = window._tracks || [];
+  if (!allTracks.length || !currentTrackId) return;
+
+  // Ja atskaņojam no "Mans plejlists" — pārejam TIKAI tā ietvaros, nevis pa visu katalogu.
+  if (playingFromMyPlaylist && myPlaylistIds.length) {
+    const idx = myPlaylistIds.indexOf(currentTrackId);
+    if (idx < 0) return;
+    if (shuffleOn && myPlaylistIds.length > 1) {
+      let randIdx;
+      do { randIdx = Math.floor(Math.random() * myPlaylistIds.length); } while (randIdx === idx);
+      playTrack(myPlaylistIds[randIdx], 'playlist');
+      return;
+    }
+    const nextIdx = (idx + dir + myPlaylistIds.length) % myPlaylistIds.length;
+    playTrack(myPlaylistIds[nextIdx], 'playlist');
+    return;
+  }
+
+  const tracks = allTracks;
   const idx = tracks.findIndex(t2 => t2._id === currentTrackId);
   if (idx < 0) return;
   if (shuffleOn && tracks.length > 1) {
@@ -1718,6 +1812,8 @@ function scrollToTop() {
   const savedName = localStorage.getItem('sp_chat_name');
   if (savedName) document.getElementById('chat-name').value = savedName;
   applyStaticI18n();
+  myPlaylistIds = loadMyPlaylist();
+  updateMyPlaylistBadge();
   // Katrs solis ir savā try/catch — ja viens pieprasījums neizdodas
   // (piem. īslaicīga tīkla problēma), tas nedrīkst apturēt pārējos
   // soļus (tai skaitā scroll-reveal un apmeklējumu skaitītāju).
