@@ -727,22 +727,12 @@ let draggedId = null;
 let currentTrackId = null;
 
 // ══════════════════════════════════════════════════
-//  LV / EN SADALĪJUMS — apmeklētājs izvēlas valodu, un viss
-//  turpmākais (žanru mapes, meklēšana, saraksts) rāda tikai
-//  tās valodas dziesmas, lai viss nav vienā "mikslī".
+//  LV / EN — abas puses redzamas vienlaikus (dual-split skats).
+//  Klausītājs brīvi izvēlas no jebkuras puses; kad ieiet konkrētā
+//  žanrā, tālāka pārlūkošana/next-prev paliek tās valodas ietvaros,
+//  bet personīgais saraksts var brīvi jaukt abas valodas kopā.
 // ══════════════════════════════════════════════════
-let musicLanguage = localStorage.getItem('sp_music_lang') || null;
-
-function chooseMusicLanguage(lang) {
-  musicLanguage = lang;
-  try { localStorage.setItem('sp_music_lang', lang); } catch (e) {}
-  trackGenreFilter = 'Visi';
-  genreFolderView = true;
-  trackSearchQuery = '';
-  const searchInput = document.getElementById('track-search');
-  if (searchInput) searchInput.value = '';
-  renderTracks();
-}
+let activeBrowseLanguage = null; // 'LV' | 'EN' | null (null = dual-split sākumskats)
 
 // ══════════════════════════════════════════════════
 //  "MANS PLEJLISTS" — apmeklētājs pats saliek dziesmas,
@@ -1037,43 +1027,44 @@ function renderTracks() {
   const allTracksRaw = window._tracks || [];
   const list = document.getElementById('track-list');
 
-  // ── Valodas izvēle (LV/EN) — vispirms jāizvēlas, pirms redz jebko citu ──
-  const langPicker = document.getElementById('lang-picker');
-  const langSwitcher = document.getElementById('lang-switcher');
-  if (!musicLanguage) {
-    if (langPicker) langPicker.style.display = '';
-    if (langSwitcher) langSwitcher.style.display = 'none';
-    document.getElementById('genre-folder-grid').style.display = 'none';
-    document.getElementById('genre-browse-wrap').style.display = 'none';
-    document.getElementById('new-tracks-wrap').style.display = 'none';
-    document.getElementById('all-tracks-heading').style.display = 'none';
-    return;
-  }
-  if (langPicker) langPicker.style.display = 'none';
-  if (langSwitcher) {
-    langSwitcher.style.display = '';
-    langSwitcher.querySelectorAll('.lang-switch-pill').forEach(p => p.classList.toggle('active', p.dataset.lang === musicLanguage));
+  // ── Admin: dziesmas, kam vēl vispār nav norādīta valoda, nevar likt
+  //    ne LV, ne EN pusē — tāpēc tām ir sava, atsevišķa josla augšā ──
+  const unclassifiedBar = document.getElementById('lang-unclassified-bar');
+  if (unclassifiedBar) {
+    const missingLangCount = allTracksRaw.filter(t2 => !t2.language).length;
+    if (isAdmin && missingLangCount > 0) {
+      document.getElementById('lang-unclassified-text').textContent =
+        `${missingLangCount} ${missingLangCount === 1 ? 'dziesmai' : 'dziesmām'} vēl nav norādīta valoda — tā nerādīsies ne LV, ne EN pusē, kamēr to nesakārtosi.`;
+      unclassifiedBar.style.display = 'flex';
+    } else {
+      unclassifiedBar.style.display = 'none';
+    }
   }
 
-  // Tikai izvēlētās valodas dziesmas — admins papildus redz arī tās, kam
-  // valoda vēl nav norādīta, lai tās varētu sašķirot (skat. žanru mapes).
-  const tracks = allTracksRaw.filter(t2 => t2.language === musicLanguage || (isAdmin && !t2.language));
-
+  const dualSplit = document.getElementById('dual-split');
+  const browseWrap = document.getElementById('genre-browse-wrap');
   const hasActiveFilter = !!trackSearchQuery || trackGenreFilter !== 'Visi' || trackSortMode === 'popular';
   document.getElementById('drag-hint').style.display = (isAdmin && !hasActiveFilter) ? '' : 'none';
 
-  renderGenreFolders(tracks);
-
-  const folderGrid = document.getElementById('genre-folder-grid');
-  const browseWrap = document.getElementById('genre-browse-wrap');
-  const showFolders = genreFolderView && !trackSearchQuery;
-  if (folderGrid) folderGrid.style.display = showFolders ? '' : 'none';
-  if (browseWrap) browseWrap.style.display = showFolders ? 'none' : '';
-  if (showFolders) {
+  // ── Sākumskats: abas puses redzamas vienlaikus ──
+  if (genreFolderView) {
+    if (dualSplit) dualSplit.style.display = '';
+    if (browseWrap) browseWrap.style.display = 'none';
     document.getElementById('new-tracks-wrap').style.display = 'none';
     document.getElementById('all-tracks-heading').style.display = 'none';
+
+    const lvTracks = allTracksRaw.filter(t2 => t2.language === 'LV');
+    const enTracks = allTracksRaw.filter(t2 => t2.language === 'EN');
+    renderGenreFolders(lvTracks, 'genre-folder-grid-lv', 'LV');
+    renderGenreFolders(enTracks, 'genre-folder-grid-en', 'EN');
     return;
   }
+
+  // ── Ieiets konkrētā žanrā — paliekam tās puses valodas ietvaros ──
+  if (dualSplit) dualSplit.style.display = 'none';
+  if (browseWrap) browseWrap.style.display = '';
+
+  const tracks = allTracksRaw.filter(t2 => t2.language === activeBrowseLanguage);
 
   // ── Šīs nedēļas jaunumi ──
   const now = Date.now();
@@ -1111,7 +1102,8 @@ function renderTracks() {
 
   const genreLabelEl = document.getElementById('genre-browse-label');
   if (genreLabelEl) {
-    genreLabelEl.textContent = trackGenreFilter === 'Visi' ? '' : `📁 ${trackGenreFilter}`;
+    const flag = activeBrowseLanguage === 'LV' ? '🇱🇻' : '🇬🇧';
+    genreLabelEl.textContent = trackGenreFilter === 'Visi' ? flag : `${flag} 📁 ${trackGenreFilter}`;
   }
 
   if (!filtered.length) {
@@ -1131,6 +1123,16 @@ function renderTracks() {
   } else if (isAdmin) {
     document.querySelectorAll('#track-list .admin-only, #new-track-list .admin-only').forEach(el => el.style.display = '');
   }
+}
+
+function backToGenreFolders() {
+  trackGenreFilter = 'Visi';
+  trackSearchQuery = '';
+  const searchInput = document.getElementById('track-search');
+  if (searchInput) searchInput.value = '';
+  genreFolderView = true;
+  activeBrowseLanguage = null;
+  renderTracks();
 }
 
 function handleTrackSearch(value) {
@@ -1163,8 +1165,8 @@ function genreFolderStyle(genre) {
   return { icon: "🎵", grad: FALLBACK_GRADS[hash % FALLBACK_GRADS.length] };
 }
 
-function renderGenreFolders(tracks) {
-  const grid = document.getElementById('genre-folder-grid');
+function renderGenreFolders(tracks, gridId, lang) {
+  const grid = document.getElementById(gridId);
   if (!grid) return;
   const counts = {};
   tracks.forEach(t2 => {
@@ -1180,8 +1182,7 @@ function renderGenreFolders(tracks) {
     .sort((a, b) => counts[b] - counts[a]);
 
   const missingGenreCount = tracks.filter(t2 => !t2.genre || t2.genre === 'Nenoteikts').length;
-  const missingLangCount = tracks.filter(t2 => !t2.language).length;
-  const needsAttention = isAdmin && (missingGenreCount > 0 || missingLangCount > 0);
+  const needsAttention = isAdmin && missingGenreCount > 0;
 
   if (!genres.length && !needsAttention) {
     grid.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`;
@@ -1193,8 +1194,8 @@ function renderGenreFolders(tracks) {
       <div class="uf-left">
         <div class="uf-icon">🗂️</div>
         <div class="uf-text">
-          <b>Nesašķirotās (redzi tikai tu, admin)</b>
-          <span>${missingGenreCount ? `${missingGenreCount} bez žanra` : ''}${missingGenreCount && missingLangCount ? ', ' : ''}${missingLangCount ? `${missingLangCount} bez valodas` : ''}</span>
+          <b>Bez žanra (redzi tikai tu, admin)</b>
+          <span>${missingGenreCount} ${missingGenreCount === 1 ? 'dziesma' : 'dziesmas'} gaida žanru</span>
         </div>
       </div>
       <button class="uf-btn" onclick="openQuickSort()">Sašķirot tagad</button>
@@ -1217,19 +1218,11 @@ function renderGenreFolders(tracks) {
   grid.querySelectorAll('.genre-folder:not(.unsorted-action)').forEach(el => {
     el.addEventListener('click', () => {
       trackGenreFilter = el.dataset.g;
+      activeBrowseLanguage = lang;
       genreFolderView = false;
       renderTracks();
     });
   });
-}
-
-function backToGenreFolders() {
-  trackGenreFilter = 'Visi';
-  trackSearchQuery = '';
-  const searchInput = document.getElementById('track-search');
-  if (searchInput) searchInput.value = '';
-  genreFolderView = true;
-  renderTracks();
 }
 
 function renderGenreChips(tracks) {
@@ -1353,7 +1346,7 @@ function playAdjacentTrack(dir) {
     return;
   }
 
-  const tracks = musicLanguage ? allTracks.filter(t2 => t2.language === musicLanguage) : allTracks;
+  const tracks = activeBrowseLanguage ? allTracks.filter(t2 => t2.language === activeBrowseLanguage) : allTracks;
   if (!tracks.length) return;
   const idx = tracks.findIndex(t2 => t2._id === currentTrackId);
   if (idx < 0) return;

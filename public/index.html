@@ -145,24 +145,26 @@
     <div class="track-list" id="new-track-list"></div>
   </div>
 
-  <div class="lang-picker" id="lang-picker">
-    <div class="lang-picker-title">Kādā valodā šodien klausies?</div>
-    <div class="lang-picker-buttons">
-      <button class="lang-picker-btn lv" onclick="chooseMusicLanguage('LV')">🇱🇻<span>Latviešu mūzika</span></button>
-      <button class="lang-picker-btn en" onclick="chooseMusicLanguage('EN')">🇬🇧<span>English music</span></button>
+  <div class="lang-unclassified-bar admin-only" id="lang-unclassified-bar" style="display:none">
+    <span id="lang-unclassified-text"></span>
+    <button class="uf-btn" onclick="openQuickSort()">Sašķirot tagad</button>
+  </div>
+
+  <div class="dual-split" id="dual-split">
+    <div class="dual-side lv">
+      <div class="dual-side-heading">🇱🇻 Latviešu mūzika</div>
+      <div class="genre-folder-grid" id="genre-folder-grid-lv"></div>
+    </div>
+    <div class="dual-divider"><span>vai</span></div>
+    <div class="dual-side en">
+      <div class="dual-side-heading">🇬🇧 English music</div>
+      <div class="genre-folder-grid" id="genre-folder-grid-en"></div>
     </div>
   </div>
 
-  <div class="lang-switcher" id="lang-switcher" style="display:none">
-    <button class="lang-switch-pill" data-lang="LV" onclick="chooseMusicLanguage('LV')">🇱🇻 LV</button>
-    <button class="lang-switch-pill" data-lang="EN" onclick="chooseMusicLanguage('EN')">🇬🇧 EN</button>
-  </div>
-
-  <div class="genre-folder-grid" id="genre-folder-grid"></div>
-
   <div id="genre-browse-wrap" style="display:none">
     <div class="genre-browse-bar">
-      <button class="btn sm" onclick="backToGenreFolders()">◀ Visas mapes</button>
+      <button class="btn sm" onclick="backToGenreFolders()">◀ Abas puses</button>
       <span id="genre-browse-label" class="genre-browse-label"></span>
     </div>
 
@@ -466,7 +468,7 @@
       </div>
       <div class="field"><label data-i18n="audio_file_label">Audio fails (MP3, WAV, OGG...)</label><input type="file" id="t-audio" accept="audio/*" required></div>
       <div class="field"><label data-i18n="cover_label">Vāciņa bilde (nav obligāta)</label><input type="file" id="t-cover" accept="image/*"></div>
-      <div class="field"><label data-i18n="lyrics_label">Dziesmas vārdi (nav obligāti)</label><textarea id="t-lyrics" rows="5" placeholder="Ielīmē dziesmas vārdus šeit, ja vēlies..."></textarea></div>
+      <div class="field"><label data-i18n="lyrics_label">Dziesmas vārdi (nav obligāti)</label><textarea id="t-lyrics" rows="5" placeholder="Ielīmē dziesmas vārdus šeit, ja vēlies... Ja vēlies, lai vārdi izceļas sinhroni ar dziesmu, katras rindas priekšā pieraksti laiku šādi: [00:12]Rindas teksts"></textarea></div>
       <div class="msg-err" id="track-err"></div>
       <div class="modal-actions">
         <button type="button" class="btn" onclick="closeModal('track-modal')" data-i18n="cancel">Atcelt</button>
@@ -492,7 +494,7 @@
           <option value="EN">🇬🇧 English</option>
         </select>
       </div>
-      <div class="field"><label>Dziesmas vārdi</label><textarea id="et-lyrics" rows="6" placeholder="Ielīmē dziesmas vārdus šeit, ja vēlies..."></textarea></div>
+      <div class="field"><label>Dziesmas vārdi</label><textarea id="et-lyrics" rows="6" placeholder="Ielīmē dziesmas vārdus šeit, ja vēlies... Sinhronai izcelšanai: [00:12]Rindas teksts"></textarea></div>
       <div class="msg-err" id="edit-track-err"></div>
       <div class="modal-actions">
         <button type="button" class="btn" onclick="closeModal('edit-track-modal')">Atcelt</button>
@@ -592,6 +594,7 @@
       <span class="pb-time" id="np-current">0:00</span>
       <div class="np-progress" id="np-progress">
         <div class="np-progress-fill" id="np-progress-fill"></div>
+        <canvas class="np-waveform" id="np-waveform" width="600" height="48"></canvas>
       </div>
       <span class="pb-time" id="np-duration">0:00</span>
     </div>
@@ -603,6 +606,9 @@
       <button class="pb-btn" id="np-next" title="Nākamā">⏭</button>
       <button class="pb-btn pb-toggle" id="np-repeat" title="Atkārtot">🔁</button>
     </div>
+
+    <button class="np-lyrics-toggle" id="np-lyrics-toggle" style="display:none">📜 Vārdi</button>
+    <div class="np-lyrics-panel" id="np-lyrics-panel"></div>
   </div>
 </div>
 

@@ -659,29 +659,60 @@ footer{text-align:center;padding:30px;color:var(--mut);font-size:12px;border-top
 
 .pl-toggle-btn{ font-weight:700; }
 
-/* ══ VALODAS IZVĒLE — LV / EN sadalījums ══ */
-.lang-picker{
-  display:flex; flex-direction:column; align-items:center; gap:22px;
-  padding:60px 20px; text-align:center;
+/* ══ DIVU DAĻU SKATS — LV un EN redzamas vienlaikus, blakus ══ */
+.lang-unclassified-bar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:12px 18px; margin-bottom:18px; border-radius:12px;
+  border:1px solid var(--accent2); background:rgba(0,229,199,.08);
+  font-size:13px; color:var(--mut);
 }
-.lang-picker-title{
-  font-family:var(--font-display); font-size:clamp(1.4rem,4vw,2rem); font-weight:700;
-}
-.lang-picker-buttons{ display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
-.lang-picker-btn{
-  display:flex; flex-direction:column; align-items:center; gap:10px;
-  font-size:44px; padding:28px 40px; border-radius:20px;
-  border:1px solid var(--border); background:var(--card); color:var(--txt);
-  cursor:pointer; transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease;
-}
-.lang-picker-btn span{ font-family:var(--font-display); font-size:15px; font-weight:600; }
-.lang-picker-btn.lv:hover{ border-color:var(--accent); box-shadow:0 14px 32px rgba(255,61,129,.2); transform:translateY(-4px); }
-.lang-picker-btn.en:hover{ border-color:var(--accent2); box-shadow:0 14px 32px rgba(0,229,199,.2); transform:translateY(-4px); }
 
-.lang-switcher{ display:flex; gap:8px; margin-bottom:18px; }
-.lang-switch-pill{
-  font-family:var(--mono); font-size:12px; font-weight:600; padding:7px 16px;
-  border-radius:20px; border:1px solid var(--border); background:var(--card); color:var(--mut);
-  cursor:pointer; transition:all .15s;
+.dual-split{
+  display:grid; grid-template-columns:1fr auto 1fr; gap:22px; align-items:start;
 }
-.lang-switch-pill.active{ background:var(--accent); border-color:var(--accent); color:#1a0512; }
+@media (max-width:860px){
+  .dual-split{ grid-template-columns:1fr; gap:36px; }
+  .dual-divider{ display:none; }
+}
+.dual-side-heading{
+  font-family:var(--font-display); font-size:1.1rem; font-weight:700; margin-bottom:16px;
+  padding-bottom:10px; border-bottom:2px solid var(--border);
+}
+.dual-side.lv .dual-side-heading{ border-color:var(--accent); }
+.dual-side.en .dual-side-heading{ border-color:var(--accent2); }
+.dual-side .genre-folder-grid{ grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); }
+.dual-divider{
+  display:flex; align-items:center; justify-content:center; height:100%;
+  padding-top:60px;
+}
+.dual-divider span{
+  writing-mode:vertical-rl; font-family:var(--mono); font-size:11px; letter-spacing:.1em;
+  color:var(--mut); text-transform:uppercase; opacity:.5;
+}
+
+/* ══ VIĻŅA JOSLA (waveform scrubber) ══ */
+.np-progress{ position:relative; overflow:hidden; }
+.np-waveform{
+  position:absolute; inset:0; width:100%; height:100%;
+  cursor:pointer; opacity:0; transition:opacity .25s;
+}
+.np-waveform.ready{ opacity:1; }
+.np-progress-fill.hidden-by-waveform{ opacity:0; }
+
+/* ══ DZIESMAS VĀRDU PANELIS ══ */
+.np-lyrics-toggle{
+  margin-top:10px; font-family:var(--mono); font-size:12px; font-weight:600;
+  padding:8px 16px; border-radius:20px; border:1px solid var(--border);
+  background:rgba(255,255,255,.06); color:var(--txt); cursor:pointer;
+}
+.np-lyrics-panel{
+  display:none; margin-top:16px; max-height:220px; overflow-y:auto;
+  width:100%; padding:14px 18px; border-radius:14px;
+  background:rgba(0,0,0,.35); border:1px solid var(--border);
+  text-align:center; line-height:1.9; font-size:14px; color:var(--mut);
+}
+.np-lyrics-panel.open{ display:block; }
+.np-lyrics-panel .lyric-line{ padding:3px 0; transition:color .2s, transform .2s; }
+.np-lyrics-panel .lyric-line.active{
+  color:var(--txt); font-weight:700; transform:scale(1.05);
+}
