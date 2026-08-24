@@ -234,6 +234,7 @@ async function adminLogout() {
   try { await fetch(API + '/api/admin/logout', { method: 'POST' }); } catch (e) {}
   isAdmin = false;
   setAdminUI(false);
+  renderTracks();
 }
 
 async function runFixEncoding() {
@@ -726,6 +727,24 @@ let draggedId = null;
 let currentTrackId = null;
 
 // ══════════════════════════════════════════════════
+//  LV / EN SADALĪJUMS — apmeklētājs izvēlas valodu, un viss
+//  turpmākais (žanru mapes, meklēšana, saraksts) rāda tikai
+//  tās valodas dziesmas, lai viss nav vienā "mikslī".
+// ══════════════════════════════════════════════════
+let musicLanguage = localStorage.getItem('sp_music_lang') || null;
+
+function chooseMusicLanguage(lang) {
+  musicLanguage = lang;
+  try { localStorage.setItem('sp_music_lang', lang); } catch (e) {}
+  trackGenreFilter = 'Visi';
+  genreFolderView = true;
+  trackSearchQuery = '';
+  const searchInput = document.getElementById('track-search');
+  if (searchInput) searchInput.value = '';
+  renderTracks();
+}
+
+// ══════════════════════════════════════════════════
 //  "MANS PLEJLISTS" — apmeklētājs pats saliek dziesmas,
 //  ko šodien vēlas klausīties. Glabājas TIKAI viņa pārlūkā
 //  (nevis serverī) un automātiski izzūd pēc 24 stundām,
@@ -953,6 +972,7 @@ function openEditTrackModal(id) {
   document.getElementById('et-title').value = track.title || '';
   document.getElementById('et-artist').value = track.artist || '';
   document.getElementById('et-genre').value = track.genre || '';
+  document.getElementById('et-language').value = track.language || '';
   document.getElementById('et-lyrics').value = track.lyrics || '';
   document.getElementById('edit-track-err').textContent = '';
   populateGenreList();
@@ -968,6 +988,7 @@ document.getElementById('edit-track-form')?.addEventListener('submit', async (e)
     title: document.getElementById('et-title').value,
     artist: document.getElementById('et-artist').value,
     genre: document.getElementById('et-genre').value,
+    language: document.getElementById('et-language').value,
     lyrics: document.getElementById('et-lyrics').value,
   };
   try {
@@ -1013,8 +1034,31 @@ let trackSortMode = 'manual'; // 'manual' | 'popular'
 let genreFolderView = true;   // true = rāda mapju režģi, false = rāda konkrētā žanra/meklēšanas sarakstu
 
 function renderTracks() {
-  const tracks = window._tracks || [];
+  const allTracksRaw = window._tracks || [];
   const list = document.getElementById('track-list');
+
+  // ── Valodas izvēle (LV/EN) — vispirms jāizvēlas, pirms redz jebko citu ──
+  const langPicker = document.getElementById('lang-picker');
+  const langSwitcher = document.getElementById('lang-switcher');
+  if (!musicLanguage) {
+    if (langPicker) langPicker.style.display = '';
+    if (langSwitcher) langSwitcher.style.display = 'none';
+    document.getElementById('genre-folder-grid').style.display = 'none';
+    document.getElementById('genre-browse-wrap').style.display = 'none';
+    document.getElementById('new-tracks-wrap').style.display = 'none';
+    document.getElementById('all-tracks-heading').style.display = 'none';
+    return;
+  }
+  if (langPicker) langPicker.style.display = 'none';
+  if (langSwitcher) {
+    langSwitcher.style.display = '';
+    langSwitcher.querySelectorAll('.lang-switch-pill').forEach(p => p.classList.toggle('active', p.dataset.lang === musicLanguage));
+  }
+
+  // Tikai izvēlētās valodas dziesmas — admins papildus redz arī tās, kam
+  // valoda vēl nav norādīta, lai tās varētu sašķirot (skat. žanru mapes).
+  const tracks = allTracksRaw.filter(t2 => t2.language === musicLanguage || (isAdmin && !t2.language));
+
   const hasActiveFilter = !!trackSearchQuery || trackGenreFilter !== 'Visi' || trackSortMode === 'popular';
   document.getElementById('drag-hint').style.display = (isAdmin && !hasActiveFilter) ? '' : 'none';
 
@@ -1129,30 +1173,36 @@ function renderGenreFolders(tracks) {
   });
   // Publiskajiem apmeklētājiem nesašķirotās dziesmas nemaz nerāda —
   // šķirošana ir tikai admin ziņā, apmeklētājs redz tikai jau gatavo.
-  let genres = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-  if (!isAdmin) genres = genres.filter(g => g !== 'Nenoteikts');
+  // "Nenoteikts" nekad nav parasta pārlūkojama mape — tā vietā tai ir
+  // sava, atsevišķa darbības kartīte (skat. zemāk).
+  const genres = Object.keys(counts)
+    .filter(g => g !== 'Nenoteikts')
+    .sort((a, b) => counts[b] - counts[a]);
 
-  if (!genres.length) {
+  const missingGenreCount = tracks.filter(t2 => !t2.genre || t2.genre === 'Nenoteikts').length;
+  const missingLangCount = tracks.filter(t2 => !t2.language).length;
+  const needsAttention = isAdmin && (missingGenreCount > 0 || missingLangCount > 0);
+
+  if (!genres.length && !needsAttention) {
     grid.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`;
     return;
   }
 
-  grid.innerHTML = genres.map(g => {
+  const actionCardHtml = needsAttention ? `
+    <div class="genre-folder unsorted unsorted-action">
+      <div class="uf-left">
+        <div class="uf-icon">🗂️</div>
+        <div class="uf-text">
+          <b>Nesašķirotās (redzi tikai tu, admin)</b>
+          <span>${missingGenreCount ? `${missingGenreCount} bez žanra` : ''}${missingGenreCount && missingLangCount ? ', ' : ''}${missingLangCount ? `${missingLangCount} bez valodas` : ''}</span>
+        </div>
+      </div>
+      <button class="uf-btn" onclick="openQuickSort()">Sašķirot tagad</button>
+    </div>` : '';
+
+  const folderCardsHtml = genres.map(g => {
     const style = genreFolderStyle(g);
     const count = counts[g];
-    if (g === 'Nenoteikts') {
-      return `
-        <div class="genre-folder unsorted unsorted-action" data-g="${escapeAttr(g)}" style="--folder-grad:${style.grad}">
-          <div class="uf-left">
-            <div class="uf-icon">🗂️</div>
-            <div class="uf-text">
-              <b>Nesašķirotās (redzi tikai tu, admin)</b>
-              <span>${count} ${count === 1 ? 'dziesma' : 'dziesmas'} gaida žanru</span>
-            </div>
-          </div>
-          <button class="uf-btn" onclick="openQuickSort()">Sašķirot tagad</button>
-        </div>`;
-    }
     return `
       <div class="genre-folder" data-g="${escapeAttr(g)}" style="--folder-grad:${style.grad}">
         <div class="genre-folder-icon">${style.icon}</div>
@@ -1161,7 +1211,10 @@ function renderGenreFolders(tracks) {
       </div>`;
   }).join('');
 
-  grid.querySelectorAll('.genre-folder').forEach(el => {
+  grid.innerHTML = actionCardHtml + folderCardsHtml;
+
+  // Klikšķis darbojas tikai uz īstajām žanru mapēm, nevis uz "Nesašķirotās" kartītes.
+  grid.querySelectorAll('.genre-folder:not(.unsorted-action)').forEach(el => {
     el.addEventListener('click', () => {
       trackGenreFilter = el.dataset.g;
       genreFolderView = false;
@@ -1182,7 +1235,8 @@ function backToGenreFolders() {
 function renderGenreChips(tracks) {
   const row = document.getElementById('genre-chip-row');
   if (!row) return;
-  const genres = ['Visi', ...new Set(tracks.map(t2 => t2.genre || 'Nenoteikts'))];
+  let genres = ['Visi', ...new Set(tracks.map(t2 => t2.genre || 'Nenoteikts'))];
+  if (!isAdmin) genres = genres.filter(g => g !== 'Nenoteikts');
   row.innerHTML = genres.map(g =>
     `<button class="genre-chip ${g === trackGenreFilter ? 'active' : ''}" data-g="${escapeAttr(g)}">${escapeHtml(g)}</button>`
   ).join('');
@@ -1299,7 +1353,8 @@ function playAdjacentTrack(dir) {
     return;
   }
 
-  const tracks = allTracks;
+  const tracks = musicLanguage ? allTracks.filter(t2 => t2.language === musicLanguage) : allTracks;
+  if (!tracks.length) return;
   const idx = tracks.findIndex(t2 => t2._id === currentTrackId);
   if (idx < 0) return;
   if (shuffleOn && tracks.length > 1) {
@@ -1481,6 +1536,7 @@ document.getElementById('track-form').addEventListener('submit', async (e) => {
   fd.append('title', document.getElementById('t-title').value);
   fd.append('artist', document.getElementById('t-artist').value);
   fd.append('genre', document.getElementById('t-genre').value);
+  fd.append('language', document.getElementById('t-language').value);
   fd.append('lyrics', document.getElementById('t-lyrics').value);
   fd.append('audio', audioFile);
   const coverFile = document.getElementById('t-cover').files[0];
@@ -1609,6 +1665,7 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
   if (!files.length) { errEl.textContent = 'Izvēlies vismaz vienu failu'; return; }
   const artist = document.getElementById('b-artist').value;
   const genre = document.getElementById('b-genre').value;
+  const language = document.getElementById('b-language').value;
 
   submitBtn.disabled = true;
   let okCount = 0, errCount = 0, dupCount = 0, coverFoundCount = 0;
@@ -1630,6 +1687,7 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
     fd.append('title', title);
     fd.append('artist', trackArtist);
     fd.append('genre', genre);
+    fd.append('language', language);
     fd.append('audio', file);
     try {
       const r = await fetch(API + '/api/tracks', { method: 'POST', headers: authHeaders(), body: fd });

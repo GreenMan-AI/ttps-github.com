@@ -211,6 +211,7 @@ const TrackSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   artist: { type: String, default: '', trim: true },
   genre: { type: String, default: '', trim: true },
+  language: { type: String, default: '', trim: true }, // 'LV' | 'EN' | '' (vēl nav noteikts)
   cloudUrl: { type: String, required: true },
   publicId: { type: String, required: true },
   coverUrl: { type: String, default: '' },
@@ -824,7 +825,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       const audioFile = req.files?.audio?.[0];
       const coverFile = req.files?.cover?.[0];
       if (!audioFile) return res.status(400).json({ error: 'Audio fails obligāts' });
-      const { title, artist, genre, lyrics } = req.body || {};
+      const { title, artist, genre, lyrics, language } = req.body || {};
       if (!title?.trim()) return res.status(400).json({ error: 'Nosaukums obligāts' });
 
       // ── Dublikātu pārbaude PIRMS Cloudinary augšupielādes ──
@@ -873,6 +874,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
         title: sanitize(title),
         artist: sanitize(artist || ''),
         genre: sanitize(genre || ''),
+        language: sanitize(language || ''),
         lyrics: sanitizeLyrics(lyrics || ''),
         cloudUrl: audioResult.secure_url,
         publicId: audioResult.public_id,
@@ -915,12 +917,13 @@ app.post('/api/tracks/:id/play', playLimiter, async (req, res) => {
 app.put('/api/tracks/:id', requireAdmin, async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Nederīgs ID' });
-    const { title, artist, genre, lyrics } = req.body || {};
+    const { title, artist, genre, lyrics, language } = req.body || {};
     const update = {};
     if (title?.trim()) update.title = sanitize(title);
     if (typeof artist === 'string') update.artist = sanitize(artist);
     if (typeof genre === 'string') update.genre = sanitize(genre);
     if (typeof lyrics === 'string') update.lyrics = sanitizeLyrics(lyrics);
+    if (typeof language === 'string') update.language = sanitize(language);
     const track = await Track.findByIdAndUpdate(req.params.id, update, { new: true });
     res.json({ track });
   } catch (e) { res.status(500).json({ error: e.message }); }

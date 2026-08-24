@@ -268,55 +268,79 @@
     });
   }
 
-  // ── Ātrā sašķirošana — panelis ar dropdown katrai nesašķirotai dziesmai ──
+  // ── Ātrā sašķirošana — panelis ar dropdown katrai nesašķirotai dziesmai
+  //    (žanrs UN/vai valoda, atkarībā no tā, kas konkrētajai dziesmai trūkst) ──
   const GENRE_OPTIONS = Object.keys(GENRE_RULES);
   window.openQuickSort = function () {
     const overlay = document.getElementById('quicksort-overlay');
     const listEl = document.getElementById('quicksort-list');
     if (!overlay || !listEl) return;
 
-    const unsorted = (window._tracks || []).filter(t2 => !t2.genre || t2.genre === 'Nenoteikts');
+    const unsorted = (window._tracks || []).filter(t2 =>
+      !t2.genre || t2.genre === 'Nenoteikts' || !t2.language
+    );
     if (!unsorted.length) {
-      if (window.toast) toast('Visām dziesmām jau ir noteikts žanrs.', 'ok');
+      if (window.toast) toast('Visām dziesmām jau ir noteikts žanrs un valoda.', 'ok');
       return;
     }
 
-    listEl.innerHTML = unsorted.map(tr => `
+    listEl.innerHTML = unsorted.map(tr => {
+      const needsGenre = !tr.genre || tr.genre === 'Nenoteikts';
+      const needsLang = !tr.language;
+      return `
       <div class="quicksort-row" data-id="${tr._id}">
         <div class="qs-title" title="${escapeAttr(tr.title || '')}">${escapeHtml(tr.title || '')}</div>
-        <select>
-          <option value="">— izvēlies —</option>
-          ${GENRE_OPTIONS.map(g => `<option value="${escapeAttr(g)}">${escapeHtml(g)}</option>`).join('')}
-        </select>
+        ${needsGenre ? `
+          <select class="qs-genre-select">
+            <option value="">— žanrs —</option>
+            ${GENRE_OPTIONS.map(g => `<option value="${escapeAttr(g)}">${escapeHtml(g)}</option>`).join('')}
+          </select>` : ''}
+        ${needsLang ? `
+          <select class="qs-lang-select">
+            <option value="">— valoda —</option>
+            <option value="LV">🇱🇻 LV</option>
+            <option value="EN">🇬🇧 EN</option>
+          </select>` : ''}
         <span class="qs-saved">✓ saglabāts</span>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
-    listEl.querySelectorAll('.quicksort-row select').forEach(sel => {
-      sel.addEventListener('change', async (e) => {
-        const row = e.target.closest('.quicksort-row');
-        const id = row.dataset.id;
-        const genre = e.target.value;
-        if (!genre) return;
-        try {
-          const res = await fetch(`/api/tracks/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ genre }),
-          });
-          if (res.ok) {
-            const savedEl = row.querySelector('.qs-saved');
-            savedEl.classList.add('show');
-            sel.disabled = true;
-            row.style.opacity = '.55';
-            if (typeof loadTracks === 'function') await loadTracks();
-          } else if (window.toast) {
-            toast('Neizdevās saglabāt — mēģini vēlreiz.', 'err');
-          }
-        } catch (err) {
-          if (window.toast) toast('Neizdevās saglabāt — pārbaudi savienojumu.', 'err');
+    async function saveField(row, field, value) {
+      const id = row.dataset.id;
+      try {
+        const res = await fetch(`/api/tracks/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ [field]: value }),
+        });
+        if (res.ok) {
+          const savedEl = row.querySelector('.qs-saved');
+          savedEl.classList.add('show');
+          if (typeof loadTracks === 'function') await loadTracks();
+        } else if (window.toast) {
+          toast('Neizdevās saglabāt — mēģini vēlreiz.', 'err');
         }
+      } catch (err) {
+        if (window.toast) toast('Neizdevās saglabāt — pārbaudi savienojumu.', 'err');
+      }
+    }
+
+    listEl.querySelectorAll('.quicksort-row .qs-genre-select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        if (!e.target.value) return;
+        const row = e.target.closest('.quicksort-row');
+        sel.disabled = true;
+        saveField(row, 'genre', e.target.value);
+      });
+    });
+    listEl.querySelectorAll('.quicksort-row .qs-lang-select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        if (!e.target.value) return;
+        const row = e.target.closest('.quicksort-row');
+        sel.disabled = true;
+        saveField(row, 'language', e.target.value);
       });
     });
 
