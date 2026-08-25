@@ -265,6 +265,8 @@ const DEFAULT_CONTENT = {
   aboutTextColor: '',
   heroImageUrl: '',
   heroImagePublicId: '',
+  dualHeadingLV: '🇱🇻 Latviešu mūzika',
+  dualHeadingEN: '🇬🇧 English music',
 };
 
 async function seedContent() {
@@ -963,8 +965,35 @@ function broadcastOnlineCount() {
   io.emit('online-count', onlineVisitors.size);
 }
 
+// ══════════════════════════════════════════════════
+//  🎉 DJ JUKEBOX — apmeklētāji reāllaikā balso, kura dziesma ir
+//  šī brīža "kopienas izvēle". Katrs raunds ilgst JUKEBOX_ROUND_MS,
+//  pēc tam uzvarētājs tiek izziņots un balsojums sākas no jauna.
+//  SVARĪGI, godīgi: šis NEsinhronizē visu apmeklētāju audio vienlaicīgi
+//  (tas prasītu daudz sarežģītāku infrastruktūru) — tas tikai parāda,
+//  kura dziesma šobrīd ir populārākā balsojumā, ikviens pats izvēlas,
+//  vai to palaist.
+// ══════════════════════════════════════════════════
+const JUKEBOX_ROUND_MS = 90 * 1000; // 90 sekundes vienam raundam
+let jukeboxVotes = {}; // trackId -> balsu skaits
+let jukeboxVotedSockets = new Set(); // kuri jau balsojuši šajā raundā (viena balss/sesija/raunds)
+
+function jukeboxState() {
+  const entries = Object.entries(jukeboxVotes).sort((a, b) => b[1] - a[1]);
+  return { votes: jukeboxVotes, leaderId: entries[0]?.[0] || null, leaderVotes: entries[0]?.[1] || 0 };
+}
+
+function resetJukeboxRound() {
+  const finalState = jukeboxState();
+  jukeboxVotes = {};
+  jukeboxVotedSockets = new Set();
+  io.emit('jukebox-round-ended', finalState);
+}
+setInterval(resetJukeboxRound, JUKEBOX_ROUND_MS);
+
 io.on('connection', socket => {
   socket.emit('chat-history', chatHistory.slice(-50));
+  socket.emit('jukebox-update', jukeboxState());
   const chatTimestamps = [];
 
   // Admin pats sevi NEKAD nepieskaita "tiešsaistes apmeklētājiem" —
@@ -977,6 +1006,13 @@ io.on('connection', socket => {
 
   socket.on('disconnect', () => {
     if (onlineVisitors.delete(socket.id)) broadcastOnlineCount();
+  });
+
+  socket.on('jukebox-vote', trackId => {
+    if (!trackId || typeof trackId !== 'string' || jukeboxVotedSockets.has(socket.id)) return;
+    jukeboxVotedSockets.add(socket.id);
+    jukeboxVotes[trackId] = (jukeboxVotes[trackId] || 0) + 1;
+    io.emit('jukebox-update', jukeboxState());
   });
 
   socket.on('chat-msg', data => {

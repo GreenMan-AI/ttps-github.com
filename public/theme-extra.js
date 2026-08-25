@@ -709,3 +709,121 @@
     }
   });
 })();
+
+// ══════════════════════════════════════════════════
+//  🎉 DJ JUKEBOX — reāllaika kopienas balsošana
+// ══════════════════════════════════════════════════
+(function () {
+  if (typeof socket === 'undefined') return;
+  const banner = document.getElementById('jukebox-banner');
+  const leaderNameEl = document.getElementById('jukebox-leader-name');
+  const timerEl = document.getElementById('jukebox-timer');
+  const playLeaderBtn = document.getElementById('jukebox-play-leader');
+  if (!banner) return;
+
+  let currentLeaderId = null;
+  let roundEndsAt = Date.now() + 90000;
+  let timerInterval = null;
+
+  window.castJukeboxVote = function (trackId) {
+    try {
+      const votedKey = 'sp_jukebox_voted';
+      if (sessionStorage.getItem(votedKey)) {
+        if (window.toast) toast('Šajā raundā jau nobalsoji — nākamais raunds sāksies drīz.', 'err');
+        return;
+      }
+      socket.emit('jukebox-vote', trackId);
+      sessionStorage.setItem(votedKey, '1');
+      if (window.toast) toast('🗳️ Paldies par balsi!', 'ok');
+    } catch (e) {}
+  };
+
+  function updateBanner(state) {
+    if (!state || !state.leaderId || !state.leaderVotes) {
+      banner.style.display = 'none';
+      currentLeaderId = null;
+      return;
+    }
+    const track = (window._tracks || []).find(t2 => t2._id === state.leaderId);
+    if (!track) { banner.style.display = 'none'; return; }
+    currentLeaderId = state.leaderId;
+    leaderNameEl.textContent = `${track.title} — ${track.artist || ''} (${state.leaderVotes} ${state.leaderVotes === 1 ? 'balss' : 'balsis'})`;
+    banner.style.display = 'flex';
+  }
+
+  socket.on('jukebox-update', (state) => { updateBanner(state); });
+  socket.on('jukebox-round-ended', () => {
+    try { sessionStorage.removeItem('sp_jukebox_voted'); } catch (e) {}
+    roundEndsAt = Date.now() + 90000;
+  });
+
+  playLeaderBtn?.addEventListener('click', () => {
+    if (currentLeaderId && typeof playTrack === 'function') playTrack(currentLeaderId, 'library');
+  });
+
+  timerInterval = setInterval(() => {
+    const secsLeft = Math.max(0, Math.round((roundEndsAt - Date.now()) / 1000));
+    if (timerEl) timerEl.textContent = `nākamais raunds pēc ${secsLeft}s`;
+  }, 1000);
+})();
+
+// ══════════════════════════════════════════════════
+//  📻 RADIO REŽĪMS — viena poga, mūzika spēlē mūžīgi pati
+// ══════════════════════════════════════════════════
+(function () {
+  const btn = document.getElementById('radio-mode-btn');
+  const pbAudio = document.getElementById('pb-audio');
+  if (!btn || !pbAudio) return;
+
+  let radioOn = false;
+
+  btn.addEventListener('click', () => {
+    if (radioOn) {
+      radioOn = false;
+      btn.classList.remove('active');
+      btn.textContent = '📻 Ieslēgt radio — spēlē mūžīgi, pati izvēloties';
+      return;
+    }
+
+    const tracks = window._tracks || [];
+    const pool = tracks.filter(t2 => t2.language); // tikai jau sašķirotas (LV vai EN) dziesmas
+
+    if (!pool.length) {
+      if (window.toast) toast('Vēl nav dziesmu, ko atskaņot.', 'err');
+      return;
+    }
+
+    radioOn = true;
+    btn.classList.add('active');
+    btn.textContent = '📻 Radio ieslēgts — spied vēlreiz, lai izslēgtu';
+
+    // ieslēdzam jaukšanu, lai radio nekad neatkārto vienā secībā
+    const shuffleBtn = document.getElementById('pb-shuffle');
+    if (shuffleBtn && !shuffleBtn.classList.contains('active')) shuffleBtn.click();
+
+    const randomTrack = pool[Math.floor(Math.random() * pool.length)];
+    if (typeof playTrack === 'function') playTrack(randomTrack._id, 'library');
+  });
+
+  // Ja lietotājs pats manuāli nospiež pauzi atskaņotājā (nevis radio pogu),
+  // uzskatām, ka radio ir apturēts — bet NEreaģējam uz īslaicīgo pauzi,
+  // kas notiek katru reizi, kad dziesma tiek nomainīta (playTrack iekšēji
+  // uz mirkli izsauc pause() pirms jaunā avota ielādes).
+  let switchingTrack = false;
+  const origPlayTrack = window.playTrack;
+  if (typeof origPlayTrack === 'function') {
+    window.playTrack = function (...args) {
+      switchingTrack = true;
+      const result = origPlayTrack.apply(this, args);
+      setTimeout(() => { switchingTrack = false; }, 150);
+      return result;
+    };
+  }
+  pbAudio.addEventListener('pause', () => {
+    if (radioOn && !switchingTrack) {
+      radioOn = false;
+      btn.classList.remove('active');
+      btn.textContent = '📻 Ieslēgt radio — spēlē mūžīgi, pati izvēloties';
+    }
+  });
+})();
