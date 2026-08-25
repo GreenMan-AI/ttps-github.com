@@ -275,6 +275,10 @@ function applyContentForLang() {
   heroSubtitleEl.style.color = c.heroSubtitleColor || '';
   document.getElementById('about-text').textContent = c['aboutText_' + L] || c.aboutText_lv || '';
   document.getElementById('about-text').style.color = c.aboutTextColor || '';
+  const dualLvEl = document.getElementById('dual-heading-lv');
+  const dualEnEl = document.getElementById('dual-heading-en');
+  if (dualLvEl) dualLvEl.textContent = c.dualHeadingLV || '🇱🇻 Latviešu mūzika';
+  if (dualEnEl) dualEnEl.textContent = c.dualHeadingEN || '🇬🇧 English music';
   const tagline = c['tagline_' + L] || c.tagline_lv || '';
   document.getElementById('footer-text').textContent = '© ' + new Date().getFullYear() + ' ' + c.siteTitle + (tagline ? ' — ' + tagline : '');
 
@@ -291,6 +295,8 @@ function applyContentForLang() {
 function openContentModal() {
   const c = window._content || {};
   document.getElementById('f-siteTitle').value = c.siteTitle || '';
+  document.getElementById('f-dualHeadingLV').value = c.dualHeadingLV || '';
+  document.getElementById('f-dualHeadingEN').value = c.dualHeadingEN || '';
   document.getElementById('f-heroTitleColor').value = c.heroTitleColor || '#eef2f7';
   document.getElementById('f-heroSubtitleColor').value = c.heroSubtitleColor || '#9aa4b2';
   document.getElementById('f-aboutTextColor').value = c.aboutTextColor || '#9aa4b2';
@@ -623,6 +629,8 @@ document.getElementById('content-form').addEventListener('submit', async (e) => 
 
   const body = {
     siteTitle: document.getElementById('f-siteTitle').value,
+    dualHeadingLV: document.getElementById('f-dualHeadingLV').value,
+    dualHeadingEN: document.getElementById('f-dualHeadingEN').value,
     heroTitleColor: document.getElementById('f-heroTitleColor').value,
     heroSubtitleColor: document.getElementById('f-heroSubtitleColor').value,
     aboutTextColor: document.getElementById('f-aboutTextColor').value,
@@ -830,6 +838,7 @@ function trackItemHtml(t2, isAdmin, num, popularRank, source) {
       </div>
       <span class="play-ic">${t2._id === currentTrackId ? '⏸' : '▶'}</span>
       <button class="btn sm dl-track pl-toggle-btn" title="${myPlaylistIds.includes(t2._id) ? 'Izņemt no mana saraksta' : 'Pievienot manam sarakstam'}" onclick="event.stopPropagation();togglePlaylistTrack('${t2._id}')">${myPlaylistIds.includes(t2._id) ? '✓' : '➕'}</button>
+      <button class="btn sm dl-track jukebox-vote-btn" title="Balso, lai šī būtu kopienas izvēle" onclick="event.stopPropagation();castJukeboxVote('${t2._id}')">🗳️</button>
       ${t2.lyrics ? `<button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Dziesmas vārdi' : 'Lyrics'}" onclick="event.stopPropagation();openLyricsModal('${t2._id}')">📜</button>` : ''}
       <button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Dalīties' : 'Share'}" onclick="event.stopPropagation();shareTrack('${t2._id}')">🔗</button>
       <button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Lejupielādēt' : 'Download'}" onclick="event.stopPropagation();downloadTrack('${t2._id}')">⬇</button>
@@ -1066,22 +1075,9 @@ function renderTracks() {
 
   const tracks = allTracksRaw.filter(t2 => t2.language === activeBrowseLanguage);
 
-  // ── Šīs nedēļas jaunumi ──
-  const now = Date.now();
-  const newTracks = tracks
-    .filter(t2 => t2.createdAt && (now - new Date(t2.createdAt).getTime()) < NEW_TRACK_WINDOW_MS)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  const newWrap = document.getElementById('new-tracks-wrap');
-  const newList = document.getElementById('new-track-list');
-  const allHeading = document.getElementById('all-tracks-heading');
-  if (newTracks.length && !hasActiveFilter) {
-    newWrap.style.display = '';
-    allHeading.style.display = '';
-    newList.innerHTML = newTracks.map(t2 => trackItemHtml(t2, isAdmin, tracks.findIndex(x => x._id === t2._id) + 1)).join('');
-  } else {
-    newWrap.style.display = 'none';
-    allHeading.style.display = (tracks.length && !hasActiveFilter) ? 'none' : ''; // ja vispār nav dziesmu, tik un tā parādi virsrakstu ar tukšu ziņu
-  }
+  // Vienmēr rāda VISAS dziesmas šajā žanrā — bez atsevišķas "jaunumu" sadaļas.
+  document.getElementById('new-tracks-wrap').style.display = 'none';
+  document.getElementById('all-tracks-heading').style.display = '';
 
   // ── Visas dziesmas (ar iespējamu meklēšanas/žanra/kārtošanas filtru) ──
   if (!tracks.length) { list.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`; return; }

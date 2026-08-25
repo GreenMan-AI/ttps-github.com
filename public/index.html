@@ -150,14 +150,32 @@
     <button class="uf-btn" onclick="openQuickSort()">Sašķirot tagad</button>
   </div>
 
+  <div class="jukebox-banner" id="jukebox-banner" style="display:none">
+    <div class="jukebox-left">
+      <span class="jukebox-pulse">🎉</span>
+      <div>
+        <b>Kopienas izvēle šobrīd</b>
+        <div id="jukebox-leader-name">—</div>
+      </div>
+    </div>
+    <div class="jukebox-right">
+      <span id="jukebox-timer" class="jukebox-timer"></span>
+      <button class="btn sm" id="jukebox-play-leader">▶ Klausīties</button>
+    </div>
+  </div>
+
+  <div class="radio-mode-row">
+    <button class="radio-mode-btn" id="radio-mode-btn">📻 Ieslēgt radio — spēlē mūžīgi, pati izvēloties</button>
+  </div>
+
   <div class="dual-split" id="dual-split">
     <div class="dual-side lv">
-      <div class="dual-side-heading">🇱🇻 Latviešu mūzika</div>
+      <div class="dual-side-heading" id="dual-heading-lv">🇱🇻 Latviešu mūzika</div>
       <div class="genre-folder-grid" id="genre-folder-grid-lv"></div>
     </div>
     <div class="dual-divider"><span>vai</span></div>
     <div class="dual-side en">
-      <div class="dual-side-heading">🇬🇧 English music</div>
+      <div class="dual-side-heading" id="dual-heading-en">🇬🇧 English music</div>
       <div class="genre-folder-grid" id="genre-folder-grid-en"></div>
     </div>
   </div>
@@ -330,6 +348,8 @@
     <h3 data-i18n="edit_content_title">Rediģēt lapas tekstu</h3>
     <form id="content-form">
       <div class="field"><label data-i18n="site_title_label">Lapas nosaukums</label><input id="f-siteTitle"></div>
+      <div class="field"><label>LV puses virsraksts (dual-split skatā)</label><input id="f-dualHeadingLV"></div>
+      <div class="field"><label>EN puses virsraksts (dual-split skatā)</label><input id="f-dualHeadingEN"></div>
 
       <div class="lang-row">
         <div class="field"><label>Virsraksta krāsa (hero)</label><input type="color" id="f-heroTitleColor" value="#eef2f7"></div>
