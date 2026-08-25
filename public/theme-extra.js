@@ -58,12 +58,18 @@
   const fallback = document.getElementById('pb-waveform');
   if (!pbAudio || !canvas) return;
 
+  // KRITISKI: šis jāiestata UZREIZ, PIRMS jebkurai dziesmai vispār tiek
+  // iestatīts src — citādi pirmā dziesma tiek ielādēta bez CORS
+  // pieprasījuma galvenēm, un pieslēdzot to Web Audio grafam (vizualizētājam),
+  // pārlūks to uzskata par "piesārņotu" un klusē skaņu (bet tikai pirmajai
+  // dziesmai — nākamās jau ielādējas pareizi, jo atribūts tad jau ir uzstādīts).
+  pbAudio.crossOrigin = 'anonymous';
+
   let audioCtx, analyser, dataArray, rafId, ready = false, failed = false;
 
   function setup() {
     if (ready || failed) return ready;
     try {
-      pbAudio.crossOrigin = 'anonymous';
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioCtx.createMediaElementSource(pbAudio);
       analyser = audioCtx.createAnalyser();

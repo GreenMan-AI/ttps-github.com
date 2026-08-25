@@ -17,8 +17,32 @@ const server = http.createServer(app);
 const io     = new Server(server, { cors: { origin: true, credentials: false } });
 const PORT   = process.env.PORT || 3000;
 
+// Render (un lielākā daļa hostingu) liek serveri aiz sava starpniekservera
+// (proxy) — bez šī req.ip rādītu starpniekservera IP, nevis apmeklētāja īsto.
+app.set('trust proxy', 1);
+
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
+// ══════════════════════════════════════════════════
+//  ADMIN IP IEROBEŽOJUMS (nav obligāts)
+//  Ja .env failā iestatīts ADMIN_ALLOWED_IPS (ar komatu atdalīts IP
+//  saraksts), admin panelis un tā API būs pieejami TIKAI no šīm IP
+//  adresēm — visiem citiem izskatīsies, it kā šīs lapas daļas
+//  vispār nepastāvētu (404), nevis parāda "piekļuve liegta" (tas
+//  neko neizpauž iespējamam uzbrucējam).
+// ══════════════════════════════════════════════════
+const ADMIN_ALLOWED_IPS = (process.env.ADMIN_ALLOWED_IPS || '')
+  .split(',').map(ip => ip.trim()).filter(Boolean);
+
+function adminIpGate(req, res, next) {
+  if (!ADMIN_ALLOWED_IPS.length) return next(); // nav iestatīts — ierobežojuma nav
+  const clientIp = (req.ip || '').replace('::ffff:', ''); // IPv4-mapped IPv6 pieraksts
+  if (ADMIN_ALLOWED_IPS.includes(clientIp)) return next();
+  return res.status(404).send('Not found');
+}
+app.use('/admin', adminIpGate);
+app.use('/api/admin', adminIpGate);
 
 // Vienkāršs cookie parseris (bez cookie-parser atkarības) — vajadzīgs, lai
 // nolasītu httpOnly admin sesijas cookie no pieprasījuma galvenēm.

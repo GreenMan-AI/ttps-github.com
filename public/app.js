@@ -195,6 +195,13 @@ const SECRET_HASH = '!gajon-privats-1512';
   }
   checkHash();
   window.addEventListener('hashchange', checkHash);
+
+  // Ja lapa atvērta caur /admin — atver pieteikšanos automātiski (ja vēl
+  // nav ielogojies). Tā pati parole/2FA, tikai ērtāk atrodama adrese.
+  if (window.location.pathname.replace(/\/+$/, '') === '/admin') {
+    const tryOpen = () => { if (!isAdmin) openLoginModal(); };
+    setTimeout(tryOpen, 300); // dodam checkAdmin() paspēt pabeigties vispirms
+  }
 })();
 
 async function checkAdmin() {
