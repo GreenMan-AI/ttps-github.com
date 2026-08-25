@@ -1,7 +1,7 @@
 {
   "name": "dj-gajon",
   "version": "1.0.0",
-  "description": "DJ Gajon \u2014 vienk\u0101r\u0161a m\u0101jas lapa ar 1 admin kontu (teksts, bildes, m\u016bzika, \u010dats)",
+  "description": "DJ Gajon — vienkārša mājas lapa ar 1 admin kontu (teksts, bildes, mūzika, čats)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -22,5 +22,8 @@
     "otpauth": "^9.5.1",
     "qrcode": "^1.5.4",
     "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
