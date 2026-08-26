@@ -586,8 +586,18 @@
 
   pbAudio.addEventListener('play', () => {
     if (!currentTrackId) return;
+    if (document.hidden) return; // lapa fonā — netērējam resursus smagai audio dekodēšanai tieši tagad
     const track = (window._tracks || []).find(t2 => t2._id === currentTrackId);
     if (track && track.cloudUrl) loadWaveformFor(currentTrackId, track.cloudUrl);
+  });
+
+  // Kad lietotājs atgriežas pie lapas, ja vilnis vēl nav aprēķināts šai
+  // dziesmai, izdarām to tagad (agrāk to varējām izlaist, jo lapa bija fonā).
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && currentTrackId && !currentPeaks) {
+      const track = (window._tracks || []).find(t2 => t2._id === currentTrackId);
+      if (track && track.cloudUrl) loadWaveformFor(currentTrackId, track.cloudUrl);
+    }
   });
 
   pbAudio.addEventListener('timeupdate', () => {
@@ -831,5 +841,37 @@
       btn.classList.remove('active');
       btn.textContent = '📻 Ieslēgt radio — spēlē mūžīgi, pati izvēloties';
     }
+  });
+})();
+
+// ══════════════════════════════════════════════════
+//  WAKE LOCK — aizkavē telefona ekrāna automātisku aptumšošanos/
+//  aizslēgšanos NEAKTIVITĀTES dēļ, kamēr spēlē mūzika. GODĪGI:
+//  šis NEDARBOJAS, ja lietotājs PATS manuāli nospiež aizslēgšanas
+//  pogu — tas ir OS drošības ierobežojums, ko neviena mājaslapa
+//  nevar apiet. Šis palīdz tikai gadījumā, kad telefons pats
+//  aizmieg no neaktivitātes, kamēr klausies.
+// ══════════════════════════════════════════════════
+(function () {
+  const pbAudio = document.getElementById('pb-audio');
+  if (!pbAudio || !('wakeLock' in navigator)) return;
+
+  let wakeLock = null;
+
+  async function requestWakeLock() {
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+    } catch (e) { /* piem. akumulatora taupīšanas režīms — klusi izlaižam */ }
+  }
+
+  pbAudio.addEventListener('play', () => { requestWakeLock(); });
+  pbAudio.addEventListener('pause', () => {
+    if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  });
+
+  // Wake Lock automātiski atceļas, kad lapa kļūst neredzama (piem., cilne
+  // pārslēgta) — atjaunojam to, tiklīdz atgriežamies, ja mūzika joprojām spēlē.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !pbAudio.paused && !wakeLock) requestWakeLock();
   });
 })();

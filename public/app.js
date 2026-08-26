@@ -1307,6 +1307,7 @@ function playTrack(id, source) {
   audio.play().catch(() => {});
   localStorage.setItem('sp_last_played', id);
   prefetchedTrackId = null; // jauna dziesma sākta — vecā priekšielāde vairs nav derīga
+  preselectedNextId = null; // tāpat arī vecā shuffle prognoze vairs nav derīga
 
   if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -1339,9 +1340,14 @@ function playAdjacentTrack(dir) {
     const idx = myPlaylistIds.indexOf(currentTrackId);
     if (idx < 0) return;
     if (shuffleOn && myPlaylistIds.length > 1) {
-      let randIdx;
-      do { randIdx = Math.floor(Math.random() * myPlaylistIds.length); } while (randIdx === idx);
-      playTrack(myPlaylistIds[randIdx], 'playlist');
+      let nextId = preselectedNextId;
+      preselectedNextId = null;
+      if (!nextId || !myPlaylistIds.includes(nextId)) {
+        let randIdx;
+        do { randIdx = Math.floor(Math.random() * myPlaylistIds.length); } while (randIdx === idx);
+        nextId = myPlaylistIds[randIdx];
+      }
+      playTrack(nextId, 'playlist');
       return;
     }
     const nextIdx = (idx + dir + myPlaylistIds.length) % myPlaylistIds.length;
@@ -1354,9 +1360,14 @@ function playAdjacentTrack(dir) {
   const idx = tracks.findIndex(t2 => t2._id === currentTrackId);
   if (idx < 0) return;
   if (shuffleOn && tracks.length > 1) {
-    let randIdx;
-    do { randIdx = Math.floor(Math.random() * tracks.length); } while (randIdx === idx);
-    playTrack(tracks[randIdx]._id);
+    let nextId = preselectedNextId;
+    preselectedNextId = null;
+    if (!nextId || !tracks.find(t2 => t2._id === nextId)) {
+      let randIdx;
+      do { randIdx = Math.floor(Math.random() * tracks.length); } while (randIdx === idx);
+      nextId = tracks[randIdx]._id;
+    }
+    playTrack(nextId);
     return;
   }
   const nextIdx = (idx + dir + tracks.length) % tracks.length;
@@ -1444,18 +1455,40 @@ if ('mediaSession' in navigator) {
 
 // ── Nākamās dziesmas priekšielāde — sāk to lejupielādēt pārlūka kešatmiņā
 //    dažas sekundes pirms pašreizējā beigām, lai pāreja uz nākamo dziesmu
-//    nepaliktu karājoties fonā gaidot tīkla pieprasījumu. ──
+//    nepaliktu karājoties fonā gaidot tīkla pieprasījumu. Strādā ARĪ ar
+//    ieslēgtu "jaukt secību" (shuffle) — iepriekš tas bija izslēgts tieši
+//    šajā gadījumā, kas nozīmēja, ka radio režīmam (kas vienmēr ieslēdz
+//    shuffle) priekšielāde nekad nenotika, un tas bija galvenais iemesls,
+//    kāpēc radio apstājās uz aukstas tīkla kavēšanās fonā. ──
 let prefetchedTrackId = null;
+let preselectedNextId = null; // ja izvēlēts iepriekš (shuffle režīmā), 'ended' izmanto tieši šo
 pbAudio.addEventListener('timeupdate', () => {
-  if (shuffleOn || repeatMode === 'one') return; // nejaušā/atkārtotā secībā priekšielāde nav droša
+  if (repeatMode === 'one') return; // atkārto to pašu — priekšielāde nav vajadzīga
   if (!pbAudio.duration || (pbAudio.duration - pbAudio.currentTime) > 5) return;
 
-  const tracks = window._tracks || [];
+  const tracks = playingFromMyPlaylist && myPlaylistIds.length
+    ? myPlaylistIds.map(id => (window._tracks || []).find(t2 => t2._id === id)).filter(Boolean)
+    : (window._tracks || []);
   if (!tracks.length || !currentTrackId) return;
   const idx = tracks.findIndex(t2 => t2._id === currentTrackId);
   if (idx < 0) return;
-  const nextIdx = (idx + 1) % tracks.length;
-  const nextTrack = tracks[nextIdx];
+
+  let nextTrack;
+  if (shuffleOn && tracks.length > 1) {
+    if (preselectedNextId) {
+      nextTrack = tracks.find(t2 => t2._id === preselectedNextId);
+    }
+    if (!nextTrack) {
+      let randIdx;
+      do { randIdx = Math.floor(Math.random() * tracks.length); } while (randIdx === idx);
+      nextTrack = tracks[randIdx];
+      preselectedNextId = nextTrack._id; // 'ended' izmantos tieši šo, ne jaunu nejaušu izvēli
+    }
+  } else {
+    const nextIdx = (idx + 1) % tracks.length;
+    nextTrack = tracks[nextIdx];
+  }
+
   if (!nextTrack || !nextTrack.cloudUrl || prefetchedTrackId === nextTrack._id) return;
 
   prefetchedTrackId = nextTrack._id;

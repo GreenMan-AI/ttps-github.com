@@ -783,3 +783,10 @@ footer{text-align:center;padding:30px;color:var(--mut);font-size:12px;border-top
 .radio-mode-btn.active{
   background:var(--card); color:var(--accent); border:1px solid var(--accent);
 }
+
+/* ══ PIELĀGOTA RITJOSLA — lai neizceļas kā noklusējuma pelēka uz tumšā fona ══ */
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-track{ background:var(--bg); }
+::-webkit-scrollbar-thumb{ background:var(--border2); border-radius:6px; }
+::-webkit-scrollbar-thumb:hover{ background:var(--accent); }
+* { scrollbar-color:var(--border2) var(--bg); scrollbar-width:thin; }
