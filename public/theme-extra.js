@@ -875,3 +875,27 @@
     if (!document.hidden && !pbAudio.paused && !wakeLock) requestWakeLock();
   });
 })();
+
+// ══════════════════════════════════════════════════
+//  ATSKAŅOTĀJS AUGŠĀ — izmēra reālo header augstumu (tas mainās
+//  mobilajā, kad izvēlne pāriet uz otru rindu) un iestata to kā CSS
+//  mainīgo, lai atskaņotāja josla vienmēr precīzi pieguļ zem header,
+//  neatkarīgi no ekrāna izmēra.
+// ══════════════════════════════════════════════════
+(function () {
+  const header = document.querySelector('header');
+  if (!header) return;
+
+  function updateHeaderHeight() {
+    const h = header.offsetHeight;
+    if (h > 0) document.documentElement.style.setProperty('--header-h', h + 'px');
+  }
+
+  updateHeaderHeight();
+  window.addEventListener('resize', updateHeaderHeight);
+  window.addEventListener('load', updateHeaderHeight);
+  // Header saturs (piem., "klausās tagad" skaitītājs) var mainīt tā augstumu
+  // pēc sākotnējās ielādes — pārbaudām vēlreiz pēc īsa brīža, drošības pēc.
+  setTimeout(updateHeaderHeight, 500);
+  setTimeout(updateHeaderHeight, 1500);
+})();
