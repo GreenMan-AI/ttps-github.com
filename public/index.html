@@ -59,21 +59,34 @@
 
 <header>
   <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" id="logo-text">DJ Gajon</div>
-  <div class="live-badge" id="live-badge" title="Cik cilvēku tagad ir lapā">
-    <span class="live-dot"></span> <span id="live-badge-count">0</span> klausās tagad
+  <div class="header-actions">
+    <div class="live-badge" id="live-badge" title="Cik cilvēku tagad ir lapā">
+      <span class="live-dot"></span> <span id="live-badge-count">0</span> klausās tagad
+    </div>
+    <button class="radio-dj-pill" id="radio-mode-btn" title="Ieslēgt/izslēgt radio — spēlē mūžīgi, pati izvēloties">
+      <svg class="radio-dj-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
+      <span>Radio DJ</span>
+    </button>
+    <a href="#music" class="music-icon-link" title="Mūzika / Music">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    </a>
   </div>
+</header>
+
+<nav class="subnav">
+  <a href="#about" data-i18n="nav_about">Informācīja</a>
+  <a href="#gallery" data-i18n="nav_gallery">Bildes</a>
+  <a href="javascript:void(0)" onclick="toggleChatPanel(true)" data-i18n="nav_chat">Čats</a>
   <button class="my-playlist-btn" id="my-playlist-btn" onclick="openMyPlaylist()" title="Mans klausīšanās saraksts šodienai">
     🎵 Mans saraksts <span id="my-playlist-count">0</span>
   </button>
-  <nav>
-    <a href="#about" data-i18n="nav_about">Informācīja</a>
-    <a href="#gallery" data-i18n="nav_gallery">Bildes</a>
-    <a href="#music" data-i18n="nav_music">Mūzika</a>
-    <a href="javascript:void(0)" onclick="toggleChatPanel(true)" data-i18n="nav_chat">Čats</a>
-    <button class="btn sm" onclick="openShareModal(location.origin, document.getElementById('page-title').textContent)" title="Dalies ar lapu" data-i18n="nav_share">🔗 Dalies</button>
-    <button class="btn sm lang-switch" id="lang-toggle" onclick="toggleLang()" title="Switch language / Mainīt valodu">🌐 EN</button>
-  </nav>
-</header>
+  <button class="btn sm" onclick="openShareModal(location.origin, document.getElementById('page-title').textContent)" title="Dalies ar lapu" data-i18n="nav_share">🔗 Dalies</button>
+  <button class="btn sm lang-switch" id="lang-toggle" onclick="toggleLang()" title="Switch language / Mainīt valodu">🌐 EN</button>
+</nav>
+
+<div class="ad-poster" id="ad-poster" style="display:none">
+  <img id="ad-poster-img" src="" alt="Reklāma">
+</div>
 
 <div id="admin-bar">
   <span data-i18n="admin_bar">🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot bildes un mūziku</span>
@@ -93,8 +106,30 @@
     <button class="btn sm" onclick="openContentModal()" data-i18n="edit_text">✏️ Rediģēt tekstu</button>
     <button class="btn sm" onclick="openBgModal()" data-i18n="edit_bg">🖼️ Fona bilde</button>
     <button class="btn sm" onclick="openHeroImgModal()" data-i18n="edit_hero_img">🙂 Profila bilde</button>
+    <button class="btn sm" onclick="openAdPosterModal()">📢 Reklāmas afiša</button>
   </div>
 </section>
+
+<!-- Reklāmas afišas modālais logs -->
+<div class="modal-overlay" id="ad-poster-modal">
+  <div class="modal">
+    <h3>Reklāmas afiša</h3>
+    <p class="hint">Neliela bildīte, kas parādās lapas augšā, zem izvēlnes. Ja nav uzlikta, apmeklētāji neko neredz.</p>
+    <div class="field">
+      <label data-i18n="image_label">Bilde</label>
+      <input type="file" id="f-adPoster" accept="image/*">
+    </div>
+    <div id="ad-poster-preview" style="margin-bottom:10px"></div>
+    <div class="msg-err" id="ad-poster-err"></div>
+    <div class="modal-actions" style="justify-content:space-between">
+      <button type="button" class="btn sm danger" id="ad-poster-remove-btn" style="display:none" onclick="removeAdPoster()">🗑️ Noņemt</button>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn" onclick="closeModal('ad-poster-modal')" data-i18n="close">Aizvērt</button>
+        <button type="button" class="btn primary" id="ad-poster-upload-btn" onclick="uploadAdPoster()">Augšupielādēt</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Profila bildes modālais logs -->
 <div class="modal-overlay" id="hero-img-modal">
@@ -162,10 +197,6 @@
       <span id="jukebox-timer" class="jukebox-timer"></span>
       <button class="btn sm" id="jukebox-play-leader">▶ Klausīties</button>
     </div>
-  </div>
-
-  <div class="radio-mode-row">
-    <button class="radio-mode-btn" id="radio-mode-btn">📻 Ieslēgt radio — spēlē mūžīgi, pati izvēloties</button>
   </div>
 
   <div class="dual-split" id="dual-split">

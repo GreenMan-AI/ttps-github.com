@@ -203,6 +203,17 @@ const avatarStorage = new CloudinaryStorage({
     transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face', quality: 'auto' }],
   }),
 });
+
+const adPosterStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async () => ({
+    folder: 'Gajon/ad-poster',
+    resource_type: 'image',
+    public_id: 'ad_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
+    transformation: [{ width: 800, crop: 'limit', quality: 'auto' }], // negriežam — afiša var būt jebkādās proporcijās
+  }),
+});
+const uploadAdPosterImg = multer({ storage: adPosterStorage, fileFilter: imageFilter, limits: { fileSize: 8 * 1024 * 1024 } });
 const uploadAvatarImg = multer({ storage: avatarStorage, fileFilter: imageFilter, limits: { fileSize: 8 * 1024 * 1024 } });
 
 // ══════════════════════════════════════════════════
@@ -291,6 +302,7 @@ const DEFAULT_CONTENT = {
   heroImagePublicId: '',
   dualHeadingLV: '🇱🇻 Latviešu mūzika',
   dualHeadingEN: '🇬🇧 English music',
+  adPosterUrl: '',
 };
 
 async function seedContent() {
@@ -767,6 +779,32 @@ app.delete('/api/content/hero-avatar', requireAdmin, async (req, res) => {
     if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
     await Content.findOneAndUpdate({ key: 'heroAvatarUrl' }, { value: '' }, { upsert: true });
     await Content.findOneAndUpdate({ key: 'heroAvatarPublicId' }, { value: '' }, { upsert: true });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Reklāmas/afišas attēls — neliela banera bilde, ko admins var uzlikt
+//    lapas augšā; ja nav uzlikts, apmeklētāji to vienkārši neredz. ──
+app.post('/api/content/ad-poster', requireAdmin, uploadLimiter, (req, res) => {
+  uploadAdPosterImg.single('image')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
+      const old = await Content.findOne({ key: 'adPosterPublicId' });
+      if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
+      await Content.findOneAndUpdate({ key: 'adPosterUrl' }, { value: req.file.path }, { upsert: true });
+      await Content.findOneAndUpdate({ key: 'adPosterPublicId' }, { value: req.file.filename }, { upsert: true });
+      res.json({ ok: true, adPosterUrl: req.file.path });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+});
+
+app.delete('/api/content/ad-poster', requireAdmin, async (req, res) => {
+  try {
+    const old = await Content.findOne({ key: 'adPosterPublicId' });
+    if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
+    await Content.findOneAndUpdate({ key: 'adPosterUrl' }, { value: '' }, { upsert: true });
+    await Content.findOneAndUpdate({ key: 'adPosterPublicId' }, { value: '' }, { upsert: true });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

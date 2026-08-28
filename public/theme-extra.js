@@ -792,12 +792,13 @@
   if (!btn || !pbAudio) return;
 
   let radioOn = false;
+  const baseTitle = 'Ieslēgt/izslēgt radio — spēlē mūžīgi, pati izvēloties';
 
   btn.addEventListener('click', () => {
     if (radioOn) {
       radioOn = false;
       btn.classList.remove('active');
-      btn.textContent = '📻 Ieslēgt radio — spēlē mūžīgi, pati izvēloties';
+      btn.title = baseTitle;
       return;
     }
 
@@ -811,7 +812,7 @@
 
     radioOn = true;
     btn.classList.add('active');
-    btn.textContent = '📻 Radio ieslēgts — spied vēlreiz, lai izslēgtu';
+    btn.title = 'Radio ieslēgts — spied, lai izslēgtu';
 
     // ieslēdzam jaukšanu, lai radio nekad neatkārto vienā secībā
     const shuffleBtn = document.getElementById('pb-shuffle');
@@ -839,7 +840,7 @@
     if (radioOn && !switchingTrack) {
       radioOn = false;
       btn.classList.remove('active');
-      btn.textContent = '📻 Ieslēgt radio — spēlē mūžīgi, pati izvēloties';
+      btn.title = baseTitle;
     }
   });
 })();

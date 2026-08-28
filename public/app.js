@@ -286,6 +286,16 @@ function applyContentForLang() {
   const dualEnEl = document.getElementById('dual-heading-en');
   if (dualLvEl) dualLvEl.textContent = c.dualHeadingLV || '🇱🇻 Latviešu mūzika';
   if (dualEnEl) dualEnEl.textContent = c.dualHeadingEN || '🇬🇧 English music';
+  const adPosterEl = document.getElementById('ad-poster');
+  const adPosterImgEl = document.getElementById('ad-poster-img');
+  if (adPosterEl && adPosterImgEl) {
+    if (c.adPosterUrl) {
+      adPosterImgEl.src = c.adPosterUrl;
+      adPosterEl.style.display = '';
+    } else {
+      adPosterEl.style.display = 'none';
+    }
+  }
   const tagline = c['tagline_' + L] || c.tagline_lv || '';
   document.getElementById('footer-text').textContent = '© ' + new Date().getFullYear() + ' ' + c.siteTitle + (tagline ? ' — ' + tagline : '');
 
@@ -423,6 +433,54 @@ async function removeHeroImage() {
     if (!r.ok) { toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
     toast(currentLang === 'lv' ? '🗑️ Profila bilde noņemta' : '🗑️ Profile image removed', 'ok');
     closeModal('hero-img-modal');
+    await loadContent();
+  } catch (e) { toast('❌ Servera kļūda', 'err'); }
+}
+
+function openAdPosterModal() {
+  const c = window._content || {};
+  document.getElementById('f-adPoster').value = '';
+  document.getElementById('ad-poster-err').textContent = '';
+  const preview = document.getElementById('ad-poster-preview');
+  const removeBtn = document.getElementById('ad-poster-remove-btn');
+  if (c.adPosterUrl) {
+    preview.innerHTML = `<img src="${c.adPosterUrl}" alt="" style="max-width:100%;border-radius:10px">`;
+    removeBtn.style.display = '';
+  } else {
+    preview.innerHTML = '';
+    removeBtn.style.display = 'none';
+  }
+  showModal('ad-poster-modal');
+}
+
+async function uploadAdPoster() {
+  const errEl = document.getElementById('ad-poster-err');
+  errEl.textContent = '';
+  const file = document.getElementById('f-adPoster').files[0];
+  if (!file) { errEl.textContent = currentLang === 'lv' ? 'Vispirms izvēlies failu' : 'Choose a file first'; return; }
+  const fd = new FormData();
+  fd.append('image', file);
+  const btn = document.getElementById('ad-poster-upload-btn');
+  btn.disabled = true;
+  try {
+    const r = await fetch(API + '/api/content/ad-poster', { method: 'POST', headers: authHeaders(), body: fd });
+    const data = await r.json();
+    btn.disabled = false;
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    toast('✅ Afiša uzstādīta!', 'ok');
+    closeModal('ad-poster-modal');
+    await loadContent();
+  } catch (e) { btn.disabled = false; errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
+}
+
+async function removeAdPoster() {
+  if (!confirm('Noņemt reklāmas afišu?')) return;
+  try {
+    const r = await fetch(API + '/api/content/ad-poster', { method: 'DELETE', headers: authHeaders() });
+    const data = await r.json();
+    if (!r.ok) { toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    toast('🗑️ Afiša noņemta', 'ok');
+    closeModal('ad-poster-modal');
     await loadContent();
   } catch (e) { toast('❌ Servera kļūda', 'err'); }
 }
