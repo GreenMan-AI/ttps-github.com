@@ -1007,15 +1007,31 @@ function checkDeepLinkTrack() {
     const params = new URLSearchParams(location.search);
     const id = params.get('track');
     if (!id) return;
-    const tryHighlight = () => {
-      const el = document.querySelector(`.track[data-id="${CSS.escape(id)}"]`);
-      if (!el) return false;
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('shared-highlight');
-      setTimeout(() => el.classList.remove('shared-highlight'), 3000);
+
+    const tryNavigateAndHighlight = () => {
+      const track = (window._tracks || []).find(t2 => t2._id === id);
+      if (!track) return false;
+
+      // atver mūzikas telpu un uzreiz ieiet dziesmas žanrā/valodā, lai to
+      // vispār varētu redzēt un izcelt (agrāk sadaļa vienkārši bija paslēpta)
+      document.getElementById('music').classList.add('open');
+      document.body.style.overflow = 'hidden';
+      activeBrowseLanguage = track.language || null;
+      trackGenreFilter = track.genre || 'Nenoteikts';
+      genreFolderView = false;
+      renderTracks();
+
+      setTimeout(() => {
+        const el = document.querySelector(`.track[data-id="${CSS.escape(id)}"]`);
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('shared-highlight');
+        setTimeout(() => el.classList.remove('shared-highlight'), 3000);
+      }, 100);
       return true;
     };
-    if (!tryHighlight()) setTimeout(tryHighlight, 400);
+
+    if (!tryNavigateAndHighlight()) setTimeout(tryNavigateAndHighlight, 500);
   } catch (e) {}
 }
 
@@ -1816,6 +1832,22 @@ const socket = io();
 const chatMsgsEl = document.getElementById('chat-msgs');
 let chatPanelOpen = false;
 let chatUnreadCount = 0;
+
+// ══════════════════════════════════════════════════
+//  MŪZIKAS PILNEKRĀNA TELPA — atveras, uzspiežot uz "Mūzika" ikonu
+//  headerī. Iekšā ir tikai mūzika (LV/EN mapes) — tīra, atsevišķa
+//  vieta, ar savu "◀ Uz sākumu" pogu, kas to aizver.
+// ══════════════════════════════════════════════════
+function openMusicOverlay() {
+  document.getElementById('music').classList.add('open');
+  document.body.style.overflow = 'hidden'; // neļauj lapai fonā ritināties
+  // vienmēr atveras no sākuma (abas puses redzamas), nevis iepriekšējā vietā
+  backToGenreFolders();
+}
+function closeMusicOverlay() {
+  document.getElementById('music').classList.remove('open');
+  document.body.style.overflow = '';
+}
 
 function toggleChatPanel(forceOpen) {
   chatPanelOpen = typeof forceOpen === 'boolean' ? forceOpen : !chatPanelOpen;
