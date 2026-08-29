@@ -232,6 +232,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     isAdmin = true;
     closeModal('login-modal');
     setAdminUI(true);
+    applyContentForLang();
     await loadGallery();
     await loadTracks();
   } catch (e) { errEl.textContent = 'Servera kļūda'; }
@@ -241,6 +242,7 @@ async function adminLogout() {
   try { await fetch(API + '/api/admin/logout', { method: 'POST' }); } catch (e) {}
   isAdmin = false;
   setAdminUI(false);
+  applyContentForLang();
   renderTracks();
 }
 
@@ -296,6 +298,32 @@ function applyContentForLang() {
       adPosterEl.style.display = 'none';
     }
   }
+
+  const mediaSpot = document.getElementById('custom-media-spot');
+  const mediaEmpty = document.getElementById('custom-media-empty');
+  const mediaImg = document.getElementById('custom-media-img');
+  const mediaVideo = document.getElementById('custom-media-video');
+  if (mediaSpot && mediaEmpty) {
+    if (c.customMediaUrl) {
+      mediaSpot.style.display = '';
+      mediaEmpty.style.display = 'none';
+      if (c.customMediaType === 'video') {
+        mediaVideo.src = c.customMediaUrl;
+        mediaVideo.style.display = '';
+        mediaImg.style.display = 'none';
+      } else {
+        mediaImg.src = c.customMediaUrl;
+        mediaImg.style.display = '';
+        mediaVideo.style.display = 'none';
+      }
+    } else {
+      mediaSpot.style.display = 'none';
+      // "empty" placeholder ir admin-only klase — redzamību pārvalda setAdminUI(),
+      // šeit tikai pārliecināmies, ka tā display vērtība ir 'flex', kad admin to redz
+      mediaEmpty.style.display = isAdmin ? 'flex' : 'none';
+    }
+  }
+
   const tagline = c['tagline_' + L] || c.tagline_lv || '';
   document.getElementById('footer-text').textContent = '© ' + new Date().getFullYear() + ' ' + c.siteTitle + (tagline ? ' — ' + tagline : '');
 
@@ -481,6 +509,56 @@ async function removeAdPoster() {
     if (!r.ok) { toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
     toast('🗑️ Afiša noņemta', 'ok');
     closeModal('ad-poster-modal');
+    await loadContent();
+  } catch (e) { toast('❌ Servera kļūda', 'err'); }
+}
+
+function openCustomMediaModal() {
+  const c = window._content || {};
+  document.getElementById('f-customMedia').value = '';
+  document.getElementById('custom-media-err').textContent = '';
+  const preview = document.getElementById('custom-media-preview');
+  const removeBtn = document.getElementById('custom-media-remove-btn');
+  if (c.customMediaUrl) {
+    preview.innerHTML = c.customMediaType === 'video'
+      ? `<video src="${c.customMediaUrl}" style="max-width:100%;border-radius:10px" muted autoplay loop playsinline></video>`
+      : `<img src="${c.customMediaUrl}" alt="" style="max-width:100%;border-radius:10px">`;
+    removeBtn.style.display = '';
+  } else {
+    preview.innerHTML = '';
+    removeBtn.style.display = 'none';
+  }
+  showModal('custom-media-modal');
+}
+
+async function uploadCustomMediaFile() {
+  const errEl = document.getElementById('custom-media-err');
+  errEl.textContent = '';
+  const file = document.getElementById('f-customMedia').files[0];
+  if (!file) { errEl.textContent = currentLang === 'lv' ? 'Vispirms izvēlies failu' : 'Choose a file first'; return; }
+  const fd = new FormData();
+  fd.append('media', file);
+  const btn = document.getElementById('custom-media-upload-btn');
+  btn.disabled = true;
+  try {
+    const r = await fetch(API + '/api/content/custom-media', { method: 'POST', headers: authHeaders(), body: fd });
+    const data = await r.json();
+    btn.disabled = false;
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    toast('✅ Uzstādīts!', 'ok');
+    closeModal('custom-media-modal');
+    await loadContent();
+  } catch (e) { btn.disabled = false; errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
+}
+
+async function removeCustomMedia() {
+  if (!confirm('Noņemt šo bildi/video?')) return;
+  try {
+    const r = await fetch(API + '/api/content/custom-media', { method: 'DELETE', headers: authHeaders() });
+    const data = await r.json();
+    if (!r.ok) { toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    toast('🗑️ Noņemts', 'ok');
+    closeModal('custom-media-modal');
     await loadContent();
   } catch (e) { toast('❌ Servera kļūda', 'err'); }
 }

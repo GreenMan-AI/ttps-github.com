@@ -151,6 +151,10 @@ const imageFilter = (req, file, cb) => {
   const ok = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
   ok.includes(path.extname(file.originalname).toLowerCase()) ? cb(null, true) : cb(new Error('Tikai attēli: JPG, PNG, WEBP, GIF'));
 };
+const mediaFilter = (req, file, cb) => {
+  const ok = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.mp4', '.webm', '.mov'];
+  ok.includes(path.extname(file.originalname).toLowerCase()) ? cb(null, true) : cb(new Error('Tikai attēli vai video: JPG, PNG, WEBP, GIF, MP4, WEBM, MOV'));
+};
 const audioFilter = (req, file, cb) => {
   const ok = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac'];
   ok.includes(path.extname(file.originalname).toLowerCase()) ? cb(null, true) : cb(new Error('Tikai audio faili'));
@@ -214,6 +218,19 @@ const adPosterStorage = new CloudinaryStorage({
   }),
 });
 const uploadAdPosterImg = multer({ storage: adPosterStorage, fileFilter: imageFilter, limits: { fileSize: 8 * 1024 * 1024 } });
+
+const customMediaStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => {
+    const isVideo = /\.(mp4|webm|mov)$/i.test(file.originalname);
+    return {
+      folder: 'Gajon/custom-media',
+      resource_type: isVideo ? 'video' : 'image',
+      public_id: 'custom_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
+    };
+  },
+});
+const uploadCustomMedia = multer({ storage: customMediaStorage, fileFilter: mediaFilter, limits: { fileSize: 30 * 1024 * 1024 } });
 const uploadAvatarImg = multer({ storage: avatarStorage, fileFilter: imageFilter, limits: { fileSize: 8 * 1024 * 1024 } });
 
 // ══════════════════════════════════════════════════
@@ -303,6 +320,8 @@ const DEFAULT_CONTENT = {
   dualHeadingLV: '🇱🇻 Latviešu mūzika',
   dualHeadingEN: '🇬🇧 English music',
   adPosterUrl: '',
+  customMediaUrl: '',
+  customMediaType: '',
 };
 
 async function seedContent() {
@@ -805,6 +824,41 @@ app.delete('/api/content/ad-poster', requireAdmin, async (req, res) => {
     if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
     await Content.findOneAndUpdate({ key: 'adPosterUrl' }, { value: '' }, { upsert: true });
     await Content.findOneAndUpdate({ key: 'adPosterPublicId' }, { value: '' }, { upsert: true });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Pielāgotā media vieta hero sadaļā — bilde vai video, ko admins var
+//    uzlikt jebkurā brīdī; ja nekas nav uzlikts, apmeklētāji to nemaz neredz. ──
+app.post('/api/content/custom-media', requireAdmin, uploadLimiter, (req, res) => {
+  uploadCustomMedia.single('media')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēts fails' });
+      const isVideo = /\.(mp4|webm|mov)$/i.test(req.file.originalname);
+      const old = await Content.findOne({ key: 'customMediaPublicId' });
+      const oldType = await Content.findOne({ key: 'customMediaType' });
+      if (old?.value) {
+        try { await cloudinary.uploader.destroy(old.value, { resource_type: oldType?.value || 'image' }); } catch (e) {}
+      }
+      await Content.findOneAndUpdate({ key: 'customMediaUrl' }, { value: req.file.path }, { upsert: true });
+      await Content.findOneAndUpdate({ key: 'customMediaPublicId' }, { value: req.file.filename }, { upsert: true });
+      await Content.findOneAndUpdate({ key: 'customMediaType' }, { value: isVideo ? 'video' : 'image' }, { upsert: true });
+      res.json({ ok: true, customMediaUrl: req.file.path, customMediaType: isVideo ? 'video' : 'image' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+});
+
+app.delete('/api/content/custom-media', requireAdmin, async (req, res) => {
+  try {
+    const old = await Content.findOne({ key: 'customMediaPublicId' });
+    const oldType = await Content.findOne({ key: 'customMediaType' });
+    if (old?.value) {
+      try { await cloudinary.uploader.destroy(old.value, { resource_type: oldType?.value || 'image' }); } catch (e) {}
+    }
+    await Content.findOneAndUpdate({ key: 'customMediaUrl' }, { value: '' }, { upsert: true });
+    await Content.findOneAndUpdate({ key: 'customMediaPublicId' }, { value: '' }, { upsert: true });
+    await Content.findOneAndUpdate({ key: 'customMediaType' }, { value: '' }, { upsert: true });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

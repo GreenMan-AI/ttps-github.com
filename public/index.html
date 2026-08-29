@@ -71,19 +71,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
       <span>Mūzika</span>
     </button>
+    <button class="header-icon-btn" onclick="openShareModal(location.origin, document.getElementById('page-title').textContent)" title="Dalies ar lapu">🔗</button>
+    <button class="header-icon-btn" id="lang-toggle" onclick="toggleLang()" title="Switch language / Mainīt valodu">🌐</button>
   </div>
 </header>
-
-<nav class="subnav">
-  <a href="#about" data-i18n="nav_about">Informācīja</a>
-  <a href="#gallery" data-i18n="nav_gallery">Bildes</a>
-  <a href="javascript:void(0)" onclick="toggleChatPanel(true)" data-i18n="nav_chat">Čats</a>
-  <button class="my-playlist-btn" id="my-playlist-btn" onclick="openMyPlaylist()" title="Mans klausīšanās saraksts šodienai">
-    🎵 Mans saraksts <span id="my-playlist-count">0</span>
-  </button>
-  <button class="btn sm" onclick="openShareModal(location.origin, document.getElementById('page-title').textContent)" title="Dalies ar lapu" data-i18n="nav_share">🔗 Dalies</button>
-  <button class="btn sm lang-switch" id="lang-toggle" onclick="toggleLang()" title="Switch language / Mainīt valodu">🌐 EN</button>
-</nav>
 
 <div class="ad-poster" id="ad-poster" style="display:none">
   <img id="ad-poster-img" src="" alt="Reklāma">
@@ -100,6 +91,15 @@
 </div>
 
 <section class="hero">
+  <div class="custom-media-spot" id="custom-media-spot" style="display:none">
+    <img id="custom-media-img" src="" alt="" style="display:none">
+    <video id="custom-media-video" style="display:none" autoplay muted loop playsinline></video>
+  </div>
+  <div class="custom-media-spot custom-media-empty admin-only" id="custom-media-empty" style="display:none" onclick="openCustomMediaModal()">
+    <span>➕</span>
+    <span>Pievienot bildi vai video</span>
+  </div>
+
   <img id="hero-profile-img" class="hero-avatar" src="" alt="" style="display:none">
   <h1 id="hero-title">Sveiki, esmu DJ Gajon!</h1>
   <p id="hero-subtitle">Šeit klausies manu pašsacerēto mūziku un skaties bildes.</p>
@@ -108,8 +108,30 @@
     <button class="btn sm" onclick="openBgModal()" data-i18n="edit_bg">🖼️ Fona bilde</button>
     <button class="btn sm" onclick="openHeroImgModal()" data-i18n="edit_hero_img">🙂 Profila bilde</button>
     <button class="btn sm" onclick="openAdPosterModal()">📢 Reklāmas afiša</button>
+    <button class="btn sm" onclick="openCustomMediaModal()">🖼️ Bilde/video (stūrī)</button>
   </div>
 </section>
+
+<!-- Pielāgotās media vietas modālais logs -->
+<div class="modal-overlay" id="custom-media-modal">
+  <div class="modal">
+    <h3>Bilde vai video</h3>
+    <p class="hint">Šī vieta redzama apmeklētājiem TIKAI tad, kad šeit kaut kas ir uzlikts. Var būt bilde (JPG/PNG/WEBP/GIF) vai īss video (MP4/WEBM/MOV, līdz 30MB).</p>
+    <div class="field">
+      <label>Fails</label>
+      <input type="file" id="f-customMedia" accept="image/*,video/mp4,video/webm,video/quicktime">
+    </div>
+    <div id="custom-media-preview" style="margin-bottom:10px"></div>
+    <div class="msg-err" id="custom-media-err"></div>
+    <div class="modal-actions" style="justify-content:space-between">
+      <button type="button" class="btn sm danger" id="custom-media-remove-btn" style="display:none" onclick="removeCustomMedia()">🗑️ Noņemt</button>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn" onclick="closeModal('custom-media-modal')" data-i18n="close">Aizvērt</button>
+        <button type="button" class="btn primary" id="custom-media-upload-btn" onclick="uploadCustomMediaFile()">Augšupielādēt</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Reklāmas afišas modālais logs -->
 <div class="modal-overlay" id="ad-poster-modal">
@@ -171,7 +193,12 @@
 
     <div class="section-header-row">
       <h2 data-i18n="music_title">Mūzika</h2>
-      <button class="btn sm view-toggle-btn" id="view-toggle-btn" onclick="toggleTrackView()" title="Pārslēgt skatu">🔲 Režģa skats</button>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="my-playlist-btn" id="my-playlist-btn" onclick="openMyPlaylist()" title="Mans klausīšanās saraksts šodienai">
+          🎵 Mans saraksts <span id="my-playlist-count">0</span>
+        </button>
+        <button class="btn sm view-toggle-btn" id="view-toggle-btn" onclick="toggleTrackView()" title="Pārslēgt skatu">🔲 Režģa skats</button>
+      </div>
     </div>
     <div class="btn-row admin-only" style="display:none;margin-bottom:14px">
       <button class="btn sm" onclick="openTrackModal()" data-i18n="add_track">➕ Pievienot dziesmu</button>
@@ -222,11 +249,6 @@
     </div>
 
     <h3 class="sub-h" id="all-tracks-heading" data-i18n="all_tracks">🎵 Visas dziesmas</h3>
-    <input type="text" id="track-search" class="track-search" data-i18n-ph="track_search_ph" placeholder="🔍 Meklēt dziesmu vai izpildītāju..." oninput="handleTrackSearch(this.value)">
-    <div class="genre-chip-row" id="genre-chip-row"></div>
-    <div class="btn-row" style="margin-bottom:12px">
-      <button class="btn sm" id="sort-toggle-btn" title="Pārslēgt starp manuālo secību un populārākajām">↕️ Manuālā secība</button>
-    </div>
     <div class="track-list" id="track-list"></div>
   </div>
   </div>
