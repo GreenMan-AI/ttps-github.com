@@ -1090,12 +1090,11 @@ function checkDeepLinkTrack() {
       const track = (window._tracks || []).find(t2 => t2._id === id);
       if (!track) return false;
 
-      // atver mūzikas telpu un uzreiz ieiet dziesmas žanrā/valodā, lai to
+      // atver mūzikas telpu un uzreiz ieiet dziesmas valodā, lai to
       // vispār varētu redzēt un izcelt (agrāk sadaļa vienkārši bija paslēpta)
       document.getElementById('music').classList.add('open');
       document.body.style.overflow = 'hidden';
       activeBrowseLanguage = track.language || null;
-      trackGenreFilter = track.genre || 'Nenoteikts';
       genreFolderView = false;
       renderTracks();
 
@@ -1187,9 +1186,8 @@ function toggleTrackView() {
 }
 
 let trackSearchQuery = '';
-let trackGenreFilter = 'Visi';
 let trackSortMode = 'manual'; // 'manual' | 'popular'
-let genreFolderView = true;   // true = rāda mapju režģi, false = rāda konkrētā žanra/meklēšanas sarakstu
+let genreFolderView = true;   // true = rāda LV/EN mapes, false = rāda konkrētās valodas dziesmu sarakstu
 
 function renderTracks() {
   const allTracksRaw = window._tracks || [];
@@ -1211,10 +1209,10 @@ function renderTracks() {
 
   const dualSplit = document.getElementById('dual-split');
   const browseWrap = document.getElementById('genre-browse-wrap');
-  const hasActiveFilter = !!trackSearchQuery || trackGenreFilter !== 'Visi' || trackSortMode === 'popular';
+  const hasActiveFilter = !!trackSearchQuery || trackSortMode === 'popular';
   document.getElementById('drag-hint').style.display = (isAdmin && !hasActiveFilter) ? '' : 'none';
 
-  // ── Sākumskats: abas puses redzamas vienlaikus ──
+  // ── Sākumskats: abas puses (LV/EN) redzamas vienlaikus ──
   if (genreFolderView) {
     if (dualSplit) dualSplit.style.display = '';
     if (browseWrap) browseWrap.style.display = 'none';
@@ -1223,22 +1221,20 @@ function renderTracks() {
 
     const lvTracks = allTracksRaw.filter(t2 => t2.language === 'LV');
     const enTracks = allTracksRaw.filter(t2 => t2.language === 'EN');
-    renderGenreFolders(lvTracks, 'genre-folder-grid-lv', 'LV');
-    renderGenreFolders(enTracks, 'genre-folder-grid-en', 'EN');
+    renderLanguageFolder(lvTracks, 'genre-folder-grid-lv', 'LV');
+    renderLanguageFolder(enTracks, 'genre-folder-grid-en', 'EN');
     return;
   }
 
-  // ── Ieiets konkrētā žanrā — paliekam tās puses valodas ietvaros ──
+  // ── Ieiets konkrētā valodā — rāda visas tās dziesmas uzreiz ──
   if (dualSplit) dualSplit.style.display = 'none';
   if (browseWrap) browseWrap.style.display = '';
 
   const tracks = allTracksRaw.filter(t2 => t2.language === activeBrowseLanguage);
 
-  // Vienmēr rāda VISAS dziesmas šajā žanrā — bez atsevišķas "jaunumu" sadaļas.
   document.getElementById('new-tracks-wrap').style.display = 'none';
   document.getElementById('all-tracks-heading').style.display = '';
 
-  // ── Visas dziesmas (ar iespējamu meklēšanas/žanra/kārtošanas filtru) ──
   if (!tracks.length) { list.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`; return; }
 
   const q = trackSearchQuery.trim().toLowerCase();
@@ -1246,19 +1242,13 @@ function renderTracks() {
     ? tracks.filter(t2 => (t2.title || '').toLowerCase().includes(q) || (t2.artist || '').toLowerCase().includes(q))
     : tracks.slice();
 
-  if (trackGenreFilter !== 'Visi') {
-    filtered = filtered.filter(t2 => (t2.genre || 'Nenoteikts') === trackGenreFilter);
-  }
   if (trackSortMode === 'popular') {
     filtered = filtered.slice().sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
   }
 
-  renderGenreChips(tracks);
-
   const genreLabelEl = document.getElementById('genre-browse-label');
   if (genreLabelEl) {
-    const flag = activeBrowseLanguage === 'LV' ? '🇱🇻' : '🇬🇧';
-    genreLabelEl.textContent = trackGenreFilter === 'Visi' ? flag : `${flag} 📁 ${trackGenreFilter}`;
+    genreLabelEl.textContent = activeBrowseLanguage === 'LV' ? '🇱🇻 Latviešu mūzika' : '🇬🇧 English music';
   }
 
   if (!filtered.length) {
@@ -1281,7 +1271,6 @@ function renderTracks() {
 }
 
 function backToGenreFolders() {
-  trackGenreFilter = 'Visi';
   trackSearchQuery = '';
   const searchInput = document.getElementById('track-search');
   if (searchInput) searchInput.value = '';
@@ -1296,104 +1285,30 @@ function handleTrackSearch(value) {
   renderTracks();
 }
 
-// ── Krāsainās "mapes" pēc žanra ──
-const GENRE_FOLDER_STYLE = {
-  "Trap / Hip-Hop": { icon: "🔥", grad: "linear-gradient(135deg,#ff3d81,#a63dff)" },
-  "Synthwave":      { icon: "🌆", grad: "linear-gradient(135deg,#a63dff,#00e5c7)" },
-  "Lo-fi":          { icon: "☕", grad: "linear-gradient(135deg,#ffb37a,#ff3d81)" },
-  "EDM / Electro":  { icon: "⚡", grad: "linear-gradient(135deg,#00e5c7,#3d7bff)" },
-  "Indie / Alt":    { icon: "🎸", grad: "linear-gradient(135deg,#ffd23f,#ff3d81)" },
-  "Pop":            { icon: "✨", grad: "linear-gradient(135deg,#ff3d81,#ffd23f)" },
-  "R&B / Soul":     { icon: "💜", grad: "linear-gradient(135deg,#a63dff,#ff3d81)" },
-  "Rock":           { icon: "🤘", grad: "linear-gradient(135deg,#ff4d6d,#1a0f2b)" },
-  "Reggaeton":      { icon: "🌴", grad: "linear-gradient(135deg,#00e5c7,#ffd23f)" },
-  "Nenoteikts":     { icon: "🗂️", grad: "linear-gradient(135deg,#ff3d81,#ffd23f,#00e5c7)" },
-};
-const FALLBACK_GRADS = [
-  "linear-gradient(135deg,#ff3d81,#3d7bff)", "linear-gradient(135deg,#00e5c7,#a63dff)",
-  "linear-gradient(135deg,#ffd23f,#ff4d6d)", "linear-gradient(135deg,#3d7bff,#ffd23f)",
-];
-function genreFolderStyle(genre) {
-  if (GENRE_FOLDER_STYLE[genre]) return GENRE_FOLDER_STYLE[genre];
-  let hash = 0;
-  for (let i = 0; i < genre.length; i++) hash = (hash * 31 + genre.charCodeAt(i)) >>> 0;
-  return { icon: "🎵", grad: FALLBACK_GRADS[hash % FALLBACK_GRADS.length] };
-}
-
-function renderGenreFolders(tracks, gridId, lang) {
+function renderLanguageFolder(tracks, gridId, lang) {
   const grid = document.getElementById(gridId);
   if (!grid) return;
-  const counts = {};
-  tracks.forEach(t2 => {
-    const g = t2.genre || 'Nenoteikts';
-    counts[g] = (counts[g] || 0) + 1;
-  });
-  // Publiskajiem apmeklētājiem nesašķirotās dziesmas nemaz nerāda —
-  // šķirošana ir tikai admin ziņā, apmeklētājs redz tikai jau gatavo.
-  // "Nenoteikts" nekad nav parasta pārlūkojama mape — tā vietā tai ir
-  // sava, atsevišķa darbības kartīte (skat. zemāk).
-  const genres = Object.keys(counts)
-    .filter(g => g !== 'Nenoteikts')
-    .sort((a, b) => counts[b] - counts[a]);
+  const count = tracks.length;
+  const style = lang === 'LV'
+    ? { icon: '🇱🇻', grad: 'linear-gradient(135deg,#ff3d81,#a63dff)' }
+    : { icon: '🇬🇧', grad: 'linear-gradient(135deg,#00e5c7,#3d7bff)' };
 
-  const missingGenreCount = tracks.filter(t2 => !t2.genre || t2.genre === 'Nenoteikts').length;
-  const needsAttention = isAdmin && missingGenreCount > 0;
-
-  if (!genres.length && !needsAttention) {
+  if (!count) {
     grid.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`;
     return;
   }
 
-  const actionCardHtml = needsAttention ? `
-    <div class="genre-folder unsorted unsorted-action">
-      <div class="uf-left">
-        <div class="uf-icon">🗂️</div>
-        <div class="uf-text">
-          <b>Bez žanra (redzi tikai tu, admin)</b>
-          <span>${missingGenreCount} ${missingGenreCount === 1 ? 'dziesma' : 'dziesmas'} gaida žanru</span>
-        </div>
-      </div>
-      <button class="uf-btn" onclick="openQuickSort()">Sašķirot tagad</button>
-    </div>` : '';
+  grid.innerHTML = `
+    <div class="genre-folder" style="--folder-grad:${style.grad}">
+      <div class="genre-folder-icon">${style.icon}</div>
+      <div class="genre-folder-name">${lang === 'LV' ? 'Latviešu mūzika' : 'English music'}</div>
+      <div class="genre-folder-count">${count} ${count === 1 ? 'dziesma' : 'dziesmas'}</div>
+    </div>`;
 
-  const folderCardsHtml = genres.map(g => {
-    const style = genreFolderStyle(g);
-    const count = counts[g];
-    return `
-      <div class="genre-folder" data-g="${escapeAttr(g)}" style="--folder-grad:${style.grad}">
-        <div class="genre-folder-icon">${style.icon}</div>
-        <div class="genre-folder-name">${escapeHtml(g)}</div>
-        <div class="genre-folder-count">${count} ${count === 1 ? 'dziesma' : 'dziesmas'}</div>
-      </div>`;
-  }).join('');
-
-  grid.innerHTML = actionCardHtml + folderCardsHtml;
-
-  // Klikšķis darbojas tikai uz īstajām žanru mapēm, nevis uz "Nesašķirotās" kartītes.
-  grid.querySelectorAll('.genre-folder:not(.unsorted-action)').forEach(el => {
-    el.addEventListener('click', () => {
-      trackGenreFilter = el.dataset.g;
-      activeBrowseLanguage = lang;
-      genreFolderView = false;
-      renderTracks();
-    });
-  });
-}
-
-function renderGenreChips(tracks) {
-  const row = document.getElementById('genre-chip-row');
-  if (!row) return;
-  let genres = ['Visi', ...new Set(tracks.map(t2 => t2.genre || 'Nenoteikts'))];
-  if (!isAdmin) genres = genres.filter(g => g !== 'Nenoteikts');
-  row.innerHTML = genres.map(g =>
-    `<button class="genre-chip ${g === trackGenreFilter ? 'active' : ''}" data-g="${escapeAttr(g)}">${escapeHtml(g)}</button>`
-  ).join('');
-  row.querySelectorAll('.genre-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      trackGenreFilter = btn.dataset.g;
-      genreFolderView = false;
-      renderTracks();
-    });
+  grid.querySelector('.genre-folder').addEventListener('click', () => {
+    activeBrowseLanguage = lang;
+    genreFolderView = false;
+    renderTracks();
   });
 }
 

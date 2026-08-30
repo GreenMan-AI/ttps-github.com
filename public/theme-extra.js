@@ -194,123 +194,35 @@
 })();
 
 // ══════════════════════════════════════════════════
-//  ŽANRA IETEIKŠANA PĒC ATSLĒGVĀRDIEM (papildu admin rīks)
+//  ĀTRĀ SAŠĶIROŠANA (admin rīks)
 // ══════════════════════════════════════════════════
 (function () {
-  const GENRE_RULES = {
-    "Trap / Hip-Hop": ["trap","808","repa","bass","flow","haiterss","rime","spitot","betons"],
-    "Synthwave": ["synth","retro","neons","80","analogs","nakts brauciens","vhs"],
-    "Lo-fi": ["lofi","lo-fi","čills","mierīgs","lietus","kafija","mācības","relaks"],
-    "EDM / Electro": ["drop","festivāls","electro","dejot","bpm","klubs","bass drop"],
-    "Indie / Alt": ["ģitāra","dzīvi ierakstīts","alternatīvs","garāža","live","akustika"],
-    "Pop": ["refrēns","radio","vasara","dejot kopā","piparmētra","pop"],
-    "R&B / Soul": ["dvēsele","mīksts vokāls","nakts skaņa","jūtīgs","romantika"],
-    "Rock": ["ģitārsolo","bungas","enerģisks","koncerts","skaļš"],
-    "Reggaeton": ["reggaeton","latino","dejo","ritms","vasaras hits"]
-  };
-  function classifyGenre(text) {
-    const t = (text || '').toLowerCase();
-    let best = null, bestScore = 0;
-    for (const [genre, words] of Object.entries(GENRE_RULES)) {
-      let score = 0;
-      for (const w of words) { if (t.includes(w)) score++; }
-      if (score > bestScore) { bestScore = score; best = genre; }
-    }
-    return best ? { genre: best, confidence: Math.min(95, 40 + bestScore * 20) } : { genre: null, confidence: 0 };
-  }
 
-  const btn = document.getElementById('t-genre-suggest');
-  if (btn) {
-    btn.addEventListener('click', () => {
-      const title = (document.getElementById('t-title')?.value || '');
-      const lyrics = (document.getElementById('t-lyrics')?.value || '');
-      const result = classifyGenre(title + ' ' + lyrics);
-      const genreEl = document.getElementById('t-genre');
-      if (result.genre) {
-        genreEl.value = result.genre;
-        if (window.toast) toast(`✨ Ieteiktais žanrs: ${result.genre} (${result.confidence}% ticamība)`, 'ok');
-      } else {
-        if (window.toast) toast('Nevarēju noteikt žanru no nosaukuma/vārdiem — ieraksti manuāli.', 'err');
-      }
-    });
-  }
-
-  // ── Auto-sašķirošana — visām "Nenoteikts" dziesmām mēģina noteikt
-  //    žanru pēc nosaukuma (un vārdiem, ja tādi ievadīti) ──
-  const autoClassifyBtn = document.getElementById('auto-classify-btn');
-  if (autoClassifyBtn) {
-    autoClassifyBtn.addEventListener('click', async () => {
-      const tracks = (window._tracks || []).filter(t2 => !t2.genre || t2.genre === 'Nenoteikts');
-      if (!tracks.length) {
-        if (window.toast) toast('Visām dziesmām jau ir noteikts žanrs.', 'ok');
-        return;
-      }
-      autoClassifyBtn.disabled = true;
-      autoClassifyBtn.textContent = '🪄 Strādā...';
-
-      let updated = 0, skipped = 0;
-      for (const tr of tracks) {
-        const result = classifyGenre((tr.title || '') + ' ' + (tr.lyrics || ''));
-        if (!result.genre) { skipped++; continue; }
-        try {
-          const res = await fetch(`/api/tracks/${tr._id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ genre: result.genre }),
-          });
-          if (res.ok) updated++; else skipped++;
-        } catch (e) { skipped++; }
-      }
-
-      autoClassifyBtn.disabled = false;
-      autoClassifyBtn.textContent = '🪄 Auto-sašķirot';
-      if (window.toast) {
-        toast(skipped
-          ? `Gatavs — sašķirotas ${updated}, ${skipped} palika nesašķirotas (par maz atslēgvārdu nosaukumā).`
-          : `Gatavs — sašķirotas visas ${updated} dziesmas!`, 'ok');
-      }
-      if (typeof loadTracks === 'function') { await loadTracks(); }
-    });
-  }
-
-  // ── Ātrā sašķirošana — panelis ar dropdown katrai nesašķirotai dziesmai
-  //    (žanrs UN/vai valoda, atkarībā no tā, kas konkrētajai dziesmai trūkst) ──
-  const GENRE_OPTIONS = Object.keys(GENRE_RULES);
+  // ── Ātrā sašķirošana — panelis ar valodas dropdown katrai dziesmai,
+  //    kam vēl nav norādīta valoda (žanrs vairs neietekmē pārlūkošanu,
+  //    tāpēc šeit vairs nav vajadzīgs) ──
   window.openQuickSort = function () {
     const overlay = document.getElementById('quicksort-overlay');
     const listEl = document.getElementById('quicksort-list');
     if (!overlay || !listEl) return;
 
-    const unsorted = (window._tracks || []).filter(t2 =>
-      !t2.genre || t2.genre === 'Nenoteikts' || !t2.language
-    );
+    const unsorted = (window._tracks || []).filter(t2 => !t2.language);
     if (!unsorted.length) {
-      if (window.toast) toast('Visām dziesmām jau ir noteikts žanrs un valoda.', 'ok');
+      if (window.toast) toast('Visām dziesmām jau ir norādīta valoda.', 'ok');
       return;
     }
 
-    listEl.innerHTML = unsorted.map(tr => {
-      const needsGenre = !tr.genre || tr.genre === 'Nenoteikts';
-      const needsLang = !tr.language;
-      return `
+    listEl.innerHTML = unsorted.map(tr => `
       <div class="quicksort-row" data-id="${tr._id}">
         <div class="qs-title" title="${escapeAttr(tr.title || '')}">${escapeHtml(tr.title || '')}</div>
-        ${needsGenre ? `
-          <select class="qs-genre-select">
-            <option value="">— žanrs —</option>
-            ${GENRE_OPTIONS.map(g => `<option value="${escapeAttr(g)}">${escapeHtml(g)}</option>`).join('')}
-          </select>` : ''}
-        ${needsLang ? `
-          <select class="qs-lang-select">
-            <option value="">— valoda —</option>
-            <option value="LV">🇱🇻 LV</option>
-            <option value="EN">🇬🇧 EN</option>
-          </select>` : ''}
+        <select class="qs-lang-select">
+          <option value="">— valoda —</option>
+          <option value="LV">🇱🇻 Latviešu</option>
+          <option value="EN">🇬🇧 English</option>
+        </select>
         <span class="qs-saved">✓ saglabāts</span>
       </div>
-    `;
-    }).join('');
+    `).join('');
 
     async function saveField(row, field, value) {
       const id = row.dataset.id;
@@ -333,14 +245,6 @@
       }
     }
 
-    listEl.querySelectorAll('.quicksort-row .qs-genre-select').forEach(sel => {
-      sel.addEventListener('change', (e) => {
-        if (!e.target.value) return;
-        const row = e.target.closest('.quicksort-row');
-        sel.disabled = true;
-        saveField(row, 'genre', e.target.value);
-      });
-    });
     listEl.querySelectorAll('.quicksort-row .qs-lang-select').forEach(sel => {
       sel.addEventListener('change', (e) => {
         if (!e.target.value) return;

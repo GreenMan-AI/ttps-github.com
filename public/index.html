@@ -84,7 +84,6 @@
   <span data-i18n="admin_bar">🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot bildes un mūziku</span>
   <div style="display:flex;gap:8px">
     <button class="btn sm" onclick="runFixEncoding()" title="Salabo esošos sabojātos LV burtus/emocijzīmes datubāzē">🛠 Salabot kodējumu</button>
-    <button class="btn sm" id="auto-classify-btn" title="Automātiski nosaka žanru visām nesašķirotajām dziesmām pēc nosaukuma">🪄 Auto-sašķirot</button>
     <button class="btn sm" id="export-csv-btn" title="Lejupielādēt visu dziesmu sarakstu kā CSV">⇩ CSV</button>
     <button class="btn sm danger" onclick="adminLogout()" data-i18n="logout">Iziet</button>
   </div>
@@ -532,10 +531,7 @@
       <div class="field"><label data-i18n="title_label">Nosaukums</label><input id="t-title" required></div>
       <div class="field"><label data-i18n="artist_label">Izpildītājs (nav obligāts)</label><input id="t-artist"></div>
       <div class="field"><label data-i18n="genre_label">Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)</label>
-        <div style="display:flex; gap:8px;">
-          <input id="t-genre" list="genre-list" style="flex:1;"><datalist id="genre-list"></datalist>
-          <button type="button" class="btn sm" id="t-genre-suggest" title="Ieteikt žanru pēc nosaukuma/vārdiem">✨ Ieteikt</button>
-        </div>
+        <input id="t-genre" list="genre-list"><datalist id="genre-list"></datalist>
       </div>
       <div class="field"><label>Valoda</label>
         <select id="t-language">
