@@ -1,483 +1,303 @@
 <!DOCTYPE html>
-<html lang="lv">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- OG:START -->
-<title id="page-title">DJ Gajon</title>
-<meta name="description" content="DJ Gajon — klausies mūziku, apskati bildes un sazinies tiešraides čatā.">
+<title id="pageTitle">WAVE — Sound that belongs only to you</title>
+<meta name="description" id="metaDescription" content="One player for your whole collection.">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="DJ Gajon">
-<meta property="og:title" content="DJ Gajon">
-<meta property="og:description" content="Klausies mūziku,sazinies tiešraides čatā.">
-<meta property="og:image" content="https://www.gajon.id.lv/og-image.png?v=2">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:type" content="image/png">
-<meta property="og:url" content="https://www.gajon.id.lv">
+<meta property="og:site_name" content="WAVE">
+<meta property="og:title" id="ogTitle" content="WAVE — Sound that belongs only to you">
+<meta property="og:description" id="ogDescription" content="One player for your whole collection.">
+<meta property="og:image" id="ogImage" content="">
+<meta property="og:url" id="ogUrl" content="">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="DJ Gajon">
-<meta name="twitter:description" content="Klausies mūziku,sazinies tiešraides čatā.">
-<meta name="twitter:image" content="https://www.gajon.id.lv/og-image.png?v=2">
-<link rel="canonical" href="https://www.gajon.id.lv/">
-<!-- OG:END -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "DJ Gajon",
-  "url": "https://www.gajon.id.lv/"
-}
-</script>
-<link rel="icon" href="/favicon.ico?v=2">
-<link rel="icon" type="image/png" sizes="192x192" href="/logo192.png?v=2">
-<link rel="icon" type="image/png" sizes="512x512" href="/logo512.png?v=2">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
-<!-- SVARĪGI: ?v=N skaitlis jāpalielina par 1 ikreiz, kad maina app.js vai design.css —
-     tas piespiež pārlūku vienmēr ielādēt jaunāko versiju, apejot jebkādu vecu kešatmiņu. -->
-<link rel="stylesheet" href="/design.css?v=22">
+<meta name="twitter:title" id="twTitle" content="WAVE — Sound that belongs only to you">
+<meta name="twitter:description" id="twDescription" content="One player for your whole collection.">
+<meta name="twitter:image" id="twImage" content="">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#07080B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
-<div id="site-bg-a" class="site-bg-layer"></div>
-<div id="site-bg-b" class="site-bg-layer"></div>
-<div id="site-bg-overlay"></div>
+<div class="site-bg-image" id="siteBgImage"></div>
+<div class="grain"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
 
+<div class="loading-veil" id="loadingVeil">
+  <div class="loading-mark"></div>
+  <span>WAVE is loading…</span>
+</div>
 
-<header>
-  <div class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" id="logo-text">DJ Gajon</div>
-  <nav>
-    <a href="#about" data-i18n="nav_about">Informācīja</a>
-    <a href="#gallery" data-i18n="nav_gallery">Bildes</a>
-    <a href="#music" data-i18n="nav_music">Mūzika</a>
-    <a href="javascript:void(0)" onclick="toggleChatPanel(true)" data-i18n="nav_chat">Čats</a>
-    <button class="btn sm" onclick="openShareModal(location.origin, document.getElementById('page-title').textContent)" title="Dalies ar lapu" data-i18n="nav_share">🔗 Dalies</button>
-    <button class="btn sm lang-switch" id="lang-toggle" onclick="toggleLang()" title="Switch language / Mainīt valodu">🌐 EN</button>
-  </nav>
+<!-- ============ NAV ============ -->
+<nav class="site-nav">
+  <a href="/" class="logo">
+    <span class="logo-mark"></span>
+    <span id="siteTitleNav">WAVE</span>
+  </a>
+  <div class="nav-right">
+    <span class="nav-tagline" id="siteTagline">Music that gets listened to, not searched for</span>
+    <span class="nav-admin-hint"><span data-i18n="navHintBefore">type</span>&nbsp;<kbd id="navHintWord">•••••••</kbd>&nbsp;<span data-i18n="navHintAfter">anywhere → admin</span></span>
+    <div class="lang-toggle" id="langToggle">
+      <button data-lang="en" class="active">EN</button>
+      <button data-lang="lv">LV</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="hero-copy">
+    <div class="eyebrow"><span class="eyebrow-dot"></span> <span data-i18n="heroEyebrow">Live now</span></div>
+    <h1><span data-i18n="heroTitlePre">Sound that </span><em data-i18n="heroTitleEm">belongs</em><span data-i18n="heroTitlePost"> only to you.</span></h1>
+    <p data-i18n="heroPara">One player for your whole collection — no subscriptions, no algorithm, no distractions. Just music.</p>
+    <div class="hero-cta">
+      <button class="btn btn-primary" id="heroPlayBtn"><span class="btn-icon">▶</span> <span data-i18n="heroBtnPlay">Start listening</span></button>
+      <a href="#tracklist" class="btn btn-ghost" data-i18n="heroBtnLineup">View tracklist</a>
+    </div>
+  </div>
+
+  <div class="hero-stage">
+    <div class="stage-card" id="stageCard">
+      <div class="stage-bg" id="stageBg"></div>
+      <div class="stage-inner">
+        <div class="np-block">
+          <img class="np-cover" id="npCover" alt="" hidden>
+          <div class="np-label" data-i18n="npLabel">Now playing</div>
+          <div class="np-title" id="npTitle">Choose a song</div>
+          <div class="np-artist" id="npArtist">and the real magic begins</div>
+          <div class="np-actions">
+            <button class="np-action-btn" id="likeBtn" aria-pressed="false" aria-label="Like this song" hidden>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+            </button>
+            <button class="np-action-btn" id="shareBtn" aria-label="Copy link to this song" hidden>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>
+            </button>
+            <button class="np-action-btn" id="lyricsBtn" aria-expanded="false" hidden>
+              <span data-i18n="lyricsLabel">Lyrics</span>
+            </button>
+          </div>
+          <div class="lyrics-panel" id="lyricsPanel" hidden></div>
+        </div>
+
+        <button class="radio-toggle" id="radioToggle" aria-pressed="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+          <span id="radioLabel">Radio DJ</span>
+        </button>
+
+        <div class="ring-player">
+          <svg class="ring-svg" id="ringSvg" viewBox="0 0 160 160">
+            <circle class="ring-track" cx="80" cy="80" r="72"></circle>
+            <circle class="ring-progress" id="ringProgress" cx="80" cy="80" r="72"></circle>
+          </svg>
+          <button class="ring-play" id="playBtn" aria-label="Play / pause">
+            <svg id="playIcon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+        </div>
+
+        <div class="bars" id="bars"></div>
+
+        <div class="transport-row">
+          <button class="btn-icon-round" id="prevBtn" aria-label="Previous">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+          </button>
+          <div class="seek-wrap">
+            <span class="time mono" id="curTime">0:00</span>
+            <input type="range" id="seek" value="0" min="0" max="100" step="0.1">
+            <span class="time mono end" id="durTime">0:00</span>
+          </div>
+          <button class="btn-icon-round" id="nextBtn" aria-label="Next">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </header>
 
-<div id="admin-bar">
-  <span data-i18n="admin_bar">🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot bildes un mūziku</span>
-  <div style="display:flex;gap:8px">
-    <button class="btn sm" onclick="runFixEncoding()" title="Salabo esošos sabojātos LV burtus/emocijzīmes datubāzē">🛠 Salabot kodējumu</button>
-    <button class="btn sm danger" onclick="adminLogout()" data-i18n="logout">Iziet</button>
-  </div>
-</div>
+<!-- ============ MARQUEE ============ -->
+<div class="marquee-wrap"><div class="marquee-track" id="marqueeTrack"></div></div>
 
-<section class="hero">
-  <img id="hero-profile-img" class="hero-avatar" src="" alt="" style="display:none">
-  <h1 id="hero-title">Sveiki, esmu DJ Gajon!</h1>
-  <p id="hero-subtitle">Šeit klausies manu pašsacerēto mūziku un skaties bildes.</p>
-  <div class="btn-row admin-only" style="display:none;margin-top:16px;justify-content:center">
-    <button class="btn sm" onclick="openContentModal()" data-i18n="edit_text">✏️ Rediģēt tekstu</button>
-    <button class="btn sm" onclick="openBgModal()" data-i18n="edit_bg">🖼️ Fona bilde</button>
-    <button class="btn sm" onclick="openHeroImgModal()" data-i18n="edit_hero_img">🙂 Profila bilde</button>
+<!-- ============ TRACKLIST ============ -->
+<section class="tracklist-section" id="tracklist">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow small"><span class="eyebrow-dot"></span> <span data-i18n="trackEyebrow">Collection</span></div>
+      <h2 data-i18n="trackHeading">Tracklist</h2>
+    </div>
+    <span class="count mono" id="trackCount">0 tracks</span>
   </div>
+  <div class="tracklist-controls">
+    <div class="search-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="trackSearch" data-i18n-ph="searchPlaceholder" placeholder="Search songs or artists…">
+    </div>
+    <select id="albumFilter" class="album-filter" hidden></select>
+  </div>
+  <div id="trackList"></div>
 </section>
 
-<!-- Profila bildes modālais logs -->
-<div class="modal-overlay" id="hero-img-modal">
-  <div class="modal">
-    <h3 data-i18n="hero_img_title">Profila bilde</h3>
-    <p class="hint" data-i18n="hero_img_hint">Neliela apļveida bilde, kas parādās virs virsraksta.</p>
-    <div class="field">
-      <label data-i18n="image_label">Bilde</label>
-      <input type="file" id="f-heroImg" accept="image/*">
+<footer class="site-footer"><span data-i18n="footer">WAVE — your music, your rules.</span></footer>
+
+<!-- ============ ADMIN FLOW ============ -->
+<div class="admin-overlay" id="adminOverlay">
+
+  <div class="admin-card" id="loginCard" data-step="password">
+    <button class="admin-close" id="closeLogin" aria-label="Close">✕</button>
+    <div class="admin-card-head">
+      <div class="tag" data-i18n="step1">Step 1 of 2</div>
+      <h2 data-i18n="adminLoginTitle">Admin login</h2>
+      <p class="dim" data-i18n="adminLoginHint">Enter your username and password.</p>
     </div>
-    <div id="hero-img-preview" style="margin-bottom:10px"></div>
-    <div class="msg-err" id="hero-img-err"></div>
-    <div class="modal-actions" style="justify-content:space-between">
-      <button type="button" class="btn sm danger" id="hero-img-remove-btn" style="display:none" onclick="removeHeroImage()" data-i18n="hero_img_remove">🗑️ Noņemt</button>
-      <div style="display:flex;gap:10px">
-        <button type="button" class="btn" onclick="closeModal('hero-img-modal')" data-i18n="close">Aizvērt</button>
-        <button type="button" class="btn primary" id="hero-img-upload-btn" onclick="uploadHeroImage()" data-i18n="upload">Augšupielādēt</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<section id="about">
-  <h2 data-i18n="about_title">Informācīja</h2>
-  <p class="about-text" id="about-text">...</p>
-</section>
-
-<section id="gallery">
-  <h2 data-i18n="gallery_title">Bildes</h2>
-  <button class="btn sm admin-only" style="display:none;margin-bottom:14px" onclick="openGalleryModal()" data-i18n="add_image">➕ Pievienot bildi</button>
-  <div class="cat-tabs" id="cat-tabs"></div>
-  <div class="gallery-grid" id="gallery-grid"></div>
-</section>
-
-<section id="music">
-  <div class="section-header-row">
-    <h2 data-i18n="music_title">Mūzika</h2>
-    <button class="btn sm view-toggle-btn" id="view-toggle-btn" onclick="toggleTrackView()" title="Pārslēgt skatu">🔲 Režģa skats</button>
-  </div>
-  <div class="btn-row admin-only" style="display:none;margin-bottom:14px">
-    <button class="btn sm" onclick="openTrackModal()" data-i18n="add_track">➕ Pievienot dziesmu</button>
-    <button class="btn sm" onclick="openBulkModal()" data-i18n="add_bulk">📦 Pievienot vairākas uzreiz</button>
-  </div>
-  <p class="hint admin-only" id="drag-hint" style="display:none" data-i18n="drag_hint">Padoms: adminā vari dziesmas pārkārtot, velkot aiz ⠿ ikonas.</p>
-
-  <div id="new-tracks-wrap" style="display:none">
-    <h3 class="sub-h" data-i18n="new_this_week">🆕 Šīs nedēļas jaunumi</h3>
-    <div class="track-list" id="new-track-list"></div>
-  </div>
-
-  <h3 class="sub-h" id="all-tracks-heading" data-i18n="all_tracks">🎵 Visas dziesmas</h3>
-  <input type="text" id="track-search" class="track-search" data-i18n-ph="track_search_ph" placeholder="🔍 Meklēt dziesmu vai izpildītāju..." oninput="handleTrackSearch(this.value)">
-  <div class="track-list" id="track-list"></div>
-</section>
-
-<footer id="footer-text">DJ Gajon</footer>
-
-<div id="player-bar">
-  <div class="pb-track-info">
-    <div class="pb-cover-wrap">
-      <img id="pb-cover" class="cover" src="" alt="">
-      <div class="waveform" id="pb-waveform">
-        <span></span><span></span><span></span><span></span><span></span>
-      </div>
-    </div>
-    <div class="info">
-      <div class="t" id="pb-title">—</div>
-      <div class="a" id="pb-artist"></div>
-    </div>
-  </div>
-
-  <div class="pb-center">
-    <div class="pb-controls">
-      <button class="pb-btn pb-toggle" id="pb-shuffle" title="Jaukt secību">🔀</button>
-      <button class="pb-btn" id="pb-prev" title="Iepriekšējā">⏮</button>
-      <button class="pb-btn pb-play" id="pb-playpause" title="Atskaņot/Pauze">▶</button>
-      <button class="pb-btn" id="pb-next" title="Nākamā">⏭</button>
-      <button class="pb-btn pb-toggle" id="pb-repeat" title="Atkārtot">🔁</button>
-    </div>
-    <div class="pb-seek-row">
-      <span class="pb-time" id="pb-current">0:00</span>
-      <div class="pb-progress" id="pb-progress">
-        <div class="pb-progress-fill" id="pb-progress-fill"></div>
-        <div class="pb-progress-handle" id="pb-progress-handle"></div>
-      </div>
-      <span class="pb-time" id="pb-duration">0:00</span>
-    </div>
-  </div>
-
-  <div class="pb-volume">
-    <span id="pb-vol-icon">🔊</span>
-    <input type="range" id="pb-volume-slider" min="0" max="1" step="0.01" value="1">
-    <button class="pb-btn" id="pb-download" title="Lejupielādēt šo dziesmu" onclick="downloadCurrentTrack()">⬇</button>
-  </div>
-
-  <audio id="pb-audio"></audio>
-</div>
-
-<!-- Apmeklējumu skaitītājs (redzams tikai adminam) -->
-<div id="visit-counter" style="display:none; flex-direction:column; gap:2px; font-size:13px;" title="Apmeklējumu statistika (bez tavējiem)">
-  <span>🟢 Tiešsaistē tagad: <b id="visit-count-online">0</b></span>
-  <span>📅 Šomēnes: <b id="visit-count-month">0</b></span>
-  <span>👁 Kopā (vēsturiski): <b id="visit-count-num">0</b></span>
-</div>
-
-<!-- Peldošā čata poga (kreisajā apakšējā stūrī) -->
-<button id="chat-fab" title="Čats" onclick="toggleChatPanel()">
-  💬<span id="chat-badge" class="chat-badge" style="display:none">0</span>
-</button>
-
-<!-- Peldošais čata panelis -->
-<div id="chat-panel">
-  <div class="chat-panel-header">
-    <span data-i18n="chat_title">Čats</span>
-    <button class="chat-panel-close" onclick="toggleChatPanel(false)" title="Aizvērt">✕</button>
-  </div>
-  <div id="chat-msgs"></div>
-  <form class="chat-form" id="chat-form">
-    <input id="chat-name" type="text" data-i18n-ph="chat_name_ph" placeholder="Tavs vārds" maxlength="30" required>
-    <input id="chat-text" type="text" data-i18n-ph="chat_text_ph" placeholder="Raksti ziņu..." maxlength="500" required>
-    <button type="button" class="chat-translate-btn" title="Iztulkot manu ziņu" onclick="translateChatDraft()">T</button>
-    <button class="btn sm primary" type="submit" data-i18n="chat_send">Sūtīt</button>
-  </form>
-  <button class="btn sm danger admin-only" style="display:none;margin:10px" onclick="clearChat()" data-i18n="clear_chat">🗑️ Notīrīt čatu</button>
-</div>
-
-<!-- Admin login FAB — TĪŠI noņemts no redzamā HTML. Piekļuve ir tikai
-     caur slēpto mehānismu app.js failā (skat. "SLĒPTĀ ADMIN PIEKĻUVE"). -->
-<div id="admin-fab" style="display:none;"></div>
-
-<!-- Atpakaļ uz augšu poga -->
-<button id="back-to-top" title="Uz augšu" onclick="scrollToTop()">⬆</button>
-
-<!-- Share modal -->
-<div class="modal-overlay" id="share-modal">
-  <div class="modal">
-    <h3 data-i18n="share_title">Dalies ar draugiem</h3>
-    <div class="share-preview">
-      <div class="share-preview-title" id="share-preview-title">—</div>
-      <div class="share-preview-url" id="share-preview-url">—</div>
-    </div>
-    <div class="share-btn-grid">
-      <button class="share-btn share-fb" onclick="shareVia('facebook')">
-        <span class="share-icon">📘</span> Facebook
-      </button>
-      <button class="share-btn share-wa" onclick="shareVia('whatsapp')">
-        <span class="share-icon">💬</span> WhatsApp
-      </button>
-      <button class="share-btn share-x" onclick="shareVia('x')">
-        <span class="share-icon">✖️</span> X
-      </button>
-      <button class="share-btn share-tg" onclick="shareVia('telegram')">
-        <span class="share-icon">✈️</span> Telegram
-      </button>
-      <button class="share-btn share-copy" onclick="shareVia('copy')">
-        <span class="share-icon">🔗</span> <span data-i18n="share_copy">Kopēt saiti</span>
-      </button>
-      <button class="share-btn share-more admin-only-hide-if-unsupported" id="share-native-btn" onclick="shareVia('native')" style="display:none">
-        <span class="share-icon">📤</span> <span data-i18n="share_more">Vairāk...</span>
-      </button>
-    </div>
-    <div class="modal-actions">
-      <button type="button" class="btn" onclick="closeModal('share-modal')" data-i18n="cancel">Atcelt</button>
-    </div>
-  </div>
-</div>
-
-<!-- Login modal -->
-<div class="modal-overlay" id="login-modal">
-  <div class="modal">
-    <h3 data-i18n="login_title">Admin ielogošanās</h3>
-    <form id="login-form">
-      <div class="field">
-        <label data-i18n="login_user">Lietotājvārds</label>
-        <input type="text" id="login-user" required autocomplete="username">
-      </div>
-      <div class="field">
-        <label data-i18n="login_pass">Parole</label>
-        <input type="password" id="login-pass" required autocomplete="current-password">
-      </div>
-      <div class="field">
-        <label data-i18n="login_totp">Autentifikācijas kods (2FA)</label>
-        <input type="text" id="login-totp" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="123456">
-      </div>
-      <!-- Honeypot lauks pret botiem — cilvēkam neredzams (aizsegts ar CSS un
-           izņemts no Tab secības), bet automātiskie skenējošie boti to bieži
-           aizpilda un tā nodod sevi. NEDZĒST un NEPADARĪT redzamu. -->
-      <div class="field" aria-hidden="true" style="position:absolute; left:-9999px; top:-9999px; height:0; width:0; overflow:hidden;">
-        <label for="login-website">Website</label>
-        <input type="text" id="login-website" name="website" tabindex="-1" autocomplete="off">
-      </div>
-      <div class="msg-err" id="login-err"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('login-modal')" data-i18n="cancel">Atcelt</button>
-        <button type="submit" class="btn primary" data-i18n="login_btn">Ielogoties</button>
-      </div>
+    <form id="loginForm">
+      <div class="field"><label data-i18n="fieldUsername">Username</label><input type="text" id="loginUsername" autocomplete="username" required></div>
+      <div class="field"><label data-i18n="fieldPassword">Password</label><input type="password" id="loginPassword" autocomplete="current-password" required></div>
+      <div class="form-error" id="loginError"></div>
+      <button class="btn btn-primary btn-full" type="submit" data-i18n="btnContinue">Continue</button>
     </form>
   </div>
-</div>
 
-<!-- Content edit modal -->
-<div class="modal-overlay" id="content-modal">
-  <div class="modal">
-    <h3 data-i18n="edit_content_title">Rediģēt lapas tekstu</h3>
-    <form id="content-form">
-      <div class="field"><label data-i18n="site_title_label">Lapas nosaukums</label><input id="f-siteTitle"></div>
-
-      <div class="lang-row">
-        <div class="field"><label>Virsraksta krāsa (hero)</label><input type="color" id="f-heroTitleColor" value="#eef2f7"></div>
-        <div class="field"><label>Apakšvirsraksta krāsa (hero)</label><input type="color" id="f-heroSubtitleColor" value="#9aa4b2"></div>
-        <div class="field"><label>"Informācīja" teksta krāsa</label><input type="color" id="f-aboutTextColor" value="#9aa4b2"></div>
-      </div>
-
-      <div class="lang-row lang-row-translate">
-        <div class="field"><label>Sauklis 🇱🇻 (LV)</label><input id="f-tagline_lv" data-pair="f-tagline_en" data-lv="1"></div>
-        <button type="button" class="translate-btn" title="Pārtulkot LV → EN" onclick="autoTranslatePair('f-tagline_lv','f-tagline_en',true)">🌐</button>
-        <div class="field"><label>Tagline 🇬🇧 (EN)</label><input id="f-tagline_en" data-pair="f-tagline_lv" data-lv="0"></div>
-      </div>
-      <div class="lang-row lang-row-translate">
-        <div class="field"><label>Virsraksts 🇱🇻 (LV)</label><input id="f-heroTitle_lv" data-pair="f-heroTitle_en" data-lv="1"></div>
-        <button type="button" class="translate-btn" title="Pārtulkot LV → EN" onclick="autoTranslatePair('f-heroTitle_lv','f-heroTitle_en',true)">🌐</button>
-        <div class="field"><label>Hero title 🇬🇧 (EN)</label><input id="f-heroTitle_en" data-pair="f-heroTitle_lv" data-lv="0"></div>
-      </div>
-      <div class="lang-row lang-row-translate">
-        <div class="field"><label>Apakšvirsraksts 🇱🇻 (LV)</label><input id="f-heroSubtitle_lv" data-pair="f-heroSubtitle_en" data-lv="1"></div>
-        <button type="button" class="translate-btn" title="Pārtulkot LV → EN" onclick="autoTranslatePair('f-heroSubtitle_lv','f-heroSubtitle_en',true)">🌐</button>
-        <div class="field"><label>Hero subtitle 🇬🇧 (EN)</label><input id="f-heroSubtitle_en" data-pair="f-heroSubtitle_lv" data-lv="0"></div>
-      </div>
-      <div class="lang-row lang-row-translate">
-        <div class="field"><label>"Informācīja" 🇱🇻 (LV)</label><textarea id="f-aboutText_lv" data-pair="f-aboutText_en" data-lv="1"></textarea></div>
-        <button type="button" class="translate-btn" title="Pārtulkot LV → EN" onclick="autoTranslatePair('f-aboutText_lv','f-aboutText_en',true)">🌐</button>
-        <div class="field"><label>"About" 🇬🇧 (EN)</label><textarea id="f-aboutText_en" data-pair="f-aboutText_lv" data-lv="0"></textarea></div>
-      </div>
-      <p class="hint" style="margin:-6px 0 12px">🌐 = pārtulkot no jauna (pārraksta EN). Ja EN lauks tukšs, tas aizpildās automātiski, kad pabeidz rakstīt LV pusē (un otrādi).</p>
-
-      <div class="field"><label data-i18n="contact_email_label">Kontakta e-pasts</label><input id="f-contactEmail"></div>
-      <div class="field"><label data-i18n="social_link_label">Sociālo tīklu saite</label><input id="f-socialLink"></div>
-      <div class="msg-err" id="content-err"></div>
-      <div class="msg-ok" id="content-ok"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('content-modal')" data-i18n="close">Aizvērt</button>
-        <button type="submit" class="btn primary" data-i18n="save">Saglabāt</button>
-      </div>
+  <div class="admin-card" id="totpCard" data-step="totp" style="display:none;">
+    <button class="admin-close" id="closeTotp" aria-label="Close">✕</button>
+    <div class="admin-card-head">
+      <div class="tag" data-i18n="step2">Step 2 of 2</div>
+      <h2 data-i18n="totpTitle">Authenticator code</h2>
+      <p class="dim" data-i18n="totpHint">Enter the 6-digit code from your authenticator app.</p>
+    </div>
+    <form id="totpForm">
+      <div class="field"><label data-i18n="fieldCode">Code</label><input type="text" id="totpCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required></div>
+      <div class="form-error" id="totpError"></div>
+      <button class="btn btn-primary btn-full" type="submit" data-i18n="btnLogin">Log in</button>
     </form>
   </div>
-</div>
 
-<!-- Fona bildes modālais logs (atsevišķi no teksta) -->
-<div class="modal-overlay" id="bg-modal">
-  <div class="modal">
-    <h3 data-i18n="edit_bg_title">Fona bilde</h3>
-    <p class="hint" data-i18n="bg_hint">Vari pievienot vienu bildi vai vairākas — ja ir vairākas, tās automātiski mainīsies aiz visas lapas.</p>
-
-    <div class="field">
-      <label data-i18n="bg_add_label">Pievienot bildi(-es) fonam</label>
-      <input type="file" id="f-bgImage" accept="image/*" multiple>
-      <button type="button" class="btn sm primary" id="bg-upload-btn" style="margin-top:8px" onclick="uploadBgSlides()" data-i18n="bg_upload">⬆️ Augšupielādēt</button>
-    </div>
-    <div id="bg-upload-progress"></div>
-    <div class="msg-err" id="bg-err"></div>
-
-    <div class="field">
-      <label data-i18n="bg_current_label">Pašreizējās fona bildes</label>
-      <div id="bg-slides-list" class="bg-slides-grid"></div>
-    </div>
-
-    <div class="field">
-      <label data-i18n="bg_size_label">Bildes izmērs</label>
-      <select id="f-bgSize">
-        <option value="cover" data-i18n="size_cover">Aizpildīt ekrānu (var apgriezt malas)</option>
-        <option value="contain" data-i18n="size_contain">Rādīt visu bildi (var būt tukšas malas)</option>
-      </select>
-    </div>
-    <div class="field">
-      <label data-i18n="bg_position_label">Bildes novietojums (centrējums)</label>
-      <select id="f-bgPosition">
-        <option value="center" data-i18n="pos_center">Centrā</option>
-        <option value="top" data-i18n="pos_top">Augšā</option>
-        <option value="bottom" data-i18n="pos_bottom">Apakšā</option>
-        <option value="left" data-i18n="pos_left">Kreisajā pusē</option>
-        <option value="right" data-i18n="pos_right">Labajā pusē</option>
-        <option value="top left" data-i18n="pos_top_left">Augšā kreisi</option>
-        <option value="top right" data-i18n="pos_top_right">Augšā labi</option>
-        <option value="bottom left" data-i18n="pos_bottom_left">Apakšā kreisi</option>
-        <option value="bottom right" data-i18n="pos_bottom_right">Apakšā labi</option>
-      </select>
-    </div>
-    <div class="field">
-      <label data-i18n="bg_overlay_label">Tumšuma pārklājums (lai teksts būtu salasāms)</label>
-      <input type="range" id="f-bgOverlay" min="0" max="0.85" step="0.05" value="0.4" oninput="document.getElementById('bg-overlay-val').textContent = Math.round(this.value*100)+'%'">
-      <span id="bg-overlay-val" style="font-size:12px;color:var(--mut)">40%</span>
-    </div>
-    <div class="field">
-      <label data-i18n="bg_interval_label">Nomaiņas intervāls (sekundēs, ja vairākas bildes)</label>
-      <input type="number" id="f-bgInterval" min="2" max="60" value="6">
-    </div>
-
-    <div class="msg-ok" id="bg-settings-ok"></div>
-    <div class="modal-actions">
-      <button type="button" class="btn" onclick="closeModal('bg-modal')" data-i18n="close">Aizvērt</button>
-      <button type="button" class="btn primary" onclick="saveBgSettings()" data-i18n="save">Saglabāt</button>
-    </div>
-  </div>
-</div>
-
-<!-- Gallery upload modal -->
-<div class="modal-overlay" id="gallery-modal">
-  <div class="modal">
-    <h3 data-i18n="add_image_title">Pievienot bildi</h3>
-    <form id="gallery-form">
-      <div class="field"><label data-i18n="image_label">Bilde</label><input type="file" id="g-file" accept="image/*" required></div>
-      <div class="field"><label data-i18n="category_label">Kategorija</label><input id="g-category" list="cat-list" placeholder="piem. Koncerti, Studija..."><datalist id="cat-list"></datalist></div>
-      <div class="field"><label data-i18n="caption_label">Paraksts (nav obligāts)</label><input id="g-caption"></div>
-      <div class="msg-err" id="gallery-err"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('gallery-modal')" data-i18n="cancel">Atcelt</button>
-        <button type="submit" class="btn primary" data-i18n="upload">Augšupielādēt</button>
+  <div class="admin-panel" id="dashboard" style="display:none;">
+    <div class="admin-head">
+      <div>
+        <div class="tag" data-i18n="dashTagPreview">Management</div>
+        <h2><span data-i18n="dashWelcome">Welcome back</span><span id="dashUsername"></span></h2>
       </div>
-    </form>
-  </div>
-</div>
-
-<!-- Track upload modal -->
-<div class="modal-overlay" id="track-modal">
-  <div class="modal">
-    <h3 data-i18n="add_track_title">Pievienot dziesmu</h3>
-    <form id="track-form">
-      <div class="field"><label data-i18n="title_label">Nosaukums</label><input id="t-title" required></div>
-      <div class="field"><label data-i18n="artist_label">Izpildītājs (nav obligāts)</label><input id="t-artist"></div>
-      <div class="field"><label data-i18n="genre_label">Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)</label><input id="t-genre" list="genre-list"><datalist id="genre-list"></datalist></div>
-      <div class="field"><label data-i18n="audio_file_label">Audio fails (MP3, WAV, OGG...)</label><input type="file" id="t-audio" accept="audio/*" required></div>
-      <div class="field"><label data-i18n="cover_label">Vāciņa bilde (nav obligāta)</label><input type="file" id="t-cover" accept="image/*"></div>
-      <div class="field"><label data-i18n="lyrics_label">Dziesmas vārdi (nav obligāti)</label><textarea id="t-lyrics" rows="5" placeholder="Ielīmē dziesmas vārdus šeit, ja vēlies..."></textarea></div>
-      <div class="msg-err" id="track-err"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('track-modal')" data-i18n="cancel">Atcelt</button>
-        <button type="submit" class="btn primary" data-i18n="upload">Augšupielādēt</button>
+      <div class="admin-head-actions">
+        <button class="btn btn-ghost btn-sm" id="logoutBtn" data-i18n="btnLogout">Log out</button>
+        <button class="admin-close" id="closeDashboard" aria-label="Close">✕</button>
       </div>
-    </form>
-  </div>
-</div>
-
-<!-- Dziesmas rediģēšanas modālis (nosaukums/izpildītājs/žanrs/vārdi) -->
-<div class="modal-overlay" id="edit-track-modal">
-  <div class="modal">
-    <h3>✏️ Rediģēt dziesmu</h3>
-    <form id="edit-track-form">
-      <input type="hidden" id="et-id">
-      <div class="field"><label>Nosaukums</label><input id="et-title" required></div>
-      <div class="field"><label>Izpildītājs</label><input id="et-artist"></div>
-      <div class="field"><label>Žanrs</label><input id="et-genre" list="genre-list"></div>
-      <div class="field"><label>Dziesmas vārdi</label><textarea id="et-lyrics" rows="6" placeholder="Ielīmē dziesmas vārdus šeit, ja vēlies..."></textarea></div>
-      <div class="msg-err" id="edit-track-err"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('edit-track-modal')">Atcelt</button>
-        <button type="submit" class="btn primary">Saglabāt</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Dziesmas vārdu skatīšanas modālis -->
-<div class="modal-overlay" id="lyrics-modal">
-  <div class="modal">
-    <h3 id="lyrics-modal-title">📜 Dziesmas vārdi</h3>
-    <p class="about-text" id="lyrics-modal-text" style="white-space:pre-wrap;max-height:50vh;overflow-y:auto"></p>
-    <div class="modal-actions">
-      <button type="button" class="btn" onclick="closeModal('lyrics-modal')">Aizvērt</button>
     </div>
-  </div>
-</div>
 
-<!-- Bulk track upload modal -->
-<div class="modal-overlay" id="bulk-modal">
-  <div class="modal">
-    <h3 data-i18n="add_bulk_title">Pievienot vairākas dziesmas uzreiz</h3>
-    <form id="bulk-form">
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-tab="content" data-i18n="tabContent">Content</button>
+      <button class="admin-tab" data-tab="songs" data-i18n="tabSongs">Songs</button>
+      <button class="admin-tab" data-tab="security" data-i18n="tabSecurity">Security</button>
+    </div>
+
+    <!-- TAB: content -->
+    <div class="admin-tab-panel" data-panel="content">
+      <div class="field-row">
+        <div class="field"><label data-i18n="fieldSiteTitle">Site title</label><input type="text" id="cfgTitle"></div>
+        <div class="field"><label data-i18n="fieldTagline">Tagline</label><input type="text" id="cfgTagline"></div>
+      </div>
+
       <div class="field">
-        <label data-i18n="audio_files_label">Audio faili (vari izvēlēties vairākus)</label>
-        <input type="file" id="b-files" accept="audio/*" multiple required>
+        <label data-i18n="fieldPlayerBg">Player card background image</label>
+        <div class="upload-row">
+          <input type="text" id="cfgBg" placeholder="https://... or upload a file">
+          <label class="btn btn-ghost btn-sm file-btn"><span data-i18n="btnChooseFile">Choose file</span><input type="file" id="bgFileInput" accept="image/*" hidden></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="fieldSiteBg">Site-wide background image</label>
+        <div class="upload-row">
+          <input type="text" id="cfgSiteBg" placeholder="https://... or upload a file">
+          <label class="btn btn-ghost btn-sm file-btn"><span data-i18n="btnChooseFile">Choose file</span><input type="file" id="siteBgFileInput" accept="image/*" hidden></label>
+        </div>
+        <div class="field-hint" data-i18n="siteBgHint">Covers the entire page, not just the player.</div>
+      </div>
+
+      <button class="btn btn-primary" id="saveContentBtn" data-i18n="btnSaveChanges">Save changes</button>
+      <div class="form-success" id="contentSuccess"></div>
+    </div>
+
+    <!-- TAB: songs -->
+    <div class="admin-tab-panel" data-panel="songs" style="display:none;">
+      <h3 class="panel-subtitle" data-i18n="addSongsTitle">Add song(s)</h3>
+
+      <div class="field">
+        <label data-i18n="fieldAudioFiles">Audio file(s)</label>
+        <div class="upload-row">
+          <label class="btn btn-ghost btn-sm file-btn" style="width:100%; justify-content:center;"><span data-i18n="btnChooseFiles">Choose file(s)</span><input type="file" id="audioFileInput" accept="audio/*" multiple hidden></label>
+        </div>
+        <div class="field-hint" data-i18n="audioMultiHint">Select multiple files to upload and add several songs at once.</div>
+        <div class="upload-progress" id="audioUploadStatus"></div>
+      </div>
+
+      <hr class="panel-divider">
+
+      <div class="field-row">
+        <div class="field"><label data-i18n="fieldSongTitle">Title</label><input type="text" id="songTitle"></div>
+        <div class="field"><label data-i18n="fieldSongArtist">Artist</label><input type="text" id="songArtist"></div>
       </div>
       <div class="field">
-        <label data-i18n="artist_label">Izpildītājs visām (nav obligāts)</label>
-        <input id="b-artist">
+        <label data-i18n="fieldAudioUrl">Or paste an audio link</label>
+        <input type="text" id="songUrl" placeholder="https://your-server.com/song.mp3">
+      </div>
+      <div class="field-row">
+        <div class="field"><label data-i18n="fieldAlbum">Album (optional)</label><input type="text" id="songAlbum"></div>
+        <div class="field">
+          <label data-i18n="fieldCover">Cover image (optional)</label>
+          <div class="upload-row">
+            <input type="text" id="songCoverUrl" placeholder="https://...">
+            <label class="btn btn-ghost btn-sm file-btn"><span data-i18n="btnChooseFile">Choose file</span><input type="file" id="songCoverFileInput" accept="image/*" hidden></label>
+          </div>
+        </div>
       </div>
       <div class="field">
-        <label data-i18n="genre_label">Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)</label>
-        <input id="b-genre" list="genre-list">
+        <label data-i18n="fieldLyrics">Lyrics (optional)</label>
+        <textarea id="songLyrics" rows="4" placeholder="Paste lyrics here…"></textarea>
       </div>
-      <p class="hint" data-i18n="bulk_hint">Nosaukumi tiks ņemti no failu nosaukumiem — pēc tam tos vari rediģēt atsevišķi.</p>
-      <div id="bulk-progress"></div>
-      <div class="msg-err" id="bulk-err"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn" onclick="closeModal('bulk-modal')" data-i18n="close">Aizvērt</button>
-        <button type="submit" class="btn primary" id="bulk-submit-btn" data-i18n="upload">Augšupielādēt</button>
+      <button class="btn btn-primary" id="addSongBtn" data-i18n="btnAddSong">+ Add song</button>
+      <div class="form-error" id="songError"></div>
+
+      <h3 class="panel-subtitle" style="margin-top:26px;" data-i18n="existingSongs">Existing songs</h3>
+      <p class="dim small-note" data-i18n="dragReorderHint">Drag songs to reorder them.</p>
+      <div id="adminSongList"></div>
+    </div>
+
+    <!-- TAB: security -->
+    <div class="admin-tab-panel" data-panel="security" style="display:none;">
+      <h3 class="panel-subtitle" data-i18n="secretWordTitle">Secret word</h3>
+      <p class="dim small-note" data-i18n="secretWordHint">This word opens the login form when typed anywhere on the page.</p>
+      <div class="field-row">
+        <div class="field"><label data-i18n="fieldNewSecret">New secret word</label><input type="text" id="newSecretWord" placeholder="at least 4 characters"></div>
+        <button class="btn btn-ghost" id="saveSecretBtn" style="align-self:flex-end;" data-i18n="btnChange">Change</button>
       </div>
-    </form>
+      <div class="form-success" id="secretSuccess"></div>
+
+      <h3 class="panel-subtitle" style="margin-top:26px;" data-i18n="twoFaTitle">Two-factor authentication</h3>
+      <p class="dim small-note" data-i18n="twoFaHint">Scan the QR code with your authenticator app, then confirm below.</p>
+      <button class="btn btn-ghost btn-sm" id="reroll2faBtn" data-i18n="btnReroll2fa">Generate new 2FA key</button>
+      <div id="totpSetupBlock" style="display:none; margin-top:16px;">
+        <img id="totpQrImg" alt="2FA QR code" style="border-radius:12px; margin-bottom:10px; max-width:180px;">
+        <div class="field">
+          <label data-i18n="fieldConfirmCode">Confirm with code from your app</label>
+          <input type="text" id="confirmTotpCode" inputmode="numeric" maxlength="6" placeholder="000000">
+        </div>
+        <button class="btn btn-primary btn-sm" id="confirmTotpBtn" data-i18n="btnConfirmActivate">Confirm & activate</button>
+        <div class="form-success" id="totpConfirmSuccess"></div>
+      </div>
+    </div>
   </div>
+
 </div>
 
-<!-- Toast paziņojumi -->
-<div id="toast-container"></div>
+<div class="toast" id="toast"></div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=23"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/script-detect.js"></script>
+<script src="/js/radio-dj.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/admin.js"></script>
 </body>
 </html>
