@@ -17,8 +17,32 @@ const server = http.createServer(app);
 const io     = new Server(server, { cors: { origin: true, credentials: false } });
 const PORT   = process.env.PORT || 3000;
 
+// Render (un lielākā daļa hostingu) liek serveri aiz sava starpniekservera
+// (proxy) — bez šī req.ip rādītu starpniekservera IP, nevis apmeklētāja īsto.
+app.set('trust proxy', 1);
+
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
+// ══════════════════════════════════════════════════
+//  ADMIN IP IEROBEŽOJUMS (nav obligāts)
+//  Ja .env failā iestatīts ADMIN_ALLOWED_IPS (ar komatu atdalīts IP
+//  saraksts), admin panelis un tā API būs pieejami TIKAI no šīm IP
+//  adresēm — visiem citiem izskatīsies, it kā šīs lapas daļas
+//  vispār nepastāvētu (404), nevis parāda "piekļuve liegta" (tas
+//  neko neizpauž iespējamam uzbrucējam).
+// ══════════════════════════════════════════════════
+const ADMIN_ALLOWED_IPS = (process.env.ADMIN_ALLOWED_IPS || '')
+  .split(',').map(ip => ip.trim()).filter(Boolean);
+
+function adminIpGate(req, res, next) {
+  if (!ADMIN_ALLOWED_IPS.length) return next(); // nav iestatīts — ierobežojuma nav
+  const clientIp = (req.ip || '').replace('::ffff:', ''); // IPv4-mapped IPv6 pieraksts
+  if (ADMIN_ALLOWED_IPS.includes(clientIp)) return next();
+  return res.status(404).send('Not found');
+}
+app.use('/admin', adminIpGate);
+app.use('/api/admin', adminIpGate);
 
 // Vienkāršs cookie parseris (bez cookie-parser atkarības) — vajadzīgs, lai
 // nolasītu httpOnly admin sesijas cookie no pieprasījuma galvenēm.
@@ -127,6 +151,10 @@ const imageFilter = (req, file, cb) => {
   const ok = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
   ok.includes(path.extname(file.originalname).toLowerCase()) ? cb(null, true) : cb(new Error('Tikai attēli: JPG, PNG, WEBP, GIF'));
 };
+const mediaFilter = (req, file, cb) => {
+  const ok = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.mp4', '.webm', '.mov'];
+  ok.includes(path.extname(file.originalname).toLowerCase()) ? cb(null, true) : cb(new Error('Tikai attēli vai video: JPG, PNG, WEBP, GIF, MP4, WEBM, MOV'));
+};
 const audioFilter = (req, file, cb) => {
   const ok = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac'];
   ok.includes(path.extname(file.originalname).toLowerCase()) ? cb(null, true) : cb(new Error('Tikai audio faili'));
@@ -179,6 +207,30 @@ const avatarStorage = new CloudinaryStorage({
     transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face', quality: 'auto' }],
   }),
 });
+
+const adPosterStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async () => ({
+    folder: 'Gajon/ad-poster',
+    resource_type: 'image',
+    public_id: 'ad_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
+    transformation: [{ width: 800, crop: 'limit', quality: 'auto' }], // negriežam — afiša var būt jebkādās proporcijās
+  }),
+});
+const uploadAdPosterImg = multer({ storage: adPosterStorage, fileFilter: imageFilter, limits: { fileSize: 8 * 1024 * 1024 } });
+
+const customMediaStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => {
+    const isVideo = /\.(mp4|webm|mov)$/i.test(file.originalname);
+    return {
+      folder: 'Gajon/custom-media',
+      resource_type: isVideo ? 'video' : 'image',
+      public_id: 'custom_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
+    };
+  },
+});
+const uploadCustomMedia = multer({ storage: customMediaStorage, fileFilter: mediaFilter, limits: { fileSize: 30 * 1024 * 1024 } });
 const uploadAvatarImg = multer({ storage: avatarStorage, fileFilter: imageFilter, limits: { fileSize: 8 * 1024 * 1024 } });
 
 // ══════════════════════════════════════════════════
@@ -211,6 +263,7 @@ const TrackSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   artist: { type: String, default: '', trim: true },
   genre: { type: String, default: '', trim: true },
+  language: { type: String, default: '', trim: true }, // 'LV' | 'EN' | '' (vēl nav noteikts)
   cloudUrl: { type: String, required: true },
   publicId: { type: String, required: true },
   coverUrl: { type: String, default: '' },
@@ -264,6 +317,11 @@ const DEFAULT_CONTENT = {
   aboutTextColor: '',
   heroImageUrl: '',
   heroImagePublicId: '',
+  dualHeadingLV: '🇱🇻 Latviešu mūzika',
+  dualHeadingEN: '🇬🇧 English music',
+  adPosterUrl: '',
+  customMediaUrl: '',
+  customMediaType: '',
 };
 
 async function seedContent() {
@@ -744,6 +802,67 @@ app.delete('/api/content/hero-avatar', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── Reklāmas/afišas attēls — neliela banera bilde, ko admins var uzlikt
+//    lapas augšā; ja nav uzlikts, apmeklētāji to vienkārši neredz. ──
+app.post('/api/content/ad-poster', requireAdmin, uploadLimiter, (req, res) => {
+  uploadAdPosterImg.single('image')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
+      const old = await Content.findOne({ key: 'adPosterPublicId' });
+      if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
+      await Content.findOneAndUpdate({ key: 'adPosterUrl' }, { value: req.file.path }, { upsert: true });
+      await Content.findOneAndUpdate({ key: 'adPosterPublicId' }, { value: req.file.filename }, { upsert: true });
+      res.json({ ok: true, adPosterUrl: req.file.path });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+});
+
+app.delete('/api/content/ad-poster', requireAdmin, async (req, res) => {
+  try {
+    const old = await Content.findOne({ key: 'adPosterPublicId' });
+    if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
+    await Content.findOneAndUpdate({ key: 'adPosterUrl' }, { value: '' }, { upsert: true });
+    await Content.findOneAndUpdate({ key: 'adPosterPublicId' }, { value: '' }, { upsert: true });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Pielāgotā media vieta hero sadaļā — bilde vai video, ko admins var
+//    uzlikt jebkurā brīdī; ja nekas nav uzlikts, apmeklētāji to nemaz neredz. ──
+app.post('/api/content/custom-media', requireAdmin, uploadLimiter, (req, res) => {
+  uploadCustomMedia.single('media')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēts fails' });
+      const isVideo = /\.(mp4|webm|mov)$/i.test(req.file.originalname);
+      const old = await Content.findOne({ key: 'customMediaPublicId' });
+      const oldType = await Content.findOne({ key: 'customMediaType' });
+      if (old?.value) {
+        try { await cloudinary.uploader.destroy(old.value, { resource_type: oldType?.value || 'image' }); } catch (e) {}
+      }
+      await Content.findOneAndUpdate({ key: 'customMediaUrl' }, { value: req.file.path }, { upsert: true });
+      await Content.findOneAndUpdate({ key: 'customMediaPublicId' }, { value: req.file.filename }, { upsert: true });
+      await Content.findOneAndUpdate({ key: 'customMediaType' }, { value: isVideo ? 'video' : 'image' }, { upsert: true });
+      res.json({ ok: true, customMediaUrl: req.file.path, customMediaType: isVideo ? 'video' : 'image' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+});
+
+app.delete('/api/content/custom-media', requireAdmin, async (req, res) => {
+  try {
+    const old = await Content.findOne({ key: 'customMediaPublicId' });
+    const oldType = await Content.findOne({ key: 'customMediaType' });
+    if (old?.value) {
+      try { await cloudinary.uploader.destroy(old.value, { resource_type: oldType?.value || 'image' }); } catch (e) {}
+    }
+    await Content.findOneAndUpdate({ key: 'customMediaUrl' }, { value: '' }, { upsert: true });
+    await Content.findOneAndUpdate({ key: 'customMediaPublicId' }, { value: '' }, { upsert: true });
+    await Content.findOneAndUpdate({ key: 'customMediaType' }, { value: '' }, { upsert: true });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/content/bg-slides', async (req, res) => {
   try {
     const slides = await BgSlide.find().sort({ order: 1, createdAt: 1 }).lean();
@@ -824,7 +943,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       const audioFile = req.files?.audio?.[0];
       const coverFile = req.files?.cover?.[0];
       if (!audioFile) return res.status(400).json({ error: 'Audio fails obligāts' });
-      const { title, artist, genre, lyrics } = req.body || {};
+      const { title, artist, genre, lyrics, language } = req.body || {};
       if (!title?.trim()) return res.status(400).json({ error: 'Nosaukums obligāts' });
 
       // ── Dublikātu pārbaude PIRMS Cloudinary augšupielādes ──
@@ -873,6 +992,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
         title: sanitize(title),
         artist: sanitize(artist || ''),
         genre: sanitize(genre || ''),
+        language: sanitize(language || ''),
         lyrics: sanitizeLyrics(lyrics || ''),
         cloudUrl: audioResult.secure_url,
         publicId: audioResult.public_id,
@@ -915,12 +1035,13 @@ app.post('/api/tracks/:id/play', playLimiter, async (req, res) => {
 app.put('/api/tracks/:id', requireAdmin, async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Nederīgs ID' });
-    const { title, artist, genre, lyrics } = req.body || {};
+    const { title, artist, genre, lyrics, language } = req.body || {};
     const update = {};
     if (title?.trim()) update.title = sanitize(title);
     if (typeof artist === 'string') update.artist = sanitize(artist);
     if (typeof genre === 'string') update.genre = sanitize(genre);
     if (typeof lyrics === 'string') update.lyrics = sanitizeLyrics(lyrics);
+    if (typeof language === 'string') update.language = sanitize(language);
     const track = await Track.findByIdAndUpdate(req.params.id, update, { new: true });
     res.json({ track });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -960,8 +1081,35 @@ function broadcastOnlineCount() {
   io.emit('online-count', onlineVisitors.size);
 }
 
+// ══════════════════════════════════════════════════
+//  🎉 DJ JUKEBOX — apmeklētāji reāllaikā balso, kura dziesma ir
+//  šī brīža "kopienas izvēle". Katrs raunds ilgst JUKEBOX_ROUND_MS,
+//  pēc tam uzvarētājs tiek izziņots un balsojums sākas no jauna.
+//  SVARĪGI, godīgi: šis NEsinhronizē visu apmeklētāju audio vienlaicīgi
+//  (tas prasītu daudz sarežģītāku infrastruktūru) — tas tikai parāda,
+//  kura dziesma šobrīd ir populārākā balsojumā, ikviens pats izvēlas,
+//  vai to palaist.
+// ══════════════════════════════════════════════════
+const JUKEBOX_ROUND_MS = 90 * 1000; // 90 sekundes vienam raundam
+let jukeboxVotes = {}; // trackId -> balsu skaits
+let jukeboxVotedSockets = new Set(); // kuri jau balsojuši šajā raundā (viena balss/sesija/raunds)
+
+function jukeboxState() {
+  const entries = Object.entries(jukeboxVotes).sort((a, b) => b[1] - a[1]);
+  return { votes: jukeboxVotes, leaderId: entries[0]?.[0] || null, leaderVotes: entries[0]?.[1] || 0 };
+}
+
+function resetJukeboxRound() {
+  const finalState = jukeboxState();
+  jukeboxVotes = {};
+  jukeboxVotedSockets = new Set();
+  io.emit('jukebox-round-ended', finalState);
+}
+setInterval(resetJukeboxRound, JUKEBOX_ROUND_MS);
+
 io.on('connection', socket => {
   socket.emit('chat-history', chatHistory.slice(-50));
+  socket.emit('jukebox-update', jukeboxState());
   const chatTimestamps = [];
 
   // Admin pats sevi NEKAD nepieskaita "tiešsaistes apmeklētājiem" —
@@ -974,6 +1122,13 @@ io.on('connection', socket => {
 
   socket.on('disconnect', () => {
     if (onlineVisitors.delete(socket.id)) broadcastOnlineCount();
+  });
+
+  socket.on('jukebox-vote', trackId => {
+    if (!trackId || typeof trackId !== 'string' || jukeboxVotedSockets.has(socket.id)) return;
+    jukeboxVotedSockets.add(socket.id);
+    jukeboxVotes[trackId] = (jukeboxVotes[trackId] || 0) + 1;
+    io.emit('jukebox-update', jukeboxState());
   });
 
   socket.on('chat-msg', data => {
@@ -1040,7 +1195,7 @@ async function renderIndexHtml(req) {
 
   const title = escapeHtml((track.artist ? track.artist + ' - ' : '') + track.title);
   const description = 'Klausies šo dziesmu vietnē DJ Gajon';
-  const image = escapeHtml(track.coverUrl || 'https://www.gajon.id.lv/og-image.png?v=2');
+  const image = escapeHtml(track.coverUrl || 'https://www.gajon.id.lv/og-image.png?v=4');
   const pageUrl = escapeHtml(`https://www.gajon.id.lv/?track=${encodeURIComponent(trackId)}`);
 
   const block = `<!-- OG:START -->

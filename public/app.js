@@ -195,6 +195,13 @@ const SECRET_HASH = '!gajon-privats-1512';
   }
   checkHash();
   window.addEventListener('hashchange', checkHash);
+
+  // Ja lapa atvērta caur /admin — atver pieteikšanos automātiski (ja vēl
+  // nav ielogojies). Tā pati parole/2FA, tikai ērtāk atrodama adrese.
+  if (window.location.pathname.replace(/\/+$/, '') === '/admin') {
+    const tryOpen = () => { if (!isAdmin) openLoginModal(); };
+    setTimeout(tryOpen, 300); // dodam checkAdmin() paspēt pabeigties vispirms
+  }
 })();
 
 async function checkAdmin() {
@@ -225,6 +232,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     isAdmin = true;
     closeModal('login-modal');
     setAdminUI(true);
+    applyContentForLang();
     await loadGallery();
     await loadTracks();
   } catch (e) { errEl.textContent = 'Servera kļūda'; }
@@ -234,6 +242,8 @@ async function adminLogout() {
   try { await fetch(API + '/api/admin/logout', { method: 'POST' }); } catch (e) {}
   isAdmin = false;
   setAdminUI(false);
+  applyContentForLang();
+  renderTracks();
 }
 
 async function runFixEncoding() {
@@ -274,6 +284,46 @@ function applyContentForLang() {
   heroSubtitleEl.style.color = c.heroSubtitleColor || '';
   document.getElementById('about-text').textContent = c['aboutText_' + L] || c.aboutText_lv || '';
   document.getElementById('about-text').style.color = c.aboutTextColor || '';
+  const dualLvEl = document.getElementById('dual-heading-lv');
+  const dualEnEl = document.getElementById('dual-heading-en');
+  if (dualLvEl) dualLvEl.textContent = c.dualHeadingLV || '🇱🇻 Latviešu mūzika';
+  if (dualEnEl) dualEnEl.textContent = c.dualHeadingEN || '🇬🇧 English music';
+  const adPosterEl = document.getElementById('ad-poster');
+  const adPosterImgEl = document.getElementById('ad-poster-img');
+  if (adPosterEl && adPosterImgEl) {
+    if (c.adPosterUrl) {
+      adPosterImgEl.src = c.adPosterUrl;
+      adPosterEl.style.display = '';
+    } else {
+      adPosterEl.style.display = 'none';
+    }
+  }
+
+  const mediaSpot = document.getElementById('custom-media-spot');
+  const mediaEmpty = document.getElementById('custom-media-empty');
+  const mediaImg = document.getElementById('custom-media-img');
+  const mediaVideo = document.getElementById('custom-media-video');
+  if (mediaSpot && mediaEmpty) {
+    if (c.customMediaUrl) {
+      mediaSpot.style.display = '';
+      mediaEmpty.style.display = 'none';
+      if (c.customMediaType === 'video') {
+        mediaVideo.src = c.customMediaUrl;
+        mediaVideo.style.display = '';
+        mediaImg.style.display = 'none';
+      } else {
+        mediaImg.src = c.customMediaUrl;
+        mediaImg.style.display = '';
+        mediaVideo.style.display = 'none';
+      }
+    } else {
+      mediaSpot.style.display = 'none';
+      // "empty" placeholder ir admin-only klase — redzamību pārvalda setAdminUI(),
+      // šeit tikai pārliecināmies, ka tā display vērtība ir 'flex', kad admin to redz
+      mediaEmpty.style.display = isAdmin ? 'flex' : 'none';
+    }
+  }
+
   const tagline = c['tagline_' + L] || c.tagline_lv || '';
   document.getElementById('footer-text').textContent = '© ' + new Date().getFullYear() + ' ' + c.siteTitle + (tagline ? ' — ' + tagline : '');
 
@@ -290,6 +340,8 @@ function applyContentForLang() {
 function openContentModal() {
   const c = window._content || {};
   document.getElementById('f-siteTitle').value = c.siteTitle || '';
+  document.getElementById('f-dualHeadingLV').value = c.dualHeadingLV || '';
+  document.getElementById('f-dualHeadingEN').value = c.dualHeadingEN || '';
   document.getElementById('f-heroTitleColor').value = c.heroTitleColor || '#eef2f7';
   document.getElementById('f-heroSubtitleColor').value = c.heroSubtitleColor || '#9aa4b2';
   document.getElementById('f-aboutTextColor').value = c.aboutTextColor || '#9aa4b2';
@@ -409,6 +461,104 @@ async function removeHeroImage() {
     if (!r.ok) { toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
     toast(currentLang === 'lv' ? '🗑️ Profila bilde noņemta' : '🗑️ Profile image removed', 'ok');
     closeModal('hero-img-modal');
+    await loadContent();
+  } catch (e) { toast('❌ Servera kļūda', 'err'); }
+}
+
+function openAdPosterModal() {
+  const c = window._content || {};
+  document.getElementById('f-adPoster').value = '';
+  document.getElementById('ad-poster-err').textContent = '';
+  const preview = document.getElementById('ad-poster-preview');
+  const removeBtn = document.getElementById('ad-poster-remove-btn');
+  if (c.adPosterUrl) {
+    preview.innerHTML = `<img src="${c.adPosterUrl}" alt="" style="max-width:100%;border-radius:10px">`;
+    removeBtn.style.display = '';
+  } else {
+    preview.innerHTML = '';
+    removeBtn.style.display = 'none';
+  }
+  showModal('ad-poster-modal');
+}
+
+async function uploadAdPoster() {
+  const errEl = document.getElementById('ad-poster-err');
+  errEl.textContent = '';
+  const file = document.getElementById('f-adPoster').files[0];
+  if (!file) { errEl.textContent = currentLang === 'lv' ? 'Vispirms izvēlies failu' : 'Choose a file first'; return; }
+  const fd = new FormData();
+  fd.append('image', file);
+  const btn = document.getElementById('ad-poster-upload-btn');
+  btn.disabled = true;
+  try {
+    const r = await fetch(API + '/api/content/ad-poster', { method: 'POST', headers: authHeaders(), body: fd });
+    const data = await r.json();
+    btn.disabled = false;
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    toast('✅ Afiša uzstādīta!', 'ok');
+    closeModal('ad-poster-modal');
+    await loadContent();
+  } catch (e) { btn.disabled = false; errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
+}
+
+async function removeAdPoster() {
+  if (!confirm('Noņemt reklāmas afišu?')) return;
+  try {
+    const r = await fetch(API + '/api/content/ad-poster', { method: 'DELETE', headers: authHeaders() });
+    const data = await r.json();
+    if (!r.ok) { toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    toast('🗑️ Afiša noņemta', 'ok');
+    closeModal('ad-poster-modal');
+    await loadContent();
+  } catch (e) { toast('❌ Servera kļūda', 'err'); }
+}
+
+function openCustomMediaModal() {
+  const c = window._content || {};
+  document.getElementById('f-customMedia').value = '';
+  document.getElementById('custom-media-err').textContent = '';
+  const preview = document.getElementById('custom-media-preview');
+  const removeBtn = document.getElementById('custom-media-remove-btn');
+  if (c.customMediaUrl) {
+    preview.innerHTML = c.customMediaType === 'video'
+      ? `<video src="${c.customMediaUrl}" style="max-width:100%;border-radius:10px" muted autoplay loop playsinline></video>`
+      : `<img src="${c.customMediaUrl}" alt="" style="max-width:100%;border-radius:10px">`;
+    removeBtn.style.display = '';
+  } else {
+    preview.innerHTML = '';
+    removeBtn.style.display = 'none';
+  }
+  showModal('custom-media-modal');
+}
+
+async function uploadCustomMediaFile() {
+  const errEl = document.getElementById('custom-media-err');
+  errEl.textContent = '';
+  const file = document.getElementById('f-customMedia').files[0];
+  if (!file) { errEl.textContent = currentLang === 'lv' ? 'Vispirms izvēlies failu' : 'Choose a file first'; return; }
+  const fd = new FormData();
+  fd.append('media', file);
+  const btn = document.getElementById('custom-media-upload-btn');
+  btn.disabled = true;
+  try {
+    const r = await fetch(API + '/api/content/custom-media', { method: 'POST', headers: authHeaders(), body: fd });
+    const data = await r.json();
+    btn.disabled = false;
+    if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    toast('✅ Uzstādīts!', 'ok');
+    closeModal('custom-media-modal');
+    await loadContent();
+  } catch (e) { btn.disabled = false; errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
+}
+
+async function removeCustomMedia() {
+  if (!confirm('Noņemt šo bildi/video?')) return;
+  try {
+    const r = await fetch(API + '/api/content/custom-media', { method: 'DELETE', headers: authHeaders() });
+    const data = await r.json();
+    if (!r.ok) { toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
+    toast('🗑️ Noņemts', 'ok');
+    closeModal('custom-media-modal');
     await loadContent();
   } catch (e) { toast('❌ Servera kļūda', 'err'); }
 }
@@ -622,6 +772,8 @@ document.getElementById('content-form').addEventListener('submit', async (e) => 
 
   const body = {
     siteTitle: document.getElementById('f-siteTitle').value,
+    dualHeadingLV: document.getElementById('f-dualHeadingLV').value,
+    dualHeadingEN: document.getElementById('f-dualHeadingEN').value,
     heroTitleColor: document.getElementById('f-heroTitleColor').value,
     heroSubtitleColor: document.getElementById('f-heroSubtitleColor').value,
     aboutTextColor: document.getElementById('f-aboutTextColor').value,
@@ -725,6 +877,86 @@ async function deleteGalleryItem(id) {
 let draggedId = null;
 let currentTrackId = null;
 
+// ══════════════════════════════════════════════════
+//  LV / EN — abas puses redzamas vienlaikus (dual-split skats).
+//  Klausītājs brīvi izvēlas no jebkuras puses; kad ieiet konkrētā
+//  žanrā, tālāka pārlūkošana/next-prev paliek tās valodas ietvaros,
+//  bet personīgais saraksts var brīvi jaukt abas valodas kopā.
+// ══════════════════════════════════════════════════
+let activeBrowseLanguage = null; // 'LV' | 'EN' | null (null = dual-split sākumskats)
+
+// ══════════════════════════════════════════════════
+//  "MANS PLEJLISTS" — apmeklētājs pats saliek dziesmas,
+//  ko šodien vēlas klausīties. Glabājas TIKAI viņa pārlūkā
+//  (nevis serverī) un automātiski izzūd pēc 24 stundām,
+//  lai katru dienu var salikt ko citu.
+// ══════════════════════════════════════════════════
+const MY_PLAYLIST_KEY = 'sp_my_playlist';
+const MY_PLAYLIST_TTL_MS = 24 * 60 * 60 * 1000;
+let myPlaylistIds = [];
+let playingFromMyPlaylist = false;
+
+function loadMyPlaylist() {
+  try {
+    const raw = localStorage.getItem(MY_PLAYLIST_KEY);
+    if (!raw) return [];
+    const data = JSON.parse(raw);
+    if (!data || !Array.isArray(data.ids)) return [];
+    if (Date.now() - (data.createdAt || 0) > MY_PLAYLIST_TTL_MS) {
+      localStorage.removeItem(MY_PLAYLIST_KEY); // pagājušas 24h — sākam no tīras lapas
+      return [];
+    }
+    return data.ids;
+  } catch (e) { return []; }
+}
+function saveMyPlaylist(ids) {
+  try {
+    const existingRaw = localStorage.getItem(MY_PLAYLIST_KEY);
+    let createdAt = Date.now();
+    if (existingRaw) {
+      try { const existing = JSON.parse(existingRaw); if (existing && existing.createdAt) createdAt = existing.createdAt; } catch (e) {}
+    }
+    localStorage.setItem(MY_PLAYLIST_KEY, JSON.stringify({ ids, createdAt }));
+  } catch (e) { /* localStorage nepieejams — saraksts vienkārši nesaglabāsies */ }
+}
+function togglePlaylistTrack(id) {
+  const idx = myPlaylistIds.indexOf(id);
+  if (idx === -1) myPlaylistIds.push(id);
+  else myPlaylistIds.splice(idx, 1);
+  saveMyPlaylist(myPlaylistIds);
+  renderTracks();
+  updateMyPlaylistBadge();
+  const overlay = document.getElementById('my-playlist-overlay');
+  if (overlay && overlay.classList.contains('open')) openMyPlaylist();
+}
+function updateMyPlaylistBadge() {
+  const badge = document.getElementById('my-playlist-count');
+  if (badge) badge.textContent = myPlaylistIds.length;
+  const btn = document.getElementById('my-playlist-btn');
+  if (btn) btn.classList.toggle('has-items', myPlaylistIds.length > 0);
+}
+function openMyPlaylist() {
+  const overlay = document.getElementById('my-playlist-overlay');
+  const listEl = document.getElementById('my-playlist-list');
+  if (!overlay || !listEl) return;
+  const tracks = window._tracks || [];
+  const items = myPlaylistIds.map(id => tracks.find(t2 => t2._id === id)).filter(Boolean);
+  if (!items.length) {
+    listEl.innerHTML = `<p class="empty-msg">Saraksts vēl tukšs — spied ➕ pie jebkuras dziesmas, lai to pievienotu.</p>`;
+  } else {
+    listEl.innerHTML = items.map((t2, i) => trackItemHtml(t2, false, i + 1, null, 'playlist')).join('');
+  }
+  overlay.classList.add('open');
+}
+function closeMyPlaylist() {
+  document.getElementById('my-playlist-overlay')?.classList.remove('open');
+}
+function playMyPlaylistFromStart() {
+  if (!myPlaylistIds.length) { if (window.toast) toast('Saraksts vēl tukšs.', 'err'); return; }
+  playTrack(myPlaylistIds[0], 'playlist');
+  closeMyPlaylist();
+}
+
 async function loadTracks() {
   const r = await fetch(API + '/api/tracks');
   const { tracks } = await r.json();
@@ -732,19 +964,24 @@ async function loadTracks() {
   renderTracks();
 }
 
-function trackItemHtml(t2, isAdmin, num) {
+function trackItemHtml(t2, isAdmin, num, popularRank, source) {
   const lastPlayedId = localStorage.getItem('sp_last_played');
   const isLastPlayed = lastPlayedId && t2._id === lastPlayedId && t2._id !== currentTrackId;
+  const numBadge = popularRank
+    ? `<span class="track-num">${popularRank <= 3 ? '🔥' : ''}${popularRank}</span>`
+    : (num ? `<span class="track-num">${num}</span>` : '');
   return `
-    <div class="track ${t2._id === currentTrackId ? 'playing' : ''}" data-id="${t2._id}" draggable="${isAdmin}" onclick="playTrack('${t2._id}')">
+    <div class="track ${t2._id === currentTrackId ? 'playing' : ''}" data-id="${t2._id}" draggable="${isAdmin}" onclick="playTrack('${t2._id}', '${source || 'library'}')">
       ${isAdmin ? '<span class="drag-handle">⠿</span>' : ''}
-      ${num ? `<span class="track-num">${num}</span>` : ''}
+      ${numBadge}
       <img class="cover" src="${t2.coverUrl || ''}" onerror="this.style.visibility='hidden'" alt="">
       <div class="meta">
         <div class="t">${escapeHtml(t2.title)}${t2.genre ? `<span class="genre-tag">${escapeHtml(t2.genre)}</span>` : ''}${isLastPlayed ? `<span class="last-played-tag" title="${currentLang === 'lv' ? 'Pēdējā klausītā' : 'Last played'}">🕐 ${currentLang === 'lv' ? 'pēdējā' : 'last'}</span>` : ''}</div>
         <div class="a">${escapeHtml(t2.artist || '')}${isAdmin ? `<span class="play-count" title="${currentLang === 'lv' ? 'Noklausīšanās skaits' : 'Play count'}">▶ ${t2.playCount || 0}</span>` : ''}</div>
       </div>
       <span class="play-ic">${t2._id === currentTrackId ? '⏸' : '▶'}</span>
+      <button class="btn sm dl-track pl-toggle-btn" title="${myPlaylistIds.includes(t2._id) ? 'Izņemt no mana saraksta' : 'Pievienot manam sarakstam'}" onclick="event.stopPropagation();togglePlaylistTrack('${t2._id}')">${myPlaylistIds.includes(t2._id) ? '✓' : '➕'}</button>
+      <button class="btn sm dl-track jukebox-vote-btn" title="Balso, lai šī būtu kopienas izvēle" onclick="event.stopPropagation();castJukeboxVote('${t2._id}')">🗳️</button>
       ${t2.lyrics ? `<button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Dziesmas vārdi' : 'Lyrics'}" onclick="event.stopPropagation();openLyricsModal('${t2._id}')">📜</button>` : ''}
       <button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Dalīties' : 'Share'}" onclick="event.stopPropagation();shareTrack('${t2._id}')">🔗</button>
       <button class="btn sm dl-track" title="${currentLang === 'lv' ? 'Lejupielādēt' : 'Download'}" onclick="event.stopPropagation();downloadTrack('${t2._id}')">⬇</button>
@@ -848,15 +1085,30 @@ function checkDeepLinkTrack() {
     const params = new URLSearchParams(location.search);
     const id = params.get('track');
     if (!id) return;
-    const tryHighlight = () => {
-      const el = document.querySelector(`.track[data-id="${CSS.escape(id)}"]`);
-      if (!el) return false;
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('shared-highlight');
-      setTimeout(() => el.classList.remove('shared-highlight'), 3000);
+
+    const tryNavigateAndHighlight = () => {
+      const track = (window._tracks || []).find(t2 => t2._id === id);
+      if (!track) return false;
+
+      // atver mūzikas telpu un uzreiz ieiet dziesmas valodā, lai to
+      // vispār varētu redzēt un izcelt (agrāk sadaļa vienkārši bija paslēpta)
+      document.getElementById('music').classList.add('open');
+      document.body.style.overflow = 'hidden';
+      activeBrowseLanguage = track.language || null;
+      genreFolderView = false;
+      renderTracks();
+
+      setTimeout(() => {
+        const el = document.querySelector(`.track[data-id="${CSS.escape(id)}"]`);
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('shared-highlight');
+        setTimeout(() => el.classList.remove('shared-highlight'), 3000);
+      }, 100);
       return true;
     };
-    if (!tryHighlight()) setTimeout(tryHighlight, 400);
+
+    if (!tryNavigateAndHighlight()) setTimeout(tryNavigateAndHighlight, 500);
   } catch (e) {}
 }
 
@@ -877,6 +1129,7 @@ function openEditTrackModal(id) {
   document.getElementById('et-title').value = track.title || '';
   document.getElementById('et-artist').value = track.artist || '';
   document.getElementById('et-genre').value = track.genre || '';
+  document.getElementById('et-language').value = track.language || '';
   document.getElementById('et-lyrics').value = track.lyrics || '';
   document.getElementById('edit-track-err').textContent = '';
   populateGenreList();
@@ -892,6 +1145,7 @@ document.getElementById('edit-track-form')?.addEventListener('submit', async (e)
     title: document.getElementById('et-title').value,
     artist: document.getElementById('et-artist').value,
     genre: document.getElementById('et-genre').value,
+    language: document.getElementById('et-language').value,
     lyrics: document.getElementById('et-lyrics').value,
   };
   try {
@@ -932,36 +1186,70 @@ function toggleTrackView() {
 }
 
 let trackSearchQuery = '';
+let trackSortMode = 'manual'; // 'manual' | 'popular'
+let genreFolderView = true;   // true = rāda LV/EN mapes, false = rāda konkrētās valodas dziesmu sarakstu
 
 function renderTracks() {
-  const tracks = window._tracks || [];
+  const allTracksRaw = window._tracks || [];
   const list = document.getElementById('track-list');
-  document.getElementById('drag-hint').style.display = (isAdmin && !trackSearchQuery) ? '' : 'none';
 
-  // ── Šīs nedēļas jaunumi ──
-  const now = Date.now();
-  const newTracks = tracks
-    .filter(t2 => t2.createdAt && (now - new Date(t2.createdAt).getTime()) < NEW_TRACK_WINDOW_MS)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  const newWrap = document.getElementById('new-tracks-wrap');
-  const newList = document.getElementById('new-track-list');
-  const allHeading = document.getElementById('all-tracks-heading');
-  if (newTracks.length && !trackSearchQuery) {
-    newWrap.style.display = '';
-    allHeading.style.display = '';
-    newList.innerHTML = newTracks.map(t2 => trackItemHtml(t2, isAdmin, tracks.findIndex(x => x._id === t2._id) + 1)).join('');
-  } else {
-    newWrap.style.display = 'none';
-    allHeading.style.display = (tracks.length && !trackSearchQuery) ? 'none' : ''; // ja vispār nav dziesmu, tik un tā parādi virsrakstu ar tukšu ziņu
+  // ── Admin: dziesmas, kam vēl vispār nav norādīta valoda, nevar likt
+  //    ne LV, ne EN pusē — tāpēc tām ir sava, atsevišķa josla augšā ──
+  const unclassifiedBar = document.getElementById('lang-unclassified-bar');
+  if (unclassifiedBar) {
+    const missingLangCount = allTracksRaw.filter(t2 => !t2.language).length;
+    if (isAdmin && missingLangCount > 0) {
+      document.getElementById('lang-unclassified-text').textContent =
+        `${missingLangCount} ${missingLangCount === 1 ? 'dziesmai' : 'dziesmām'} vēl nav norādīta valoda — tā nerādīsies ne LV, ne EN pusē, kamēr to nesakārtosi.`;
+      unclassifiedBar.style.display = 'flex';
+    } else {
+      unclassifiedBar.style.display = 'none';
+    }
   }
 
-  // ── Visas dziesmas (ar iespējamu meklēšanas filtru) ──
+  const dualSplit = document.getElementById('dual-split');
+  const browseWrap = document.getElementById('genre-browse-wrap');
+  const hasActiveFilter = !!trackSearchQuery || trackSortMode === 'popular';
+  document.getElementById('drag-hint').style.display = (isAdmin && !hasActiveFilter) ? '' : 'none';
+
+  // ── Sākumskats: abas puses (LV/EN) redzamas vienlaikus ──
+  if (genreFolderView) {
+    if (dualSplit) dualSplit.style.display = '';
+    if (browseWrap) browseWrap.style.display = 'none';
+    document.getElementById('new-tracks-wrap').style.display = 'none';
+    document.getElementById('all-tracks-heading').style.display = 'none';
+
+    const lvTracks = allTracksRaw.filter(t2 => t2.language === 'LV');
+    const enTracks = allTracksRaw.filter(t2 => t2.language === 'EN');
+    renderLanguageFolder(lvTracks, 'genre-folder-grid-lv', 'LV');
+    renderLanguageFolder(enTracks, 'genre-folder-grid-en', 'EN');
+    return;
+  }
+
+  // ── Ieiets konkrētā valodā — rāda visas tās dziesmas uzreiz ──
+  if (dualSplit) dualSplit.style.display = 'none';
+  if (browseWrap) browseWrap.style.display = '';
+
+  const tracks = allTracksRaw.filter(t2 => t2.language === activeBrowseLanguage);
+
+  document.getElementById('new-tracks-wrap').style.display = 'none';
+  document.getElementById('all-tracks-heading').style.display = '';
+
   if (!tracks.length) { list.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`; return; }
 
   const q = trackSearchQuery.trim().toLowerCase();
-  const filtered = q
+  let filtered = q
     ? tracks.filter(t2 => (t2.title || '').toLowerCase().includes(q) || (t2.artist || '').toLowerCase().includes(q))
-    : tracks;
+    : tracks.slice();
+
+  if (trackSortMode === 'popular') {
+    filtered = filtered.slice().sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+  }
+
+  const genreLabelEl = document.getElementById('genre-browse-label');
+  if (genreLabelEl) {
+    genreLabelEl.textContent = activeBrowseLanguage === 'LV' ? '🇱🇻 Latviešu mūzika' : '🇬🇧 English music';
+  }
 
   if (!filtered.length) {
     list.innerHTML = `<p class="empty-msg">${currentLang === 'lv' ? '🔍 Nekas netika atrasts' : '🔍 No results found'}</p>`;
@@ -969,10 +1257,12 @@ function renderTracks() {
     return;
   }
 
-  list.innerHTML = filtered.map(t2 => trackItemHtml(t2, isAdmin, tracks.findIndex(x => x._id === t2._id) + 1)).join('');
+  list.innerHTML = filtered.map((t2, i) =>
+    trackItemHtml(t2, isAdmin, tracks.findIndex(x => x._id === t2._id) + 1, trackSortMode === 'popular' ? i + 1 : null)
+  ).join('');
   applyTrackViewMode();
 
-  if (isAdmin && !trackSearchQuery) {
+  if (isAdmin && !hasActiveFilter) {
     document.querySelectorAll('#track-list .admin-only, #new-track-list .admin-only').forEach(el => el.style.display = '');
     attachDragHandlers();
   } else if (isAdmin) {
@@ -980,9 +1270,55 @@ function renderTracks() {
   }
 }
 
+function backToGenreFolders() {
+  trackSearchQuery = '';
+  const searchInput = document.getElementById('track-search');
+  if (searchInput) searchInput.value = '';
+  genreFolderView = true;
+  activeBrowseLanguage = null;
+  renderTracks();
+}
+
 function handleTrackSearch(value) {
   trackSearchQuery = value;
+  if (value.trim()) genreFolderView = false;
   renderTracks();
+}
+
+function renderLanguageFolder(tracks, gridId, lang) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  const count = tracks.length;
+  const style = lang === 'LV'
+    ? { icon: '🇱🇻', grad: 'linear-gradient(135deg,#ff3d81,#a63dff)' }
+    : { icon: '🇬🇧', grad: 'linear-gradient(135deg,#00e5c7,#3d7bff)' };
+
+  if (!count) {
+    grid.innerHTML = `<p class="empty-msg">${escapeHtml(t('music_empty'))}</p>`;
+    return;
+  }
+
+  grid.innerHTML = `
+    <div class="genre-folder" style="--folder-grad:${style.grad}">
+      <div class="genre-folder-icon">${style.icon}</div>
+      <div class="genre-folder-name">${lang === 'LV' ? 'Latviešu mūzika' : 'English music'}</div>
+      <div class="genre-folder-count">${count} ${count === 1 ? 'dziesma' : 'dziesmas'}</div>
+    </div>`;
+
+  grid.querySelector('.genre-folder').addEventListener('click', () => {
+    activeBrowseLanguage = lang;
+    genreFolderView = false;
+    renderTracks();
+  });
+}
+
+const sortBtn = document.getElementById('sort-toggle-btn');
+if (sortBtn) {
+  sortBtn.addEventListener('click', () => {
+    trackSortMode = trackSortMode === 'manual' ? 'popular' : 'manual';
+    sortBtn.innerHTML = trackSortMode === 'popular' ? '🔥 Populārākās' : '↕️ Manuālā secība';
+    renderTracks();
+  });
 }
 
 function attachDragHandlers() {
@@ -1014,11 +1350,12 @@ function attachDragHandlers() {
   });
 }
 
-function playTrack(id) {
+function playTrack(id, source) {
   const tracks = window._tracks || [];
   const track = tracks.find(t2 => t2._id === id);
   if (!track) return;
   currentTrackId = id;
+  playingFromMyPlaylist = (source === 'playlist');
   document.querySelectorAll('.track').forEach(el => {
     const isThis = el.dataset.id === id;
     el.classList.toggle('playing', isThis);
@@ -1031,9 +1368,30 @@ function playTrack(id) {
   document.getElementById('pb-artist').textContent = track.artist || '';
   document.getElementById('pb-cover').src = track.coverUrl || '';
   const audio = document.getElementById('pb-audio');
+  audio.pause();
+  audio.currentTime = 0;
   audio.src = track.cloudUrl;
   audio.play().catch(() => {});
   localStorage.setItem('sp_last_played', id);
+  prefetchedTrackId = null; // jauna dziesma sākta — vecā priekšielāde vairs nav derīga
+  preselectedNextId = null; // tāpat arī vecā shuffle prognoze vairs nav derīga
+
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title || '',
+      artist: track.artist || '',
+      artwork: track.coverUrl ? [
+        { src: track.coverUrl, sizes: '96x96', type: 'image/png' },
+        { src: track.coverUrl, sizes: '256x256', type: 'image/png' },
+        { src: track.coverUrl, sizes: '512x512', type: 'image/png' },
+      ] : [],
+    });
+    navigator.mediaSession.playbackState = 'playing';
+  }
+
+  if (window.audioTabChannel) {
+    window.audioTabChannel.postMessage({ type: 'playing', tabId: window.audioTabId, trackId: id });
+  }
 
   // Klausīšanās skaitītājs — vienreiz uz katru dziesmas izvēli (nevis katru
   // pauzes/atsākšanas reizi). "Fire and forget" — neietekmē atskaņošanu, ja neizdodas.
@@ -1041,14 +1399,42 @@ function playTrack(id) {
 }
 
 function playAdjacentTrack(dir) {
-  const tracks = window._tracks || [];
-  if (!tracks.length || !currentTrackId) return;
+  const allTracks = window._tracks || [];
+  if (!allTracks.length || !currentTrackId) return;
+
+  // Ja atskaņojam no "Mans plejlists" — pārejam TIKAI tā ietvaros, nevis pa visu katalogu.
+  if (playingFromMyPlaylist && myPlaylistIds.length) {
+    const idx = myPlaylistIds.indexOf(currentTrackId);
+    if (idx < 0) return;
+    if (shuffleOn && myPlaylistIds.length > 1) {
+      let nextId = preselectedNextId;
+      preselectedNextId = null;
+      if (!nextId || !myPlaylistIds.includes(nextId)) {
+        let randIdx;
+        do { randIdx = Math.floor(Math.random() * myPlaylistIds.length); } while (randIdx === idx);
+        nextId = myPlaylistIds[randIdx];
+      }
+      playTrack(nextId, 'playlist');
+      return;
+    }
+    const nextIdx = (idx + dir + myPlaylistIds.length) % myPlaylistIds.length;
+    playTrack(myPlaylistIds[nextIdx], 'playlist');
+    return;
+  }
+
+  const tracks = activeBrowseLanguage ? allTracks.filter(t2 => t2.language === activeBrowseLanguage) : allTracks;
+  if (!tracks.length) return;
   const idx = tracks.findIndex(t2 => t2._id === currentTrackId);
   if (idx < 0) return;
   if (shuffleOn && tracks.length > 1) {
-    let randIdx;
-    do { randIdx = Math.floor(Math.random() * tracks.length); } while (randIdx === idx);
-    playTrack(tracks[randIdx]._id);
+    let nextId = preselectedNextId;
+    preselectedNextId = null;
+    if (!nextId || !tracks.find(t2 => t2._id === nextId)) {
+      let randIdx;
+      do { randIdx = Math.floor(Math.random() * tracks.length); } while (randIdx === idx);
+      nextId = tracks[randIdx]._id;
+    }
+    playTrack(nextId);
     return;
   }
   const nextIdx = (idx + dir + tracks.length) % tracks.length;
@@ -1103,6 +1489,7 @@ pbAudio.addEventListener('play', () => {
   const wf = document.getElementById('pb-waveform');
   if (wf) wf.classList.add('playing');
   document.getElementById('pb-cover').classList.add('pulsing');
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 });
 pbAudio.addEventListener('pause', () => {
   pbPlayBtn.textContent = '▶';
@@ -1111,10 +1498,71 @@ pbAudio.addEventListener('pause', () => {
   const wf = document.getElementById('pb-waveform');
   if (wf) wf.classList.remove('playing');
   document.getElementById('pb-cover').classList.remove('pulsing');
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
 });
 pbAudio.addEventListener('ended', () => {
   if (repeatMode === 'one') { pbAudio.currentTime = 0; pbAudio.play().catch(() => {}); return; }
   playAdjacentTrack(1);
+});
+
+// ── MediaSession — ļauj vadīt atskaņošanu no bloķēšanas ekrāna/paziņojumiem,
+//    un pasaka telefonam, ka šī ir īsta, aktīva mūzikas sesija (svarīgi, lai
+//    fona atskaņošana neapstātos, kad ekrāns bloķējas). ──
+if ('mediaSession' in navigator) {
+  navigator.mediaSession.setActionHandler('play', () => pbAudio.play().catch(() => {}));
+  navigator.mediaSession.setActionHandler('pause', () => pbAudio.pause());
+  navigator.mediaSession.setActionHandler('previoustrack', () => playAdjacentTrack(-1));
+  navigator.mediaSession.setActionHandler('nexttrack', () => playAdjacentTrack(1));
+  try {
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+      if (details.seekTime != null && pbAudio.duration) pbAudio.currentTime = details.seekTime;
+    });
+  } catch (e) { /* daži pārlūki 'seekto' neatbalsta — nav kritiski */ }
+}
+
+// ── Nākamās dziesmas priekšielāde — sāk to lejupielādēt pārlūka kešatmiņā
+//    dažas sekundes pirms pašreizējā beigām, lai pāreja uz nākamo dziesmu
+//    nepaliktu karājoties fonā gaidot tīkla pieprasījumu. Strādā ARĪ ar
+//    ieslēgtu "jaukt secību" (shuffle) — iepriekš tas bija izslēgts tieši
+//    šajā gadījumā, kas nozīmēja, ka radio režīmam (kas vienmēr ieslēdz
+//    shuffle) priekšielāde nekad nenotika, un tas bija galvenais iemesls,
+//    kāpēc radio apstājās uz aukstas tīkla kavēšanās fonā. ──
+let prefetchedTrackId = null;
+let preselectedNextId = null; // ja izvēlēts iepriekš (shuffle režīmā), 'ended' izmanto tieši šo
+pbAudio.addEventListener('timeupdate', () => {
+  if (repeatMode === 'one') return; // atkārto to pašu — priekšielāde nav vajadzīga
+  if (!pbAudio.duration || (pbAudio.duration - pbAudio.currentTime) > 5) return;
+
+  const tracks = playingFromMyPlaylist && myPlaylistIds.length
+    ? myPlaylistIds.map(id => (window._tracks || []).find(t2 => t2._id === id)).filter(Boolean)
+    : (window._tracks || []);
+  if (!tracks.length || !currentTrackId) return;
+  const idx = tracks.findIndex(t2 => t2._id === currentTrackId);
+  if (idx < 0) return;
+
+  let nextTrack;
+  if (shuffleOn && tracks.length > 1) {
+    if (preselectedNextId) {
+      nextTrack = tracks.find(t2 => t2._id === preselectedNextId);
+    }
+    if (!nextTrack) {
+      let randIdx;
+      do { randIdx = Math.floor(Math.random() * tracks.length); } while (randIdx === idx);
+      nextTrack = tracks[randIdx];
+      preselectedNextId = nextTrack._id; // 'ended' izmantos tieši šo, ne jaunu nejaušu izvēli
+    }
+  } else {
+    const nextIdx = (idx + 1) % tracks.length;
+    nextTrack = tracks[nextIdx];
+  }
+
+  if (!nextTrack || !nextTrack.cloudUrl || prefetchedTrackId === nextTrack._id) return;
+
+  prefetchedTrackId = nextTrack._id;
+  const warmup = new Audio();
+  warmup.preload = 'auto';
+  warmup.src = nextTrack.cloudUrl;
+  warmup.load();
 });
 
 pbAudio.addEventListener('loadedmetadata', () => {
@@ -1184,6 +1632,7 @@ document.getElementById('track-form').addEventListener('submit', async (e) => {
   fd.append('title', document.getElementById('t-title').value);
   fd.append('artist', document.getElementById('t-artist').value);
   fd.append('genre', document.getElementById('t-genre').value);
+  fd.append('language', document.getElementById('t-language').value);
   fd.append('lyrics', document.getElementById('t-lyrics').value);
   fd.append('audio', audioFile);
   const coverFile = document.getElementById('t-cover').files[0];
@@ -1312,6 +1761,7 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
   if (!files.length) { errEl.textContent = 'Izvēlies vismaz vienu failu'; return; }
   const artist = document.getElementById('b-artist').value;
   const genre = document.getElementById('b-genre').value;
+  const language = document.getElementById('b-language').value;
 
   submitBtn.disabled = true;
   let okCount = 0, errCount = 0, dupCount = 0, coverFoundCount = 0;
@@ -1333,6 +1783,7 @@ document.getElementById('bulk-form').addEventListener('submit', async (e) => {
     fd.append('title', title);
     fd.append('artist', trackArtist);
     fd.append('genre', genre);
+    fd.append('language', language);
     fd.append('audio', file);
     try {
       const r = await fetch(API + '/api/tracks', { method: 'POST', headers: authHeaders(), body: fd });
@@ -1374,6 +1825,22 @@ const socket = io();
 const chatMsgsEl = document.getElementById('chat-msgs');
 let chatPanelOpen = false;
 let chatUnreadCount = 0;
+
+// ══════════════════════════════════════════════════
+//  MŪZIKAS PILNEKRĀNA TELPA — atveras, uzspiežot uz "Mūzika" ikonu
+//  headerī. Iekšā ir tikai mūzika (LV/EN mapes) — tīra, atsevišķa
+//  vieta, ar savu "◀ Uz sākumu" pogu, kas to aizver.
+// ══════════════════════════════════════════════════
+function openMusicOverlay() {
+  document.getElementById('music').classList.add('open');
+  document.body.style.overflow = 'hidden'; // neļauj lapai fonā ritināties
+  // vienmēr atveras no sākuma (abas puses redzamas), nevis iepriekšējā vietā
+  backToGenreFolders();
+}
+function closeMusicOverlay() {
+  document.getElementById('music').classList.remove('open');
+  document.body.style.overflow = '';
+}
 
 function toggleChatPanel(forceOpen) {
   chatPanelOpen = typeof forceOpen === 'boolean' ? forceOpen : !chatPanelOpen;
@@ -1515,6 +1982,8 @@ function scrollToTop() {
   const savedName = localStorage.getItem('sp_chat_name');
   if (savedName) document.getElementById('chat-name').value = savedName;
   applyStaticI18n();
+  myPlaylistIds = loadMyPlaylist();
+  updateMyPlaylistBadge();
   // Katrs solis ir savā try/catch — ja viens pieprasījums neizdodas
   // (piem. īslaicīga tīkla problēma), tas nedrīkst apturēt pārējos
   // soļus (tai skaitā scroll-reveal un apmeklējumu skaitītāju).

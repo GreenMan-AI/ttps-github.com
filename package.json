@@ -1,9 +1,14 @@
 {
   "name": "wave-platform",
   "version": "1.0.0",
+<<<<<<< HEAD
   "description": "WAVE — modern music streaming platform with a secured admin panel",
   "main": "server/index.js",
   "type": "commonjs",
+=======
+  "description": "DJ Gajon \u2014 vienk\u0101r\u0161a m\u0101jas lapa ar 1 admin kontu (teksts, bildes, m\u016bzika, \u010dats)",
+  "main": "server.js",
+>>>>>>> b43235d63fc4cc36af37dc2d50f8106d5d4cc443
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
@@ -22,6 +27,23 @@
     "speakeasy": "^2.0.0"
   },
   "engines": {
+<<<<<<< HEAD
     "node": ">=18.0.0"
+=======
+    "node": ">=18.0.0 <21.0.0"
+  },
+  "dependencies": {
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3",
+    "multer": "^1.4.5-lts.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "music-metadata": "^7.14.0",
+    "otpauth": "^9.5.1",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.7.2"
+>>>>>>> b43235d63fc4cc36af37dc2d50f8106d5d4cc443
   }
 }
