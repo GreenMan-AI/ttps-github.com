@@ -136,9 +136,9 @@ header{
 }
 
 .custom-media-spot{
-  position:absolute; top:150px; left:24px; z-index:2;
-  width:min(340px, 40%); border-radius:16px; overflow:hidden;
-  box-shadow:0 16px 36px rgba(0,0,0,.4); border:1px solid var(--border2);
+  position:absolute; top:150px; left:0; z-index:2;
+  width:min(340px, 40%); border-radius:0 16px 16px 0; overflow:hidden;
+  box-shadow:0 16px 36px rgba(0,0,0,.4); border:1px solid var(--border2); border-left:none;
   background:var(--card);
 }
 .custom-media-spot img, .custom-media-spot video{ width:100%; height:auto; display:block; }
