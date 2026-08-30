@@ -7,16 +7,6 @@
   "background_color": "#07080B",
   "theme_color": "#07080B",
   "orientation": "portrait-primary",
-<<<<<<< HEAD
-=======
-  "theme_color": "#12081f",
-  "background_color": "#12081f",
-  "lang": "lv",
-  "categories": [
-    "music",
-    "entertainment"
-  ],
->>>>>>> b43235d63fc4cc36af37dc2d50f8106d5d4cc443
   "icons": [
     {
       "src": "/icons/icon-192.png",
