@@ -3,20 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title id="pageTitle">WAVE — Sound that belongs only to you</title>
-<meta name="description" id="metaDescription" content="One player for your whole collection.">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="WAVE">
-<meta property="og:title" id="ogTitle" content="WAVE — Sound that belongs only to you">
-<meta property="og:description" id="ogDescription" content="One player for your whole collection.">
-<meta property="og:image" id="ogImage" content="">
-<meta property="og:url" id="ogUrl" content="">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" id="twTitle" content="WAVE — Sound that belongs only to you">
-<meta name="twitter:description" id="twDescription" content="One player for your whole collection.">
-<meta name="twitter:image" id="twImage" content="">
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#07080B">
+<title>WAVE — Sound that belongs only to you</title>
+<meta name="description" content="One player for your whole collection.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
@@ -65,22 +53,9 @@
       <div class="stage-bg" id="stageBg"></div>
       <div class="stage-inner">
         <div class="np-block">
-          <img class="np-cover" id="npCover" alt="" hidden>
           <div class="np-label" data-i18n="npLabel">Now playing</div>
           <div class="np-title" id="npTitle">Choose a song</div>
           <div class="np-artist" id="npArtist">and the real magic begins</div>
-          <div class="np-actions">
-            <button class="np-action-btn" id="likeBtn" aria-pressed="false" aria-label="Like this song" hidden>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
-            </button>
-            <button class="np-action-btn" id="shareBtn" aria-label="Copy link to this song" hidden>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>
-            </button>
-            <button class="np-action-btn" id="lyricsBtn" aria-expanded="false" hidden>
-              <span data-i18n="lyricsLabel">Lyrics</span>
-            </button>
-          </div>
-          <div class="lyrics-panel" id="lyricsPanel" hidden></div>
         </div>
 
         <button class="radio-toggle" id="radioToggle" aria-pressed="false">
@@ -129,13 +104,6 @@
       <h2 data-i18n="trackHeading">Tracklist</h2>
     </div>
     <span class="count mono" id="trackCount">0 tracks</span>
-  </div>
-  <div class="tracklist-controls">
-    <div class="search-wrap">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input type="text" id="trackSearch" data-i18n-ph="searchPlaceholder" placeholder="Search songs or artists…">
-    </div>
-    <select id="albumFilter" class="album-filter" hidden></select>
   </div>
   <div id="trackList"></div>
 </section>
@@ -243,25 +211,10 @@
         <label data-i18n="fieldAudioUrl">Or paste an audio link</label>
         <input type="text" id="songUrl" placeholder="https://your-server.com/song.mp3">
       </div>
-      <div class="field-row">
-        <div class="field"><label data-i18n="fieldAlbum">Album (optional)</label><input type="text" id="songAlbum"></div>
-        <div class="field">
-          <label data-i18n="fieldCover">Cover image (optional)</label>
-          <div class="upload-row">
-            <input type="text" id="songCoverUrl" placeholder="https://...">
-            <label class="btn btn-ghost btn-sm file-btn"><span data-i18n="btnChooseFile">Choose file</span><input type="file" id="songCoverFileInput" accept="image/*" hidden></label>
-          </div>
-        </div>
-      </div>
-      <div class="field">
-        <label data-i18n="fieldLyrics">Lyrics (optional)</label>
-        <textarea id="songLyrics" rows="4" placeholder="Paste lyrics here…"></textarea>
-      </div>
       <button class="btn btn-primary" id="addSongBtn" data-i18n="btnAddSong">+ Add song</button>
       <div class="form-error" id="songError"></div>
 
       <h3 class="panel-subtitle" style="margin-top:26px;" data-i18n="existingSongs">Existing songs</h3>
-      <p class="dim small-note" data-i18n="dragReorderHint">Drag songs to reorder them.</p>
       <div id="adminSongList"></div>
     </div>
 

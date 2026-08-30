@@ -44,13 +44,7 @@ const STRINGS = {
     toastAddedSongsOne: 'Added 1 song', toastAddedSongsMany: 'Added {n} songs',
     toastDeleted: 'Song deleted', toastSettingsSaved: 'Settings saved',
     toastSecretUpdated: 'Secret word updated', toastLoggedOut: 'Logged out',
-    trackCountOne: '1 track', trackCountMany: '{n} tracks',
-    searchPlaceholder: 'Search songs or artists…',
-    lyricsLabel: 'Lyrics',
-    fieldAlbum: 'Album (optional)', fieldCover: 'Cover image (optional)', fieldLyrics: 'Lyrics (optional)',
-    dragReorderHint: 'Drag songs to reorder them.',
-    btnEdit: 'Edit', btnSave: 'Save', btnCancel: 'Cancel',
-    toastSongUpdated: 'Song updated', toastReordered: 'Order saved'
+    trackCountOne: '1 track', trackCountMany: '{n} tracks'
   },
   lv: {
     navHintBefore: 'raksti', navHintAfter: 'jebkur → admin',
@@ -91,13 +85,7 @@ const STRINGS = {
     toastAddedSongsOne: 'Pievienota 1 dziesma', toastAddedSongsMany: 'Pievienotas {n} dziesmas',
     toastDeleted: 'Dziesma dzēsta', toastSettingsSaved: 'Iestatījumi saglabāti',
     toastSecretUpdated: 'Slepenais vārds atjaunināts', toastLoggedOut: 'Izgāji no admin paneļa',
-    trackCountOne: '1 dziesma', trackCountMany: '{n} dziesmas',
-    searchPlaceholder: 'Meklēt dziesmas vai izpildītājus…',
-    lyricsLabel: 'Dziesmas vārdi',
-    fieldAlbum: 'Albums (nav obligāti)', fieldCover: 'Vāka attēls (nav obligāti)', fieldLyrics: 'Dziesmas vārdi (nav obligāti)',
-    dragReorderHint: 'Velc dziesmas, lai mainītu secību.',
-    btnEdit: 'Rediģēt', btnSave: 'Saglabāt', btnCancel: 'Atcelt',
-    toastSongUpdated: 'Dziesma atjaunināta', toastReordered: 'Secība saglabāta'
+    trackCountOne: '1 dziesma', trackCountMany: '{n} dziesmas'
   }
 };
 
@@ -113,9 +101,6 @@ const I18N = {
     document.documentElement.lang = I18N.currentLang;
     document.querySelectorAll('[data-i18n]').forEach((el) => {
       el.textContent = I18N.t(el.getAttribute('data-i18n'));
-    });
-    document.querySelectorAll('[data-i18n-ph]').forEach((el) => {
-      el.placeholder = I18N.t(el.getAttribute('data-i18n-ph'));
     });
     document.dispatchEvent(new CustomEvent('i18n:changed', { detail: { lang: I18N.currentLang } }));
   }

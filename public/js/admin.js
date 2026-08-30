@@ -8,8 +8,6 @@
   const totpCard = $('totpCard');
   const dashboard = $('dashboard');
 
-  let currentSongs = []; // local cache of the admin song list, for drag-reorder
-
   function toast(msg, isError) {
     (window.WAVE && window.WAVE.toast ? window.WAVE.toast : () => {})(msg, isError);
   }
@@ -201,20 +199,47 @@
     e.target.value = '';
   });
 
-  $('songCoverFileInput').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const url = await uploadImageFile(file);
-    if (url) { $('songCoverUrl').value = url; toast(t('toastUploaded')); }
-    e.target.value = '';
-  });
-
   // ---- songs tab ----
   async function loadSongsTab() {
     const res = await fetch('/api/songs');
     const data = await res.json();
-    currentSongs = data.songs || [];
-    renderAdminSongs();
+    renderAdminSongs(data.songs || []);
+  }
+
+  function renderAdminSongs(songs) {
+    const list = $('adminSongList');
+    list.innerHTML = '';
+    if (!songs.length) {
+      list.innerHTML = `<p class="dim" style="font-size:13px;">${t('emptyPara')}</p>`;
+      return;
+    }
+    songs.forEach((song) => {
+      const row = document.createElement('div');
+      row.className = 'admin-song-row';
+      const info = document.createElement('div');
+      info.className = 'info';
+      const titleEl = document.createElement('div'); titleEl.className = 't'; titleEl.textContent = song.title;
+      const artistEl = document.createElement('div'); artistEl.className = 'a'; artistEl.textContent = song.artist || '—';
+      if (window.applyScriptAttrs) { window.applyScriptAttrs(titleEl, song.title); window.applyScriptAttrs(artistEl, song.artist); }
+      info.appendChild(titleEl); info.appendChild(artistEl);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn btn-ghost btn-sm';
+      delBtn.textContent = window.I18N.currentLang === 'lv' ? 'Dzēst' : 'Delete';
+      delBtn.addEventListener('click', async () => {
+        const res = await fetch(`/api/songs/${song.id}`, { method: 'DELETE', credentials: 'include' });
+        if (res.ok) {
+          toast(t('toastDeleted'));
+          await loadSongsTab();
+          await window.WAVE.refreshAll();
+        } else {
+          toast('Could not delete', true);
+        }
+      });
+      row.appendChild(info);
+      row.appendChild(delBtn);
+      list.appendChild(row);
+    });
   }
 
   function cleanFilename(name) {
@@ -230,27 +255,15 @@
     return data.url;
   }
 
-  async function createSong(payload) {
+  async function createSong(title, artist, url) {
     const res = await fetch('/api/songs', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ title, artist, url })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Could not add song');
-    return data.song;
-  }
-
-  async function updateSong(id, payload) {
-    const res = await fetch(`/api/songs/${id}`, {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Could not update song');
     return data.song;
   }
 
@@ -265,7 +278,7 @@
       statusEl.textContent = `${i + 1}/${files.length}…`;
       try {
         const url = await uploadAudioFile(file);
-        await createSong({ title: cleanFilename(file.name), artist: '', url });
+        await createSong(cleanFilename(file.name), '', url);
         added++;
       } catch (err) {
         toast(`${file.name}: ${err.message}`, true);
@@ -281,21 +294,17 @@
     e.target.value = '';
   });
 
-  // ---- single song via title/artist/url form (+ optional cover/lyrics/album) ----
+  // ---- single song via title/artist/url form ----
   $('addSongBtn').addEventListener('click', async () => {
     const title = $('songTitle').value.trim();
     const artist = $('songArtist').value.trim();
     const url = $('songUrl').value.trim();
-    const album = $('songAlbum').value.trim();
-    const coverUrl = $('songCoverUrl').value.trim();
-    const lyrics = $('songLyrics').value;
     const errEl = $('songError');
     errEl.textContent = '';
     if (!title || !url) { errEl.textContent = t('songErrorRequired'); return; }
     try {
-      await createSong({ title, artist, url, album, coverUrl, lyrics });
+      await createSong(title, artist, url);
       $('songTitle').value = ''; $('songArtist').value = ''; $('songUrl').value = '';
-      $('songAlbum').value = ''; $('songCoverUrl').value = ''; $('songLyrics').value = '';
       await loadSongsTab();
       await window.WAVE.refreshAll();
       toast(t('toastAddedSongsOne'));
@@ -303,190 +312,6 @@
       errEl.textContent = err.message;
     }
   });
-
-  // ---- admin song list: cover thumbnail, drag-to-reorder, inline edit ----
-  function renderAdminSongs() {
-    const list = $('adminSongList');
-    list.innerHTML = '';
-    if (!currentSongs.length) {
-      list.innerHTML = `<p class="dim" style="font-size:13px;">${t('emptyPara')}</p>`;
-      return;
-    }
-
-    currentSongs.forEach((song) => {
-      const row = document.createElement('div');
-      row.className = 'admin-song-row';
-      row.draggable = true;
-      row.dataset.id = song.id;
-
-      const main = document.createElement('div');
-      main.className = 'row-main';
-
-      const handle = document.createElement('span');
-      handle.className = 'drag-handle';
-      handle.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.5"/><circle cx="8" cy="12" r="1.5"/><circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="6" r="1.5"/><circle cx="16" cy="12" r="1.5"/><circle cx="16" cy="18" r="1.5"/></svg>';
-
-      const info = document.createElement('div');
-      info.className = 'info';
-      const titleEl = document.createElement('div'); titleEl.className = 't'; titleEl.textContent = song.title;
-      const artistEl = document.createElement('div'); artistEl.className = 'a'; artistEl.textContent = song.artist || '—';
-      if (window.applyScriptAttrs) { window.applyScriptAttrs(titleEl, song.title); window.applyScriptAttrs(artistEl, song.artist); }
-      info.appendChild(titleEl); info.appendChild(artistEl);
-
-      main.appendChild(handle);
-      if (song.coverUrl) {
-        const cover = document.createElement('img');
-        cover.className = 'cover-thumb';
-        cover.src = song.coverUrl;
-        cover.alt = '';
-        main.appendChild(cover);
-      }
-      main.appendChild(info);
-
-      const actions = document.createElement('div');
-      actions.className = 'admin-song-row-actions';
-
-      const editBtn = document.createElement('button');
-      editBtn.className = 'btn btn-ghost btn-sm';
-      editBtn.textContent = t('btnEdit');
-      editBtn.addEventListener('click', () => toggleEditPanel(song, row));
-
-      const delBtn = document.createElement('button');
-      delBtn.className = 'btn btn-ghost btn-sm';
-      delBtn.textContent = window.I18N.currentLang === 'lv' ? 'Dzēst' : 'Delete';
-      delBtn.addEventListener('click', async () => {
-        const res = await fetch(`/api/songs/${song.id}`, { method: 'DELETE', credentials: 'include' });
-        if (res.ok) {
-          toast(t('toastDeleted'));
-          await loadSongsTab();
-          await window.WAVE.refreshAll();
-        } else {
-          toast('Could not delete', true);
-        }
-      });
-
-      actions.appendChild(editBtn);
-      actions.appendChild(delBtn);
-
-      row.appendChild(main);
-      row.appendChild(actions);
-      list.appendChild(row);
-
-      wireDragEvents(row);
-    });
-  }
-
-  function toggleEditPanel(song, row) {
-    const existing = row.nextElementSibling;
-    if (existing && existing.classList.contains('admin-song-edit') && existing.dataset.forId === song.id) {
-      existing.remove();
-      return;
-    }
-    document.querySelectorAll('.admin-song-edit').forEach((el) => el.remove());
-
-    const panel = document.createElement('div');
-    panel.className = 'admin-song-edit';
-    panel.dataset.forId = song.id;
-    panel.innerHTML = `
-      <div class="field-row">
-        <div class="field"><label>${t('fieldSongTitle')}</label><input type="text" class="e-title" value="${escapeAttr(song.title)}"></div>
-        <div class="field"><label>${t('fieldSongArtist')}</label><input type="text" class="e-artist" value="${escapeAttr(song.artist || '')}"></div>
-      </div>
-      <div class="field"><label>${t('fieldAudioUrl')}</label><input type="text" class="e-url" value="${escapeAttr(song.url)}"></div>
-      <div class="field-row">
-        <div class="field"><label>${t('fieldAlbum')}</label><input type="text" class="e-album" value="${escapeAttr(song.album || '')}"></div>
-        <div class="field"><label>${t('fieldCover')}</label><input type="text" class="e-cover" value="${escapeAttr(song.coverUrl || '')}"></div>
-      </div>
-      <div class="field"><label>${t('fieldLyrics')}</label><textarea class="e-lyrics" rows="3">${escapeHtmlText(song.lyrics || '')}</textarea></div>
-      <div class="admin-song-edit-actions">
-        <button class="btn btn-primary btn-sm e-save">${t('btnSave')}</button>
-        <button class="btn btn-ghost btn-sm e-cancel">${t('btnCancel')}</button>
-      </div>
-    `;
-    row.insertAdjacentElement('afterend', panel);
-
-    panel.querySelector('.e-cancel').addEventListener('click', () => panel.remove());
-    panel.querySelector('.e-save').addEventListener('click', async () => {
-      const payload = {
-        title: panel.querySelector('.e-title').value.trim(),
-        artist: panel.querySelector('.e-artist').value.trim(),
-        url: panel.querySelector('.e-url').value.trim(),
-        album: panel.querySelector('.e-album').value.trim(),
-        coverUrl: panel.querySelector('.e-cover').value.trim(),
-        lyrics: panel.querySelector('.e-lyrics').value
-      };
-      try {
-        await updateSong(song.id, payload);
-        panel.remove();
-        await loadSongsTab();
-        await window.WAVE.refreshAll();
-        toast(t('toastSongUpdated'));
-      } catch (err) {
-        toast(err.message, true);
-      }
-    });
-  }
-
-  function escapeAttr(str) {
-    const d = document.createElement('div');
-    d.textContent = str || '';
-    return d.innerHTML.replace(/"/g, '&quot;');
-  }
-  function escapeHtmlText(str) {
-    const d = document.createElement('div');
-    d.textContent = str || '';
-    return d.innerHTML;
-  }
-
-  // ---- drag-to-reorder ----
-  let dragSourceId = null;
-
-  function wireDragEvents(row) {
-    row.addEventListener('dragstart', (e) => {
-      dragSourceId = row.dataset.id;
-      row.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    row.addEventListener('dragend', () => {
-      row.classList.remove('dragging');
-      document.querySelectorAll('.admin-song-row.drag-over').forEach((r) => r.classList.remove('drag-over'));
-    });
-    row.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      if (row.dataset.id !== dragSourceId) row.classList.add('drag-over');
-    });
-    row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
-    row.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      row.classList.remove('drag-over');
-      const targetId = row.dataset.id;
-      if (!dragSourceId || dragSourceId === targetId) return;
-
-      const fromIdx = currentSongs.findIndex((s) => s.id === dragSourceId);
-      const toIdx = currentSongs.findIndex((s) => s.id === targetId);
-      if (fromIdx === -1 || toIdx === -1) return;
-
-      const reordered = currentSongs.slice();
-      const [moved] = reordered.splice(fromIdx, 1);
-      reordered.splice(toIdx, 0, moved);
-      currentSongs = reordered;
-      renderAdminSongs();
-
-      try {
-        const res = await fetch('/api/songs/reorder', {
-          method: 'PUT',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderedIds: currentSongs.map((s) => s.id) })
-        });
-        if (!res.ok) throw new Error();
-        await window.WAVE.refreshAll();
-        toast(t('toastReordered'));
-      } catch (err) {
-        toast('Could not save the new order', true);
-      }
-    });
-  }
 
   // ---- security tab ----
   $('saveSecretBtn').addEventListener('click', async () => {

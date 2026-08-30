@@ -4,26 +4,12 @@ A full-stack music homepage: modern design + Node.js/Express server + real
 data storage + secure 3-step admin login (secret word → password → 2FA).
 
 **Features:**
-- Custom audio player with a **real Web Audio API visualizer** (falls back
-  to a decorative animation if the audio source blocks cross-origin
-  analysis) and a progress ring
+- Custom audio player with a live waveform visualizer and progress ring
 - **Radio DJ mode** — shuffled playback with real "previous track" history,
   implemented as its own standalone module (`public/js/radio-dj.js`) so it's
   easy to test and extend without touching player code
 - **Multi-file upload** — select several audio files at once in the admin
   panel and each becomes its own song automatically
-- **Album covers, lyrics, and albums** — optional per-song metadata; covers
-  show in the tracklist and now-playing panel, lyrics expand in a panel
-  below the player, and the accent color of the whole page shifts to match
-  the current cover's dominant color
-- **Search and album filter** above the tracklist
-- **Like button** (heart icon) — saved locally in the browser, no account needed
-- **Shareable deep links** — every song has a "copy link" button; opening
-  that link preselects the track and renders proper **Open Graph / Twitter
-  Card** previews server-side, so sharing it on social media shows the right
-  title, artist, and cover image
-- **Drag-to-reorder** songs in the admin panel, and an inline **edit** panel
-  per song (no need to delete and re-add to fix a typo)
 - **Two background image slots** — one behind just the player card, one that
   covers the entire page
 - **English by default, with a Latvian toggle** — every piece of UI text
@@ -31,11 +17,6 @@ data storage + secure 3-step admin login (secret word → password → 2FA).
 - **Automatic script/language detection** for song titles and artists — a
   Cyrillic, Japanese, Arabic, or Latvian title renders with the correct
   reading direction and a small language tag, detected automatically
-- **Installable as an app (PWA)** — manifest + service worker, with the app
-  shell cached for fast repeat visits
-- **Seekable audio** — uploaded files support HTTP Range requests out of the
-  box, so scrubbing to any point in a track doesn't require downloading it
-  from the start
 - Secret-word-gated admin panel with password + TOTP two-factor auth
 
 ## What's inside
@@ -43,29 +24,26 @@ data storage + secure 3-step admin login (secret word → password → 2FA).
 ```
 wave-platform/
 ├── server/                    # Node.js/Express backend
-│   ├── index.js               # server entry point + Open Graph tag injection
+│   ├── index.js               # server entry point
 │   ├── lib/
 │   │   ├── store.js           # data storage (JSON file, atomic writes)
 │   │   └── auth.js            # password hashing, JWT sessions, TOTP 2FA
 │   ├── routes/
 │   │   ├── auth.js            # /api/auth/* — login, 2FA, session
 │   │   ├── config.js          # /api/config — title, tagline, both backgrounds
-│   │   ├── songs.js           # /api/songs — tracklist CRUD + reorder
+│   │   ├── songs.js           # /api/songs — the tracklist
 │   │   ├── admin.js           # /api/admin — secret word, 2FA re-enrollment
 │   │   └── upload.js          # /api/upload — audio + image uploads
 │   └── scripts/
 │       └── setup-admin.js     # interactive admin account setup
 ├── public/                    # frontend (static files served by Express)
 │   ├── index.html
-│   ├── manifest.json          # PWA manifest
-│   ├── service-worker.js      # PWA offline shell caching
-│   ├── icons/                 # PWA icons
 │   ├── css/style.css
 │   └── js/
 │       ├── i18n.js            # EN/LV string table + t(key) helper
 │       ├── script-detect.js   # writing-system detection for song titles
 │       ├── radio-dj.js        # standalone shuffle-mode module
-│       ├── app.js             # public site + player + visualizer + theming
+│       ├── app.js             # public site + player
 │       └── admin.js           # admin dashboard logic
 ├── uploads/                   # uploaded audio files and images (runtime)
 ├── data/db.json                # all data: config, songs, admin account (runtime)

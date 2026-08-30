@@ -15,7 +15,7 @@ router.get('/', (req, res) => {
 // separately via /api/upload (multipart), which returns a URL to put here —
 // keeps this endpoint a simple JSON write.
 router.post('/', requireAuth, async (req, res) => {
-  const { title, artist, url, coverUrl, lyrics, album } = req.body || {};
+  const { title, artist, url, coverUrl } = req.body || {};
   if (!title || !url) {
     return res.status(400).json({ error: 'A title and an audio URL are required.' });
   }
@@ -25,33 +25,10 @@ router.post('/', requireAuth, async (req, res) => {
     artist: String(artist || '').trim().slice(0, 120),
     url: String(url).trim(),
     coverUrl: coverUrl ? String(coverUrl).trim() : '',
-    lyrics: lyrics ? String(lyrics).slice(0, 10000) : '',
-    album: album ? String(album).trim().slice(0, 120) : '',
     addedAt: new Date().toISOString()
   };
   await mutate((db) => { db.songs.push(song); });
   res.status(201).json({ ok: true, song });
-});
-
-// Admin: edit an existing song's metadata (cover, lyrics, album, etc.)
-// without having to delete and re-add it.
-router.patch('/:id', requireAuth, async (req, res) => {
-  const { id } = req.params;
-  const { title, artist, url, coverUrl, lyrics, album } = req.body || {};
-  let updated = null;
-  await mutate((db) => {
-    const song = db.songs.find((s) => s.id === id);
-    if (!song) return;
-    if (typeof title === 'string' && title.trim()) song.title = title.trim().slice(0, 120);
-    if (typeof artist === 'string') song.artist = artist.trim().slice(0, 120);
-    if (typeof url === 'string' && url.trim()) song.url = url.trim();
-    if (typeof coverUrl === 'string') song.coverUrl = coverUrl.trim().slice(0, 500);
-    if (typeof lyrics === 'string') song.lyrics = lyrics.slice(0, 10000);
-    if (typeof album === 'string') song.album = album.trim().slice(0, 120);
-    updated = song;
-  });
-  if (!updated) return res.status(404).json({ error: 'Song not found.' });
-  res.json({ ok: true, song: updated });
 });
 
 router.delete('/:id', requireAuth, async (req, res) => {
