@@ -632,9 +632,12 @@ async function uploadBgSlides() {
 
 async function deleteBgSlide(id) {
   if (!confirm(currentLang === 'lv' ? 'Dzēst šo fona bildi?' : 'Delete this background image?')) return;
-  await fetch(API + '/api/content/bg-slides/' + id, { method: 'DELETE', headers: authHeaders() });
-  await renderBgSlidesAdmin();
-  await loadBgSlideshow();
+  try {
+    const r = await fetch(API + '/api/content/bg-slides/' + id, { method: 'DELETE', headers: authHeaders() });
+    if (!r.ok) { toast('❌ ' + (currentLang === 'lv' ? 'Neizdevās dzēst' : 'Delete failed'), 'err'); return; }
+    await renderBgSlidesAdmin();
+    await loadBgSlideshow();
+  } catch (e) { toast('❌ ' + (currentLang === 'lv' ? 'Servera kļūda' : 'Server error'), 'err'); }
 }
 
 async function saveBgSettings() {
@@ -866,9 +869,12 @@ document.getElementById('gallery-form').addEventListener('submit', async (e) => 
 
 async function deleteGalleryItem(id) {
   if (!confirm('Dzēst šo bildi?')) return;
-  await fetch(API + '/api/gallery/' + id, { method: 'DELETE', headers: authHeaders() });
-  toast(currentLang === 'lv' ? '🗑️ Bilde dzēsta' : '🗑️ Photo deleted', 'ok');
-  await loadGallery();
+  try {
+    const r = await fetch(API + '/api/gallery/' + id, { method: 'DELETE', headers: authHeaders() });
+    if (!r.ok) { toast('❌ ' + (currentLang === 'lv' ? 'Neizdevās dzēst' : 'Delete failed'), 'err'); return; }
+    toast(currentLang === 'lv' ? '🗑️ Bilde dzēsta' : '🗑️ Photo deleted', 'ok');
+    await loadGallery();
+  } catch (e) { toast('❌ ' + (currentLang === 'lv' ? 'Servera kļūda' : 'Server error'), 'err'); }
 }
 
 // ══════════════════════════════════════════════════
@@ -1677,9 +1683,12 @@ document.getElementById('track-form').addEventListener('submit', async (e) => {
 
 async function deleteTrack(id) {
   if (!confirm('Dzēst šo dziesmu?')) return;
-  await fetch(API + '/api/tracks/' + id, { method: 'DELETE', headers: authHeaders() });
-  toast(currentLang === 'lv' ? '🗑️ Dziesma dzēsta' : '🗑️ Track deleted', 'ok');
-  await loadTracks();
+  try {
+    const r = await fetch(API + '/api/tracks/' + id, { method: 'DELETE', headers: authHeaders() });
+    if (!r.ok) { toast('❌ ' + (currentLang === 'lv' ? 'Neizdevās dzēst' : 'Delete failed'), 'err'); return; }
+    toast(currentLang === 'lv' ? '🗑️ Dziesma dzēsta' : '🗑️ Track deleted', 'ok');
+    await loadTracks();
+  } catch (e) { toast('❌ ' + (currentLang === 'lv' ? 'Servera kļūda' : 'Server error'), 'err'); }
 }
 
 // ── Vairāku dziesmu augšupielāde uzreiz ──
