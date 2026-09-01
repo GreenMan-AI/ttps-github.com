@@ -1370,7 +1370,18 @@ function playTrack(id, source) {
   document.getElementById('pb-artist').textContent = track.artist || '';
   document.getElementById('pb-cover').src = track.coverUrl || '';
   const audio = document.getElementById('pb-audio');
-  audio.pause();
+  // SVARĪGI fona atskaņošanai: sauc pause() TIKAI tad, ja dziesma tobrīd
+  // FAKTISKI vēl spēlē (piem., lietotājs pats pārslēdzas uz citu dziesmu).
+  // Ja iepriekšējā dziesma jau dabiski beigusies (automātiska pāreja uz
+  // nākamo), audio elements jau ir apstājies pats no sevis — liekot vēl
+  // reizi pause(), tikai izraisām liekus 'pause' notikumu un iestatam
+  // mediaSession uz 'paused' brīdī, kad ekrāns var būt bloķēts. Telefoni
+  // (īpaši iPhone standalone/instalētā režīmā) šo brīdi bieži noķer kā
+  // signālu "atskaņošana beigusies" un atceļ fona darbības tiesības,
+  // tāpēc nākamā dziesma vairs nespēlē. Izlaižot lieko pause() automātiskās
+  // pārejās, mediaSession paliek nepārtraukti "playing" un OS neatceļ
+  // atļauju turpināt fonā.
+  if (!audio.paused) audio.pause();
   audio.currentTime = 0;
   audio.src = track.cloudUrl;
   audio.play().catch(() => {});
@@ -1494,6 +1505,17 @@ pbAudio.addEventListener('play', () => {
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 });
 pbAudio.addEventListener('pause', () => {
+  // KRITISKI fona atskaņošanai: ja "pause" notikums izraisīts tāpēc, ka
+  // dziesma vienkārši pati dabiski beidzās (audio.ended === true šajā
+  // brīdī — pārlūks vienmēr to iestata PIRMS "pause" notikuma dabiskas
+  // beigšanās gadījumā), tas NAV īsta apstāšanās — sekos automātiska
+  // pāreja uz nākamo dziesmu. NEIESTATĀM mediaSession uz 'paused' šajā
+  // gadījumā — citādi telefons (īpaši instalētā/standalone režīmā) to
+  // var noķert kā "mūzika beigusies" tieši brīdī, kad ekrāns bloķēts,
+  // un atcelt fona atskaņošanas atļauju, pirms nākamā dziesma paspēj
+  // sākties (tas arī izskaidro, kāpēc atskaņotājs "atslēdzās" pēc dažām
+  // dziesmām, nevis uzreiz pēc pirmās pauzes).
+  if (pbAudio.ended) return;
   pbPlayBtn.textContent = '▶';
   const el = document.querySelector(`.track[data-id="${currentTrackId}"] .play-ic`);
   if (el) el.textContent = '▶';
