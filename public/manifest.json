@@ -5,8 +5,8 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#12081f",
-  "background_color": "#12081f",
+  "theme_color": "#08060d",
+  "background_color": "#08060d",
   "lang": "lv",
   "categories": [
     "music",

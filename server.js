@@ -169,15 +169,6 @@ const galleryStorage = new CloudinaryStorage({
     transformation: [{ width: 1600, height: 1600, crop: 'limit', quality: 'auto' }],
   }),
 });
-const coverStorage = new CloudinaryStorage({
-  cloudinary,
-  params: async () => ({
-    folder: 'Gajon/covers',
-    resource_type: 'image',
-    public_id: 'cover_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
-    transformation: [{ width: 500, height: 500, crop: 'fill', quality: 'auto' }],
-  }),
-});
 const bgStorage = new CloudinaryStorage({
   cloudinary,
   params: async () => ({

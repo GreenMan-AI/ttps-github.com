@@ -1290,7 +1290,7 @@ function renderLanguageFolder(tracks, gridId, lang) {
   if (!grid) return;
   const count = tracks.length;
   const style = lang === 'LV'
-    ? { icon: '🇱🇻', grad: 'linear-gradient(135deg,#ff3d81,#a63dff)' }
+    ? { icon: '🇱🇻', grad: 'linear-gradient(135deg,#ff9a3d,#ff3d81)' }
     : { icon: '🇬🇧', grad: 'linear-gradient(135deg,#00e5c7,#3d7bff)' };
 
   if (!count) {
@@ -1300,9 +1300,11 @@ function renderLanguageFolder(tracks, gridId, lang) {
 
   grid.innerHTML = `
     <div class="genre-folder" style="--folder-grad:${style.grad}">
-      <div class="genre-folder-icon">${style.icon}</div>
-      <div class="genre-folder-name">${lang === 'LV' ? 'Latviešu mūzika' : 'English music'}</div>
-      <div class="genre-folder-count">${count} ${count === 1 ? 'dziesma' : 'dziesmas'}</div>
+      <div class="genre-folder-photo"><div class="genre-folder-icon">${style.icon}</div></div>
+      <div class="genre-folder-body">
+        <div class="genre-folder-name">${lang === 'LV' ? 'Latviešu mūzika' : 'English music'}</div>
+        <span class="genre-folder-count">${count} ${count === 1 ? 'dziesma' : 'dziesmas'}</span>
+      </div>
     </div>`;
 
   grid.querySelector('.genre-folder').addEventListener('click', () => {
