@@ -114,6 +114,30 @@
     }
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
   });
+
+  // SVARĪGI mobilajām ierīcēm: kad ekrāns aizmieg/tiek atbloķēts, mobilie
+  // pārlūki (īpaši iOS Safari) bieži "apstādina" (suspend) Web Audio API
+  // AudioContext, lai taupītu bateriju — pat ja pati dziesma (pbAudio)
+  // tehniski turpina spēlēt fonā. Tā kā vizualizētājs skaņu izvada TIEŠI
+  // caur šo audioCtx (nevis tieši no pbAudio), tas nozīmētu klusumu vai
+  // "iesprūdušu" skaņu pēc atbloķēšanas, ja to neatsāktu manuāli. Tāpēc
+  // katru reizi, kad lapa atkal kļūst redzama UN dziesma joprojām spēlē,
+  // piespiedu kārtā atsākam (resume) audioCtx.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && audioCtx && audioCtx.state === 'suspended' && !pbAudio.paused) {
+      audioCtx.resume().catch(() => {});
+    }
+  });
+  // Papildu drošības tīkls — dažas pārlūku versijas maina AudioContext
+  // stāvokli klusībā, neizsaucot iepriekšminēto notikumu vispār.
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pageshow', () => {
+      if (audioCtx && audioCtx.state === 'suspended' && !pbAudio.paused) audioCtx.resume().catch(() => {});
+    });
+    window.addEventListener('focus', () => {
+      if (audioCtx && audioCtx.state === 'suspended' && !pbAudio.paused) audioCtx.resume().catch(() => {});
+    });
+  }
 })();
 
 // ══════════════════════════════════════════════════
