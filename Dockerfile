@@ -14,4 +14,4 @@ RUN mkdir -p data uploads/audio uploads/images
 ENV NODE_ENV=production
 EXPOSE 3000
 
-CMD ["node", "server/index.js"]
+CMD ["node", "server.js"]
