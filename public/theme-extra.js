@@ -67,7 +67,8 @@
   pbAudio.crossOrigin = 'anonymous';
 
   let audioCtx, analyser, dataArray, rafId, ready = false, failed = false;
-  let smoothedBeat = 0;
+  let smoothedBeat = 0, hue = 0;
+  const playBtns = document.querySelectorAll('.pb-play'); // mini josla + pilnekrāna skats
 
   function setup() {
     if (ready || failed) return ready;
@@ -99,6 +100,17 @@
     const opacity = 0.35 + smoothedBeat * 0.65;
     glow.style.transform = `scale(${scale.toFixed(3)})`;
     glow.style.opacity = opacity.toFixed(3);
+
+    // Kopējā skanējuma "enerģija" (viss spektrs, ne tikai bass) — spēcīgākos,
+    // dzīvīgākos brīžos krāsa mainās straujāk; klusākos — lēnāk, bet nekad
+    // pilnīgi neapstājas, lai gredzens vienmēr justos "dzīvs".
+    let energySum = 0;
+    for (let i = 0; i < dataArray.length; i++) energySum += dataArray[i];
+    const energy = energySum / dataArray.length / 255;
+    hue = (hue + 0.6 + energy * 3.2) % 360;
+    const hueDeg = `${hue.toFixed(1)}deg`;
+    glow.style.filter = `blur(10px) hue-rotate(${hueDeg})`;
+    playBtns.forEach(btn => btn.style.setProperty('--reactive-hue', hueDeg));
   }
 
   pbAudio.addEventListener('play', () => {
@@ -106,6 +118,7 @@
       const ok = setup();
       if (ok) {
         glow.classList.add('active');
+        playBtns.forEach(btn => btn.classList.add('audio-reactive'));
         if (fallback) fallback.style.display = 'none';
         draw();
       }
@@ -114,7 +127,10 @@
   });
 
   pbAudio.addEventListener('pause', () => {
-    if (ready) glow.classList.remove('active');
+    if (ready) {
+      glow.classList.remove('active');
+      playBtns.forEach(btn => btn.classList.remove('audio-reactive'));
+    }
   });
 
   // SVARĪGI mobilajām ierīcēm: kad ekrāns aizmieg/tiek atbloķēts, mobilie

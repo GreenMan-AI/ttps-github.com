@@ -781,16 +781,21 @@ footer{text-align:center;padding:30px;color:var(--mut);font-size:12px;border-top
 @media (prefers-reduced-motion: reduce){ .live-dot{ animation:none; } }
 @media (max-width:760px){ .live-badge{ display:none; } }
 
-/* ══ PULSĒJOŠS GAISMAS GREDZENS AP VĀCIŅU (reaģē uz basu reāllaikā) ══ */
+/* ══ PULSĒJOŠS GAISMAS GREDZENS AP VĀCIŅU (reaģē uz basu + maina krāsu atkarībā no mūzikas enerģijas) ══ */
 .pb-cover-glow{
   position:absolute; inset:-10px; z-index:-1; border-radius:18px;
   background:radial-gradient(circle, var(--accent) 0%, var(--accent2) 55%, transparent 72%);
-  opacity:0; filter:blur(10px);
+  opacity:0; filter:blur(10px) hue-rotate(0deg);
   transform:scale(.85);
   transition:opacity .25s ease;
   pointer-events:none;
 }
 #player-bar.show .pb-cover-glow.active{ opacity:.75; }
+
+/* Atskaņošanas pogas mirdzums seko tai pašai krāsu maiņai — viss atskaņotājs
+   izskatās kā viena saskaņota, "dzīva" gaismas sistēma, nevis atsevišķi elementi. */
+.pb-btn.pb-play{ transition:transform .15s ease, box-shadow .2s ease, filter .3s ease; }
+.pb-btn.pb-play.audio-reactive{ filter:hue-rotate(var(--reactive-hue, 0deg)); }
 
 /* ══ PILNEKRĀNA "NOW PLAYING" REŽĪMS ══ */
 .nowplaying-overlay{
