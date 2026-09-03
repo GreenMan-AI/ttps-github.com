@@ -69,6 +69,7 @@
   let audioCtx, analyser, dataArray, rafId, ready = false, failed = false;
   let smoothedBeat = 0, hue = 0;
   const playBtns = document.querySelectorAll('.pb-play'); // mini josla + pilnekrāna skats
+  const playerBar = document.getElementById('player-bar');
 
   function setup() {
     if (ready || failed) return ready;
@@ -111,6 +112,16 @@
     const hueDeg = `${hue.toFixed(1)}deg`;
     glow.style.filter = `blur(10px) hue-rotate(${hueDeg})`;
     playBtns.forEach(btn => btn.style.setProperty('--reactive-hue', hueDeg));
+
+    // Viss atskaņotājs "zaigo" ritmā — mīksts, krāsu mainošs mirdzums ap
+    // visu joslu, ne tikai vāciņu. Intensitāte seko basam, tonis — kopējai
+    // enerģijai (tā pati hue vērtība, kas jau aprēķināta augšā).
+    if (playerBar) {
+      const glowSize = 22 + smoothedBeat * 46;
+      const glowAlpha = (0.22 + smoothedBeat * 0.38).toFixed(2);
+      playerBar.style.boxShadow =
+        `0 12px 40px rgba(0,0,0,.5), 0 0 ${glowSize.toFixed(0)}px hsla(${hue.toFixed(0)},90%,62%,${glowAlpha})`;
+    }
   }
 
   pbAudio.addEventListener('play', () => {
@@ -130,6 +141,7 @@
     if (ready) {
       glow.classList.remove('active');
       playBtns.forEach(btn => btn.classList.remove('audio-reactive'));
+      if (playerBar) playerBar.style.boxShadow = '';
     }
   });
 
