@@ -781,12 +781,16 @@ footer{text-align:center;padding:30px;color:var(--mut);font-size:12px;border-top
 @media (prefers-reduced-motion: reduce){ .live-dot{ animation:none; } }
 @media (max-width:760px){ .live-badge{ display:none; } }
 
-/* ══ ĪSTAIS AUDIO VIZUALIZĒTĀJS (Web Audio API) ══ */
-.pb-visualizer{
-  position:absolute; bottom:-8px; right:-8px;
-  background:var(--bg2); border-radius:6px; padding:3px;
-  box-shadow:0 0 0 1px var(--border);
+/* ══ PULSĒJOŠS GAISMAS GREDZENS AP VĀCIŅU (reaģē uz basu reāllaikā) ══ */
+.pb-cover-glow{
+  position:absolute; inset:-10px; z-index:-1; border-radius:18px;
+  background:radial-gradient(circle, var(--accent) 0%, var(--accent2) 55%, transparent 72%);
+  opacity:0; filter:blur(10px);
+  transform:scale(.85);
+  transition:opacity .25s ease;
+  pointer-events:none;
 }
+#player-bar.show .pb-cover-glow.active{ opacity:.75; }
 
 /* ══ PILNEKRĀNA "NOW PLAYING" REŽĪMS ══ */
 .nowplaying-overlay{

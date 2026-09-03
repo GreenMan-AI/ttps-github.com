@@ -47,16 +47,17 @@
 })();
 
 // ══════════════════════════════════════════════════
-//  ĪSTAIS AUDIO VIZUALIZĒTĀJS — reāli reaģē uz skanošo mūziku
-//  (Web Audio API AnalyserNode). Ja pārlūks/audio avots to neatļauj
-//  (piem. CORS ierobežojums), klusi paliek vecā animētā aizvietotāja
-//  josliņas — atskaņošana nekad netiek pārtraukta šī iemesla dēļ.
+//  PULSĒJOŠS GAISMAS GREDZENS — reāli reaģē uz skanošo mūziku
+//  (Web Audio API AnalyserNode, basu frekvences). Ja pārlūks/audio
+//  avots to neatļauj (piem. CORS ierobežojums), klusi paliek vecās
+//  animētās aizvietotāja josliņas — atskaņošana nekad netiek
+//  pārtraukta šī iemesla dēļ.
 // ══════════════════════════════════════════════════
 (function () {
   const pbAudio = document.getElementById('pb-audio');
-  const canvas = document.getElementById('pb-visualizer');
+  const glow = document.getElementById('pb-cover-glow');
   const fallback = document.getElementById('pb-waveform');
-  if (!pbAudio || !canvas) return;
+  if (!pbAudio || !glow) return;
 
   // KRITISKI: šis jāiestata UZREIZ, PIRMS jebkurai dziesmai vispār tiek
   // iestatīts src — citādi pirmā dziesma tiek ielādēta bez CORS
@@ -66,6 +67,7 @@
   pbAudio.crossOrigin = 'anonymous';
 
   let audioCtx, analyser, dataArray, rafId, ready = false, failed = false;
+  let smoothedBeat = 0;
 
   function setup() {
     if (ready || failed) return ready;
@@ -85,34 +87,34 @@
     }
   }
 
-  const ctx2d = canvas.getContext('2d');
   function draw() {
     rafId = requestAnimationFrame(draw);
     if (!analyser || pbAudio.paused) return;
     analyser.getByteFrequencyData(dataArray);
-    const w = canvas.width, h = canvas.height;
-    ctx2d.clearRect(0, 0, w, h);
-    const bars = 12;
-    const step = Math.floor(dataArray.length / bars) || 1;
-    const barW = w / bars;
-    for (let i = 0; i < bars; i++) {
-      const v = dataArray[i * step] / 255;
-      const barH = Math.max(2, v * h);
-      ctx2d.fillStyle = i % 2 === 0 ? '#ff3d81' : '#00e5c7';
-      ctx2d.fillRect(i * barW, h - barH, barW - 1, barH);
-    }
+    // Basu frekvences (zemākie bini) dod visnotaļ "ritma sitiena" izjūtu.
+    const bassRaw = (dataArray[0] + dataArray[1] + dataArray[2] + dataArray[3]) / 4 / 255;
+    // Nedaudz nogludinām, lai gredzens "elpo", nevis raustās katru kadru.
+    smoothedBeat = smoothedBeat * 0.72 + bassRaw * 0.28;
+    const scale = 0.88 + smoothedBeat * 0.42;
+    const opacity = 0.35 + smoothedBeat * 0.65;
+    glow.style.transform = `scale(${scale.toFixed(3)})`;
+    glow.style.opacity = opacity.toFixed(3);
   }
 
   pbAudio.addEventListener('play', () => {
     if (!ready && !failed) {
       const ok = setup();
       if (ok) {
-        canvas.style.display = '';
+        glow.classList.add('active');
         if (fallback) fallback.style.display = 'none';
         draw();
       }
     }
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  });
+
+  pbAudio.addEventListener('pause', () => {
+    if (ready) glow.classList.remove('active');
   });
 
   // SVARĪGI mobilajām ierīcēm: kad ekrāns aizmieg/tiek atbloķēts, mobilie
