@@ -70,10 +70,57 @@
   const fallback = document.getElementById('pb-waveform');
   const playBtns = document.querySelectorAll('.pb-play'); // mini josla + pilnekrāna skats
   const playerBar = document.getElementById('player-bar');
+  const bgTint = document.getElementById('np-bg-tint');
+  const npOverlayEl = document.getElementById('nowplaying-overlay');
   if (!pbAudio || !glows.length) return;
 
   let rafId = null;
   let running = false;
+
+  // ── Dzirksteļu (daļiņu) efekts ap pilnekrāna vāciņu ──
+  // Pilnībā izolēts no audio elementa (tikai canvas zīmēšana), tāpēc
+  // arī šis nekad nevar ietekmēt atskaņošanu.
+  const particlesCanvas = document.getElementById('np-particles');
+  const particlesCtx = particlesCanvas ? particlesCanvas.getContext('2d') : null;
+  let particles = [];
+  let lastBeatForSpawn = 0;
+
+  function spawnParticles(n, hueVal) {
+    if (!particlesCanvas) return;
+    const cx = particlesCanvas.width / 2, cy = particlesCanvas.height / 2;
+    const coverRadius = particlesCanvas.width / 3.2; // aptuveni vāciņa mala
+    for (let i = 0; i < n; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1.4 + Math.random() * 2.6;
+      particles.push({
+        x: cx + Math.cos(angle) * coverRadius,
+        y: cy + Math.sin(angle) * coverRadius,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1,
+        decay: 0.012 + Math.random() * 0.018,
+        size: 1.5 + Math.random() * 2.5,
+        hue: hueVal + (Math.random() * 40 - 20),
+      });
+    }
+    if (particles.length > 140) particles = particles.slice(-140); // veiktspējas griesti
+  }
+
+  function drawParticles() {
+    if (!particlesCtx) return;
+    particlesCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
+    particles = particles.filter(p => p.life > 0);
+    for (const p of particles) {
+      p.x += p.vx; p.y += p.vy; p.life -= p.decay;
+      particlesCtx.globalAlpha = Math.max(0, p.life);
+      particlesCtx.fillStyle = `hsl(${((p.hue % 360) + 360) % 360}, 90%, 65%)`;
+      particlesCtx.beginPath();
+      particlesCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      particlesCtx.fill();
+    }
+    particlesCtx.globalAlpha = 1;
+  }
+
 
   function tick() {
     rafId = requestAnimationFrame(tick);
@@ -102,6 +149,18 @@
       const glowAlpha = (0.22 + beatNorm * 0.38).toFixed(2);
       playerBar.style.boxShadow =
         `0 12px 40px rgba(0,0,0,.5), 0 0 ${glowSize.toFixed(0)}px hsla(${hue.toFixed(0)},90%,62%,${glowAlpha})`;
+    }
+    if (bgTint) bgTint.style.opacity = (0.4 + beatNorm * 0.5).toFixed(2);
+
+    // Dzirksteles izlido tikai tad, kad bass "sit" (pāriet augstāk par
+    // slieksni no zemāka stāvokļa) — nevis katru kadru, lai izskatās pēc
+    // reāla ritma sitiena, ne nepārtrauktas smidzināšanas.
+    if (particlesCanvas && npOverlayEl && npOverlayEl.classList.contains('open')) {
+      if (beatNorm > 0.72 && lastBeatForSpawn <= 0.72) {
+        spawnParticles(5 + Math.floor(beatNorm * 6), hue);
+      }
+      lastBeatForSpawn = beatNorm;
+      drawParticles();
     }
   }
 
@@ -167,7 +226,9 @@
   const pbCover = document.getElementById('pb-cover');
   if (!pbAudio || !overlay || !pbCover) return;
 
-  const npBg = document.getElementById('np-bg');
+  const npBgA = document.getElementById('np-bg-a');
+  const npBgB = document.getElementById('np-bg-b');
+  const npBgTint = document.getElementById('np-bg-tint');
   const npCover = document.getElementById('np-cover');
   const npTitle = document.getElementById('np-title');
   const npArtist = document.getElementById('np-artist');
@@ -176,6 +237,48 @@
   const npProgressFill = document.getElementById('np-progress-fill');
   const npCurrent = document.getElementById('np-current');
   const npDuration = document.getElementById('np-duration');
+  let npBgShowingA = true;
+  let lastBgUrl = '';
+
+  // ── Dominējošās krāsas ekstrakcija no vāciņa ──
+  // Droši: šis strādā ar attēlu (<img>), NEVIS ar audio elementu, tāpēc pat
+  // ja Cloudinary kādreiz neatļauj CORS lasīšanu, canvas vienkārši nesaņem
+  // datus (try/catch), un attēls PATS TURPINA REDZĒT LIETOTĀJAM NORMĀLI —
+  // crossOrigin atribūts uz <img> nekad neietekmē tā redzamību, tikai
+  // canvas nolasīšanas iespēju.
+  const colorCache = new Map();
+  function extractDominantColor(imgUrl) {
+    return new Promise((resolve) => {
+      if (!imgUrl) return resolve(null);
+      if (colorCache.has(imgUrl)) return resolve(colorCache.get(imgUrl));
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const c = document.createElement('canvas');
+            const size = 24; // maza izšķirtspēja — pietiek krāsas noteikšanai, ātri
+            c.width = size; c.height = size;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0, size, size);
+            const data = ctx.getImageData(0, 0, size, size).data;
+            let r = 0, g = 0, b = 0, n = 0;
+            for (let i = 0; i < data.length; i += 4) {
+              if (data[i + 3] < 128) continue; // izlaižam caurspīdīgos pikseļus
+              r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
+            }
+            if (!n) return resolve(null);
+            r = Math.round(r / n); g = Math.round(g / n); b = Math.round(b / n);
+            const color = `${r},${g},${b}`;
+            colorCache.set(imgUrl, color);
+            resolve(color);
+          } catch (e) { resolve(null); } // CORS vai cita iemesla dēļ — klusi izlaižam
+        };
+        img.onerror = () => resolve(null);
+        img.src = imgUrl;
+      } catch (e) { resolve(null); }
+    });
+  }
 
   function formatTime(sec) {
     if (!isFinite(sec) || sec < 0) return '0:00';
@@ -184,12 +287,30 @@
     return `${m}:${s}`;
   }
 
-  function syncFromMiniPlayer() {
-    npBg.style.backgroundImage = `url("${pbCover.src}")`;
-    npCover.src = pbCover.src;
+  async function syncFromMiniPlayer() {
+    const url = pbCover.src;
+    npCover.src = url;
     npTitle.textContent = document.getElementById('pb-title')?.textContent || '—';
     npArtist.textContent = document.getElementById('pb-artist')?.textContent || '';
+
+    if (url && url !== lastBgUrl) {
+      lastBgUrl = url;
+      // ── Plūstoša pāreja: jaunais attēls tiek uzzīmēts NEREDZAMAJĀ slānī,
+      //    tad abi slāņi apmainās vietām ar CSS opacity pāreju (1.1s) ──
+      const showEl = npBgShowingA ? npBgB : npBgA;
+      const hideEl = npBgShowingA ? npBgA : npBgB;
+      showEl.style.backgroundImage = `url("${url}")`;
+      showEl.classList.add('on');
+      hideEl.classList.remove('on');
+      npBgShowingA = !npBgShowingA;
+
+      const color = await extractDominantColor(url);
+      if (color && npBgTint) {
+        npBgTint.style.background = `radial-gradient(circle at 50% 40%, rgba(${color},.55), transparent 70%)`;
+      }
+    }
   }
+
 
   function syncPlayIcon() {
     npPlayBtn.textContent = pbAudio.paused ? '▶' : '⏸';
@@ -845,4 +966,80 @@
   // pēc sākotnējās ielādes — pārbaudām vēlreiz pēc īsa brīža, drošības pēc.
   setTimeout(updateHeaderHeight, 500);
   setTimeout(updateHeaderHeight, 1500);
+})();
+
+// ══════════════════════════════════════════════════
+//  PLŪSTOŠS (MARQUEE) DZIESMAS NOSAUKUMS — ja teksts nesaraujas
+//  konteinerā, automātiski sāk lēnām ritināties, tā vietā, lai to
+//  vienkārši apgrieztu ar "...". Izmanto MutationObserver, tāpēc
+//  strādā automātiski neatkarīgi no tā, kur/kā nosaukums tiek uzstādīts —
+//  nekas cits kodā nav jāmaina.
+// ══════════════════════════════════════════════════
+(function () {
+  const titleEl = document.getElementById('pb-title');
+  if (!titleEl) return;
+
+  let lastText = null;
+  let checking = false;
+
+  function applyMarquee() {
+    const text = titleEl.textContent || '';
+    if (text === lastText) return; // nekas nemainījās — netērējam darbu
+    lastText = text;
+
+    checking = true; // uz brīdi apturam observer, lai paši neizraisām bezgalīgu ciklu
+    titleEl.innerHTML = '';
+    const span = document.createElement('span');
+    span.textContent = text;
+    titleEl.appendChild(span);
+
+    // Ļaujam pārlūkam pārrēķināt izmērus, tad salīdzinām — ja teksts
+    // platāks par redzamo laukumu, iedarbinām ritināšanos.
+    requestAnimationFrame(() => {
+      const overflow = span.scrollWidth - titleEl.clientWidth;
+      if (overflow > 4) {
+        titleEl.style.setProperty('--marquee-dist', `-${overflow + 12}px`);
+        titleEl.classList.add('marquee');
+      } else {
+        titleEl.classList.remove('marquee');
+      }
+      checking = false;
+    });
+  }
+
+  const observer = new MutationObserver(() => {
+    if (checking) return;
+    applyMarquee();
+  });
+  observer.observe(titleEl, { childList: true, characterData: true, subtree: true });
+
+  applyMarquee(); // sākotnējā pārbaude, ja nosaukums jau ir iestatīts pirms šī skripta ielādes
+  window.addEventListener('resize', () => { lastText = null; applyMarquee(); });
+})();
+
+// ══════════════════════════════════════════════════
+//  BLOĶĒŠANAS EKRĀNA PROGRESA JOSLA — MediaSession API
+//  setPositionState() ļauj tālrunim/planšetei rādīt reālu, strādājošu
+//  progresa joslu bloķēšanas ekrānā vai austiņu vadībā (nevis tikai
+//  play/pause pogas), un ļauj lietotājam tur arī pārtīt dziesmu.
+// ══════════════════════════════════════════════════
+(function () {
+  const pbAudio = document.getElementById('pb-audio');
+  if (!pbAudio || !('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return;
+
+  function updatePosition() {
+    if (!isFinite(pbAudio.duration) || pbAudio.duration <= 0) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: pbAudio.duration,
+        playbackRate: pbAudio.playbackRate || 1,
+        position: Math.min(pbAudio.currentTime, pbAudio.duration),
+      });
+    } catch (e) { /* dažiem pārlūkiem var neizdoties uz brīdi maiņas laikā — nekritiski */ }
+  }
+
+  pbAudio.addEventListener('loadedmetadata', updatePosition);
+  pbAudio.addEventListener('timeupdate', updatePosition);
+  pbAudio.addEventListener('seeked', updatePosition);
+  pbAudio.addEventListener('play', updatePosition);
 })();

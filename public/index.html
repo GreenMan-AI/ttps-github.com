@@ -259,7 +259,7 @@
   <div class="pb-track-info">
     <div class="pb-cover-wrap">
       <div class="pb-cover-glow" id="pb-cover-glow"></div>
-      <img id="pb-cover" class="cover" src="" alt="">
+      <img id="pb-cover" class="cover" crossorigin="anonymous" src="" alt="">
       <div class="waveform" id="pb-waveform">
         <span></span><span></span><span></span><span></span><span></span>
       </div>
@@ -657,10 +657,13 @@
 </div>
 
 <div class="nowplaying-overlay" id="nowplaying-overlay">
-  <div class="np-bg" id="np-bg"></div>
+  <div class="np-bg" id="np-bg-a"></div>
+  <div class="np-bg" id="np-bg-b"></div>
+  <div class="np-bg-tint" id="np-bg-tint"></div>
   <button class="np-close" id="np-close" title="Aizvērt">✕</button>
   <div class="np-content">
     <div class="np-cover-wrap">
+      <canvas class="np-particles" id="np-particles" width="440" height="440"></canvas>
       <div class="pb-cover-glow" id="np-cover-glow"></div>
       <img class="np-cover" id="np-cover" src="" alt="">
     </div>
