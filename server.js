@@ -9,7 +9,15 @@ const crypto     = require('crypto');
 const mongoose   = require('mongoose');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const mm = require('music-metadata');
+// music-metadata v11+ ir tīrs ESM modulis — nevar to ielādēt ar require()
+// (šis fails ir CommonJS). Tāpēc ielādējam to ar dinamisko import(), tikai
+// TAD, kad tas reāli vajadzīgs (skat. getMusicMetadata() zemāk), un
+// paturam iegūto moduli kešatmiņā, lai to nevajadzētu darīt katru reizi.
+let _mmModule = null;
+async function getMusicMetadata() {
+  if (!_mmModule) _mmModule = await import('music-metadata');
+  return _mmModule;
+}
 const OTPAuth = require('otpauth');
 
 const app    = express();
@@ -957,6 +965,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       //    kopš tās izveides brīža. Ja tāda nav, dziesma paliek bez vāka. ──
       if (!coverBuffer) {
         try {
+          const mm = await getMusicMetadata();
           const metadata = await mm.parseBuffer(audioFile.buffer, audioFile.mimetype, { duration: false, skipCovers: false });
           const pic = metadata?.common?.picture?.[0];
           if (pic?.data?.length) { coverBuffer = Buffer.from(pic.data); coverIsFromId3 = true; }
