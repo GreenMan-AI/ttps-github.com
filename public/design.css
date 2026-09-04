@@ -790,7 +790,7 @@ footer{text-align:center;padding:30px;color:var(--mut);font-size:12px;border-top
   transition:opacity .25s ease;
   pointer-events:none;
 }
-#player-bar.show .pb-cover-glow.active{ opacity:.75; }
+.pb-cover-glow.active{ opacity:.75; }
 
 /* Atskaņošanas pogas mirdzums seko tai pašai krāsu maiņai — viss atskaņotājs
    izskatās kā viena saskaņota, "dzīva" gaismas sistēma, nevis atsevišķi elementi. */
@@ -815,10 +815,11 @@ footer{text-align:center;padding:30px;color:var(--mut);font-size:12px;border-top
   background:rgba(20,10,25,.5); color:var(--txt); font-size:16px; cursor:pointer;
 }
 .np-content{ position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:14px; padding:20px; max-width:420px; width:100%; }
+.np-cover-wrap{ position:relative; margin-bottom:8px; }
 .np-cover{
   width:min(280px, 70vw); height:min(280px, 70vw); border-radius:20px; object-fit:cover;
   box-shadow:0 30px 70px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.08);
-  margin-bottom:8px;
+  display:block;
 }
 .np-title{ font-family:var(--font-display); font-size:22px; font-weight:700; text-align:center; }
 .np-artist{ color:var(--mut); font-size:14px; text-align:center; margin-bottom:6px; }

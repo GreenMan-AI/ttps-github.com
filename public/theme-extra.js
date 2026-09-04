@@ -63,11 +63,14 @@
 // ══════════════════════════════════════════════════
 (function () {
   const pbAudio = document.getElementById('pb-audio');
-  const glow = document.getElementById('pb-cover-glow');
+  // Divi gredzeni: mazajā joslā UN pilnekrāna "Now Playing" skatā — abi
+  // pulsē/maina krāsu vienlaicīgi un identiski.
+  const glows = [document.getElementById('pb-cover-glow'), document.getElementById('np-cover-glow')]
+    .filter(Boolean);
   const fallback = document.getElementById('pb-waveform');
   const playBtns = document.querySelectorAll('.pb-play'); // mini josla + pilnekrāna skats
   const playerBar = document.getElementById('player-bar');
-  if (!pbAudio || !glow) return;
+  if (!pbAudio || !glows.length) return;
 
   let rafId = null;
   let running = false;
@@ -87,9 +90,11 @@
 
     const scale = 0.88 + beatNorm * 0.42;
     const opacity = 0.35 + beatNorm * 0.65;
-    glow.style.transform = `scale(${scale.toFixed(3)})`;
-    glow.style.opacity = opacity.toFixed(3);
-    glow.style.filter = `blur(10px) hue-rotate(${hueDeg})`;
+    glows.forEach(glow => {
+      glow.style.transform = `scale(${scale.toFixed(3)})`;
+      glow.style.opacity = opacity.toFixed(3);
+      glow.style.filter = `blur(10px) hue-rotate(${hueDeg})`;
+    });
     playBtns.forEach(btn => btn.style.setProperty('--reactive-hue', hueDeg));
 
     if (playerBar) {
@@ -101,14 +106,14 @@
   }
 
   pbAudio.addEventListener('play', () => {
-    glow.classList.add('active');
+    glows.forEach(glow => glow.classList.add('active'));
     playBtns.forEach(btn => btn.classList.add('audio-reactive'));
     if (fallback) fallback.style.display = 'none';
     if (!running) { running = true; tick(); }
   });
 
   pbAudio.addEventListener('pause', () => {
-    glow.classList.remove('active');
+    glows.forEach(glow => glow.classList.remove('active'));
     playBtns.forEach(btn => btn.classList.remove('audio-reactive'));
     if (playerBar) playerBar.style.boxShadow = '';
   });
