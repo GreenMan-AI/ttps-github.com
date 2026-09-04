@@ -47,127 +47,110 @@
 })();
 
 // ══════════════════════════════════════════════════
-//  PULSĒJOŠS GAISMAS GREDZENS — reāli reaģē uz skanošo mūziku
-//  (Web Audio API AnalyserNode, basu frekvences). Ja pārlūks/audio
-//  avots to neatļauj (piem. CORS ierobežojums), klusi paliek vecās
-//  animētās aizvietotāja josliņas — atskaņošana nekad netiek
-//  pārtraukta šī iemesla dēļ.
+//  PULSĒJOŠS, KRĀSU MAINOŠS GAISMAS GREDZENS AP VĀCIŅU + POGU + JOSLU
+//  — TĪŠI NELASA reālus audio datus no atskaņotāja (nekāda
+//  createMediaElementSource/AnalyserNode pieslēgšanās pašam <audio>
+//  elementam, nekāds crossOrigin prasība). Iemesls: pieslēdzoties
+//  reālajam atskaņotājam, pārlūks pieprasa, lai audio faila serveris
+//  (Cloudinary CDN) VIENMĒR atgrieztu pareizās CORS galvenes — ja
+//  kaut vienu reizi (kaut vai reti, kaut vai tikai dažiem CDN
+//  serveriem) tās trūkst, PATI DZIESMA vairs nevar ielādēties, ne
+//  tikai vizuālais efekts. Tas izraisīja atskaņošanas apstāšanos.
+//  Tāpēc efekts tagad ir pilnībā simulēts (dabiskam "elpojošam"
+//  ritmam, vairāku sinusoīdu kombinācija) un NEKAD nevar ietekmēt
+//  reālo atskaņošanu — tas tikai LASA pbAudio.paused/.currentTime
+//  (droši, standarta īpašības, bez CORS prasībām).
 // ══════════════════════════════════════════════════
 (function () {
   const pbAudio = document.getElementById('pb-audio');
   const glow = document.getElementById('pb-cover-glow');
   const fallback = document.getElementById('pb-waveform');
-  if (!pbAudio || !glow) return;
-
-  // KRITISKI: šis jāiestata UZREIZ, PIRMS jebkurai dziesmai vispār tiek
-  // iestatīts src — citādi pirmā dziesma tiek ielādēta bez CORS
-  // pieprasījuma galvenēm, un pieslēdzot to Web Audio grafam (vizualizētājam),
-  // pārlūks to uzskata par "piesārņotu" un klusē skaņu (bet tikai pirmajai
-  // dziesmai — nākamās jau ielādējas pareizi, jo atribūts tad jau ir uzstādīts).
-  pbAudio.crossOrigin = 'anonymous';
-
-  let audioCtx, analyser, dataArray, rafId, ready = false, failed = false;
-  let smoothedBeat = 0, hue = 0;
   const playBtns = document.querySelectorAll('.pb-play'); // mini josla + pilnekrāna skats
   const playerBar = document.getElementById('player-bar');
+  if (!pbAudio || !glow) return;
 
-  function setup() {
-    if (ready || failed) return ready;
-    try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const source = audioCtx.createMediaElementSource(pbAudio);
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 64;
-      dataArray = new Uint8Array(analyser.frequencyBinCount);
-      source.connect(analyser);
-      analyser.connect(audioCtx.destination); // svarīgi — citādi skaņa apklust
-      ready = true;
-      return true;
-    } catch (e) {
-      failed = true; // piem. CORS neatļauj — turpinām ar vecajām josliņām, bez kļūdas lietotājam
-      return false;
-    }
-  }
+  let rafId = null;
+  let running = false;
 
-  function draw() {
-    rafId = requestAnimationFrame(draw);
-    if (!analyser || pbAudio.paused) return;
-    analyser.getByteFrequencyData(dataArray);
-    // Basu frekvences (zemākie bini) dod visnotaļ "ritma sitiena" izjūtu.
-    const bassRaw = (dataArray[0] + dataArray[1] + dataArray[2] + dataArray[3]) / 4 / 255;
-    // Nedaudz nogludinām, lai gredzens "elpo", nevis raustās katru kadru.
-    smoothedBeat = smoothedBeat * 0.72 + bassRaw * 0.28;
-    const scale = 0.88 + smoothedBeat * 0.42;
-    const opacity = 0.35 + smoothedBeat * 0.65;
+  function tick() {
+    rafId = requestAnimationFrame(tick);
+    if (pbAudio.paused) return;
+
+    const t = pbAudio.currentTime || 0;
+    // Vairāku sinusoīdu summa ar nesaskaņotām frekvencēm dod dabisku,
+    // "nejaušu" ritma sajūtu (nevis vienmuļu, paredzamu pulsēšanu),
+    // paliekot pilnībā neatkarīga no reāla audio satura.
+    const beat = 0.5 + 0.28 * Math.sin(t * 2.4) + 0.14 * Math.sin(t * 5.3 + 1.1) + 0.08 * Math.sin(t * 9.7 + 2.0);
+    const beatNorm = Math.max(0, Math.min(1, beat));
+    const hue = (t * 26) % 360;
+    const hueDeg = `${hue.toFixed(1)}deg`;
+
+    const scale = 0.88 + beatNorm * 0.42;
+    const opacity = 0.35 + beatNorm * 0.65;
     glow.style.transform = `scale(${scale.toFixed(3)})`;
     glow.style.opacity = opacity.toFixed(3);
-
-    // Kopējā skanējuma "enerģija" (viss spektrs, ne tikai bass) — spēcīgākos,
-    // dzīvīgākos brīžos krāsa mainās straujāk; klusākos — lēnāk, bet nekad
-    // pilnīgi neapstājas, lai gredzens vienmēr justos "dzīvs".
-    let energySum = 0;
-    for (let i = 0; i < dataArray.length; i++) energySum += dataArray[i];
-    const energy = energySum / dataArray.length / 255;
-    hue = (hue + 0.6 + energy * 3.2) % 360;
-    const hueDeg = `${hue.toFixed(1)}deg`;
     glow.style.filter = `blur(10px) hue-rotate(${hueDeg})`;
     playBtns.forEach(btn => btn.style.setProperty('--reactive-hue', hueDeg));
 
-    // Viss atskaņotājs "zaigo" ritmā — mīksts, krāsu mainošs mirdzums ap
-    // visu joslu, ne tikai vāciņu. Intensitāte seko basam, tonis — kopējai
-    // enerģijai (tā pati hue vērtība, kas jau aprēķināta augšā).
     if (playerBar) {
-      const glowSize = 22 + smoothedBeat * 46;
-      const glowAlpha = (0.22 + smoothedBeat * 0.38).toFixed(2);
+      const glowSize = 22 + beatNorm * 46;
+      const glowAlpha = (0.22 + beatNorm * 0.38).toFixed(2);
       playerBar.style.boxShadow =
         `0 12px 40px rgba(0,0,0,.5), 0 0 ${glowSize.toFixed(0)}px hsla(${hue.toFixed(0)},90%,62%,${glowAlpha})`;
     }
   }
 
   pbAudio.addEventListener('play', () => {
-    if (!ready && !failed) {
-      const ok = setup();
-      if (ok) {
-        glow.classList.add('active');
-        playBtns.forEach(btn => btn.classList.add('audio-reactive'));
-        if (fallback) fallback.style.display = 'none';
-        draw();
-      }
-    }
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    glow.classList.add('active');
+    playBtns.forEach(btn => btn.classList.add('audio-reactive'));
+    if (fallback) fallback.style.display = 'none';
+    if (!running) { running = true; tick(); }
   });
 
   pbAudio.addEventListener('pause', () => {
-    if (ready) {
-      glow.classList.remove('active');
-      playBtns.forEach(btn => btn.classList.remove('audio-reactive'));
-      if (playerBar) playerBar.style.boxShadow = '';
-    }
+    glow.classList.remove('active');
+    playBtns.forEach(btn => btn.classList.remove('audio-reactive'));
+    if (playerBar) playerBar.style.boxShadow = '';
   });
+})();
 
-  // SVARĪGI mobilajām ierīcēm: kad ekrāns aizmieg/tiek atbloķēts, mobilie
-  // pārlūki (īpaši iOS Safari) bieži "apstādina" (suspend) Web Audio API
-  // AudioContext, lai taupītu bateriju — pat ja pati dziesma (pbAudio)
-  // tehniski turpina spēlēt fonā. Tā kā vizualizētājs skaņu izvada TIEŠI
-  // caur šo audioCtx (nevis tieši no pbAudio), tas nozīmētu klusumu vai
-  // "iesprūdušu" skaņu pēc atbloķēšanas, ja to neatsāktu manuāli. Tāpēc
-  // katru reizi, kad lapa atkal kļūst redzama UN dziesma joprojām spēlē,
-  // piespiedu kārtā atsākam (resume) audioCtx.
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && audioCtx && audioCtx.state === 'suspended' && !pbAudio.paused) {
-      audioCtx.resume().catch(() => {});
-    }
+// ══════════════════════════════════════════════════
+//  NĀKAMĀS DZIESMAS PRIEKŠIELĀDE — minimizē pauzi starp dziesmām
+//  — tikai vieglā, droša priekšielāde (pārlūks sāk lejupielādēt
+//  nākamo failu fonā, PIRMS pašreizējā beidzas), NEVIS Web Audio
+//  pieslēgšanās — nekāda ietekme uz atskaņošanas drošumu.
+// ══════════════════════════════════════════════════
+(function () {
+  const pbAudio = document.getElementById('pb-audio');
+  if (!pbAudio) return;
+  let preloadedUrl = null;
+  let preloadEl = null;
+
+  pbAudio.addEventListener('timeupdate', () => {
+    if (!pbAudio.duration || !isFinite(pbAudio.duration)) return;
+    const remaining = pbAudio.duration - pbAudio.currentTime;
+    if (remaining > 6 || remaining <= 0) return; // priekšielādējam tikai pēdējās sekundēs
+    if (typeof shuffleOn !== 'undefined' && shuffleOn) return; // shuffle režīmā nākamā dziesma nav paredzama — izlaižam
+
+    try {
+      const allTracks = window._tracks || [];
+      if (typeof currentTrackId === 'undefined' || !currentTrackId || !allTracks.length) return;
+      const tracks = (typeof activeBrowseLanguage !== 'undefined' && activeBrowseLanguage)
+        ? allTracks.filter(t2 => t2.language === activeBrowseLanguage)
+        : allTracks;
+      const idx = tracks.findIndex(t2 => t2._id === currentTrackId);
+      if (idx < 0 || !tracks.length) return;
+      const next = tracks[(idx + 1) % tracks.length];
+      if (!next || !next.cloudUrl || next.cloudUrl === preloadedUrl) return;
+
+      preloadedUrl = next.cloudUrl;
+      if (preloadEl) preloadEl.src = '';
+      preloadEl = new Audio();
+      preloadEl.preload = 'auto';
+      preloadEl.src = next.cloudUrl;
+      preloadEl.load(); // liek pārlūkam sākt bufferēt fonā, bez atskaņošanas
+    } catch (e) { /* nekritiski — vienkārši nesaņem paātrinājumu šoreiz */ }
   });
-  // Papildu drošības tīkls — dažas pārlūku versijas maina AudioContext
-  // stāvokli klusībā, neizsaucot iepriekšminēto notikumu vispār.
-  if (typeof window !== 'undefined') {
-    window.addEventListener('pageshow', () => {
-      if (audioCtx && audioCtx.state === 'suspended' && !pbAudio.paused) audioCtx.resume().catch(() => {});
-    });
-    window.addEventListener('focus', () => {
-      if (audioCtx && audioCtx.state === 'suspended' && !pbAudio.paused) audioCtx.resume().catch(() => {});
-    });
-  }
 })();
 
 // ══════════════════════════════════════════════════
