@@ -13,7 +13,7 @@
 //   (the SW's cached/response handling doesn't correctly support partial
 //   content), so those requests must always go straight to the network.
 
-const CACHE_NAME = 'dj-gajon-shell-v2';
+const CACHE_NAME = 'dj-gajon-shell-v3';
 const SHELL_ASSETS = [
   '/',
   '/design.css',
