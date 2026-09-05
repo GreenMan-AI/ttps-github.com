@@ -62,6 +62,68 @@ function measureLoudnessGain(buffer) {
     });
   });
 }
+
+// ── Latviešu valodas pareizrakstības pārbaude (dziesmu nosaukumiem) ──
+// Izmanto reālo Hunspell dzinēju (to pašu, ko lieto LibreOffice) ar brīvi
+// pieejamu latviešu vārdnīcu (dict.dv.lv, LGPL-2.1 licence, skat.
+// dictionaries/LICENSE-lv_LV). Strādā PILNĪBĀ LOKĀLI uz servera —
+// BEZ MAKSAS, bez API atslēgas, bez interneta pieprasījumiem katrai
+// pārbaudei. Ja process kāda iemesla dēļ neizdodas (piem., binārs
+// trūkst), droši atgriežam tukšu sarakstu — funkcija NEKAD nebloķē
+// admin paneli, tikai vienkārši nerāda ieteikumus tajā reizē.
+const LV_DICT_PATH = path.join(__dirname, 'dictionaries', 'lv_LV');
+function checkLatvianSpelling(text) {
+  return new Promise((resolve) => {
+    if (!text || !text.trim()) return resolve([]);
+    const child = execFile('hunspell', ['-l', '-d', LV_DICT_PATH, '-i', 'utf-8'], { timeout: 5000 }, (err, stdout) => {
+      if (err) return resolve([]); // hunspell trūkst vai cita kļūda — droši turpinām bez pārbaudes
+      const words = stdout.split('\n').map(w => w.trim()).filter(Boolean)
+        // Izlaižam ļoti īsus žetonus un VISUS-LIELAJOS-BURTOS rakstītus vārdus —
+        // tie parasti ir saīsinājumi vai apzināti stilizēti nosaukumi (AC/DC,
+        // HD, DJ), nevis reālas pareizrakstības kļūdas, un to rādīšana tikai
+        // radītu liekus, mulsinošus brīdinājumus.
+        .filter(w => {
+          const letters = w.replace(/[^\p{L}]/gu, '');
+          if (letters.length < 3) return false;
+          if (letters === letters.toUpperCase() && letters !== letters.toLowerCase()) return false;
+          return true;
+        });
+      resolve([...new Set(words)]); // bez atkārtojumiem
+    });
+    child.stdin.write(text, 'utf8');
+    child.stdin.end();
+  });
+}
+
+// ── Failu nosaukumu "sakopšana" — atrod un piedāvā labojumu tipiskiem
+//    artefaktiem, kas rodas, kad dziesmas nosaukums nāk tieši no faila
+//    nosaukuma (pasvītrojumi, "(Official Video)" birkas, cipari sākumā,
+//    liekas atstarpes, VISI LIELIE BURTI). Vienmēr tikai IETEIKUMS —
+//    admin pats izvēlas, vai to pielietot. ──
+function suggestCleanTitle(rawTitle) {
+  if (!rawTitle) return rawTitle;
+  let t = rawTitle;
+
+  t = t.replace(/[_]+/g, ' '); // pasvītrojumi → atstarpes
+  // Tipiskas failu nosaukumu "birkas", ko admins parasti nevēlas nosaukumā
+  t = t.replace(/[\(\[][^)\]]*\b(official( ?(video|audio|music video))?|lyrics?( ?video)?|hd|4k|hq|full ?(video|song|album))\b[^)\]]*[\)\]]/gi, '');
+  // Cipara/celiņa numurs sākumā: "01 - ", "1. ", "01_" utt.
+  t = t.replace(/^\s*\d{1,3}\s*[-._)]\s*/, '');
+  // Atsevišķi, ne iekavās ietverti "HD"/"4K"/"HQ" tagi rindas beigās/sākumā.
+  t = t.replace(/(^|\s)(HD|4K|HQ)(\s|$)/gi, ' ').replace(/\s{2,}/g, ' ').trim();
+  t = t.replace(/\s{2,}/g, ' ').trim(); // liekas atstarpes
+
+  // VISI LIELIE BURTI → Katrs Vārds Ar Lielo Burtu — TIKAI ja tas ir
+  // vairāku vārdu virsraksts (satur atstarpi). Viena vārda/saīsinājuma
+  // gadījumā (piem. "AC/DC", "ABBA") tas gandrīz vienmēr ir apzināta
+  // stilizācija, ne nejauša "kliegšana", tāpēc to NEAIZTIEKAM.
+  const letters = t.replace(/[^\p{L}]/gu, '');
+  if (t.includes(' ') && letters.length >= 4 && letters === letters.toUpperCase() && letters !== letters.toLowerCase()) {
+    t = t.toLowerCase().replace(/(^|\s|-)(\p{L})/gu, (m, sep, ch) => sep + ch.toUpperCase());
+  }
+
+  return t;
+}
 const OTPAuth = require('otpauth');
 
 const app    = express();
@@ -1084,6 +1146,32 @@ app.post('/api/tracks/:id/play', playLimiter, async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Nederīgs ID' });
     await Track.findByIdAndUpdate(req.params.id, { $inc: { playCount: 1 } });
     res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Nosaukumu pārbaude admin panelim: atgriež tikai tās dziesmas, kurām
+//    ir vai nu ieteikta "sakopta" versija (failu nosaukumu artefaktu
+//    dēļ), vai atrasti iespējami pareizrakstības kļūdaini vārdi.
+//    NEKAD neko automātiski nemaina — tikai IETEIKUMI admin pārskatam. ──
+app.get('/api/admin/titles-review', requireAdmin, async (req, res) => {
+  try {
+    const tracks = await Track.find({}, 'title artist').lean();
+    const results = [];
+    for (const t of tracks) {
+      const suggestedTitle = suggestCleanTitle(t.title);
+      const misspelledWords = await checkLatvianSpelling(t.title);
+      const hasCleanupSuggestion = suggestedTitle !== t.title;
+      if (hasCleanupSuggestion || misspelledWords.length) {
+        results.push({
+          id: t._id,
+          title: t.title,
+          artist: t.artist || '',
+          suggestedTitle: hasCleanupSuggestion ? suggestedTitle : null,
+          misspelledWords,
+        });
+      }
+    }
+    res.json({ results });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

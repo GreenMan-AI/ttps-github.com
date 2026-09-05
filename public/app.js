@@ -261,6 +261,70 @@ async function runFixEncoding() {
 }
 
 // ══════════════════════════════════════════════════
+//  DZIESMU NOSAUKUMU PĀRBAUDE (failu nosaukumu artefakti +
+//  iespējamas pareizrakstības kļūdas). Vienmēr tikai IETEIKUMI —
+//  admin pats apstiprina katru izmaiņu atsevišķi, nekas netiek
+//  mainīts automātiski.
+// ══════════════════════════════════════════════════
+async function openTitlesReview() {
+  showModal('titles-review-modal');
+  const loadingEl = document.getElementById('titles-review-loading');
+  const listEl = document.getElementById('titles-review-list');
+  const emptyEl = document.getElementById('titles-review-empty');
+  loadingEl.style.display = ''; listEl.innerHTML = ''; emptyEl.style.display = 'none';
+
+  try {
+    const r = await fetch(API + '/api/admin/titles-review', { headers: authHeaders() });
+    const data = await r.json();
+    loadingEl.style.display = 'none';
+    if (!r.ok) { toast(data.error || 'Kļūda', 'err'); return; }
+
+    if (!data.results.length) { emptyEl.style.display = ''; return; }
+
+    listEl.innerHTML = data.results.map(item => {
+      const misspelledHtml = item.misspelledWords.length
+        ? `<div style="font-size:12px;color:var(--mut);margin-top:4px">⚠️ Iespējamas kļūdas vārdos: ${item.misspelledWords.map(escapeHtml).join(', ')}</div>`
+        : '';
+      const suggestionHtml = item.suggestedTitle
+        ? `<div style="margin-top:6px"><span style="color:var(--mut);font-size:13px">Ieteikums:</span> <strong>${escapeHtml(item.suggestedTitle)}</strong></div>`
+        : '';
+      return `
+        <div class="titles-review-item" style="border:1px solid var(--border2);border-radius:10px;padding:10px 12px">
+          <div style="font-weight:600">${escapeHtml(item.title)}</div>
+          ${item.artist ? `<div style="font-size:12px;color:var(--mut)">${escapeHtml(item.artist)}</div>` : ''}
+          ${suggestionHtml}
+          ${misspelledHtml}
+          <div style="display:flex;gap:8px;margin-top:8px">
+            ${item.suggestedTitle ? `<button class="btn sm" onclick="applyTitleFix('${item.id}', '${escapeHtml(item.suggestedTitle).replace(/'/g, "\\'")}', this)">✅ Labot</button>` : ''}
+            <button class="btn sm" onclick="dismissTitleReview(this)">Atstāt kā ir</button>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    loadingEl.style.display = 'none';
+    toast('Servera kļūda', 'err');
+  }
+}
+
+async function applyTitleFix(trackId, newTitle, btnEl) {
+  try {
+    const r = await fetch(API + '/api/tracks/' + trackId, {
+      method: 'PUT', headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newTitle }),
+    });
+    const data = await r.json();
+    if (!r.ok) { toast(data.error || 'Kļūda', 'err'); return; }
+    toast('✅ Nosaukums salabots', 'ok');
+    btnEl.closest('.titles-review-item').remove();
+    await loadTracks();
+  } catch (e) { toast('Servera kļūda', 'err'); }
+}
+
+function dismissTitleReview(btnEl) {
+  btnEl.closest('.titles-review-item').remove();
+}
+
+// ══════════════════════════════════════════════════
 //  SATURS (teksti mājas lapā)
 // ══════════════════════════════════════════════════
 async function loadContent() {

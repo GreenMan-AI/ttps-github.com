@@ -84,6 +84,7 @@
   <span data-i18n="admin_bar">🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot attēlus un mūziku</span>
   <div style="display:flex;gap:8px">
     <button class="btn sm" onclick="runFixEncoding()" title="Salabo esošos sabojātos LV burtus/emocijzīmes datubāzē">🛠 Salabot kodējumu</button>
+    <button class="btn sm" onclick="openTitlesReview()" title="Atrod dziesmu nosaukumus ar iespējamām kļūdām vai netīriem failu nosaukumu artefaktiem">🔤 Pārbaudīt nosaukumus</button>
     <button class="btn sm" id="export-csv-btn" title="Lejupielādēt visu dziesmu sarakstu kā CSV">⇩ CSV</button>
     <button class="btn sm danger" onclick="adminLogout()" data-i18n="logout">Iziet</button>
   </div>
@@ -110,6 +111,20 @@
     <button class="btn sm" onclick="openCustomMediaModal()">🖼️ Attēls/video (stūrī)</button>
   </div>
 </section>
+
+<!-- Dziesmu nosaukumu pārskata modālais logs -->
+<div class="modal-overlay" id="titles-review-modal">
+  <div class="modal" style="max-width:640px">
+    <h3>🔤 Dziesmu nosaukumu pārbaude</h3>
+    <p class="hint">Ieteikumi tiek ģenerēti automātiski — tie NETIEK pielietoti, kamēr pats neapstiprini katru atsevišķi. Īpašvārdi (piem., izpildītāju nosaukumi) un mūsdienu sarunvalodas vārdi var tikt kļūdaini atzīmēti kā "kļūdaini" — tas ir normāli, vienkārši izvēlies "Atstāt kā ir".</p>
+    <div id="titles-review-loading" style="padding:20px;text-align:center;color:var(--mut)">Meklē... ⏳</div>
+    <div id="titles-review-list" style="max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:10px"></div>
+    <div id="titles-review-empty" style="display:none;padding:20px;text-align:center;color:var(--mut)">Nekas aizdomīgs nav atrasts — visi nosaukumi izskatās kārtībā! ✅</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('titles-review-modal')">Aizvērt</button>
+    </div>
+  </div>
+</div>
 
 <!-- Pielāgotās media vietas modālais logs -->
 <div class="modal-overlay" id="custom-media-modal">
@@ -629,7 +644,7 @@
 <div id="toast-container"></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app.js?v=28"></script>
+<script src="/app.js?v=29"></script>
 <script src="/theme-extra.js?v=3"></script>
 <div class="quicksort-overlay" id="my-playlist-overlay">
   <div class="quicksort-box">

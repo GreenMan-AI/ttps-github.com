@@ -1,9 +1,11 @@
 FROM node:20-alpine
 
 # ffmpeg vajadzīgs skaļuma izlīdzināšanas (loudness normalization) mērīšanai
-# augšupielādes brīdī. Ja tas kādreiz trūktu, augšupielāde turpina strādāt
-# normāli — mērīšanas funkcija droši atgriežas pie neitrālas vērtības.
-RUN apk add --no-cache ffmpeg
+# augšupielādes brīdī. hunspell vajadzīgs latviešu valodas pareizrakstības
+# pārbaudei admin panelī (vārdnīcas faili nāk līdzi projektam, skat.
+# dictionaries/ mapi). Ja kāds no tiem kādreiz trūktu, attiecīgā funkcija
+# droši turpina strādāt bez tās daļas — nekas cits netiek bloķēts.
+RUN apk add --no-cache ffmpeg hunspell
 
 WORKDIR /app
 
