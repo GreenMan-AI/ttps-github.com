@@ -592,7 +592,7 @@ async function renderBgSlidesAdmin() {
     }
     listEl.innerHTML = slides.map(s => `
       <div class="bg-slide-item">
-        <img src="${s.url}" alt="">
+        <img src="${s.url}" loading="lazy" alt="">
         <button class="btn danger" onclick="deleteBgSlide('${s._id}')">✕</button>
       </div>
     `).join('');
@@ -980,7 +980,7 @@ function trackItemHtml(t2, isAdmin, num, popularRank, source) {
     <div class="track ${t2._id === currentTrackId ? 'playing' : ''}" data-id="${t2._id}" draggable="${isAdmin}" onclick="playTrack('${t2._id}', '${source || 'library'}')">
       ${isAdmin ? '<span class="drag-handle">⠿</span>' : ''}
       ${numBadge}
-      <img class="cover" src="${t2.coverUrl || ''}" onerror="this.style.visibility='hidden'" alt="">
+      <img class="cover" src="${t2.coverUrl || ''}" loading="lazy" onerror="this.style.visibility='hidden'" alt="">
       <div class="meta">
         <div class="t">${escapeHtml(t2.title)}${t2.genre ? `<span class="genre-tag">${escapeHtml(t2.genre)}</span>` : ''}${isLastPlayed ? `<span class="last-played-tag" title="${currentLang === 'lv' ? 'Pēdējā klausītā' : 'Last played'}">🕐 ${currentLang === 'lv' ? 'pēdējā' : 'last'}</span>` : ''}</div>
         <div class="a">${escapeHtml(t2.artist || '')}${isAdmin ? `<span class="play-count" title="${currentLang === 'lv' ? 'Noklausīšanās skaits' : 'Play count'}">▶ ${t2.playCount || 0}</span>` : ''}</div>
@@ -1375,6 +1375,8 @@ function playTrack(id, source) {
   document.getElementById('pb-title').textContent = track.title;
   document.getElementById('pb-artist').textContent = track.artist || '';
   document.getElementById('pb-cover').src = track.coverUrl || '';
+  currentTrackVolumeGain = (typeof track.volumeGain === 'number' && track.volumeGain > 0) ? track.volumeGain : 1;
+  applyEffectiveVolume();
   const audio = document.getElementById('pb-audio');
   // SVARĪGI fona atskaņošanai: sauc pause() TIKAI tad, ja dziesma tobrīd
   // FAKTISKI vēl spēlē (piem., lietotājs pats pārslēdzas uz citu dziesmu).
@@ -1624,10 +1626,19 @@ pbProgress.addEventListener('touchstart', (e) => { isSeeking = true; seekFromEve
 pbProgress.addEventListener('touchmove', (e) => { if (isSeeking) seekFromEvent(e); });
 pbProgress.addEventListener('touchend', () => { isSeeking = false; });
 
-pbVolumeSlider.addEventListener('input', () => {
-  pbAudio.volume = pbVolumeSlider.value;
+// ── Skaļuma izlīdzināšana: lietotāja iestatītais skaļums (slīdnis)
+//    tiek kombinēts ar katras dziesmas individuālo pastiprinājumu
+//    (izmērīts augšupielādes brīdī), lai visas dziesmas skanētu vienādi
+//    skaļi bez manuālas regulēšanas katru reizi. ──
+let currentTrackVolumeGain = 1;
+let radioFadeMultiplier = 1; // radio DJ izgaišanas/iegaišanas efekts to maina no ārpuses (theme-extra.js)
+function applyEffectiveVolume() {
+  const base = parseFloat(pbVolumeSlider.value);
+  pbAudio.volume = Math.max(0, Math.min(1, base * currentTrackVolumeGain * radioFadeMultiplier));
   pbVolIcon.textContent = pbAudio.volume == 0 ? '🔇' : pbAudio.volume < 0.5 ? '🔉' : '🔊';
-});
+}
+
+pbVolumeSlider.addEventListener('input', applyEffectiveVolume);
 
 function openTrackModal() {
   document.getElementById('track-form').reset();

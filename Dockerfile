@@ -1,5 +1,10 @@
 FROM node:20-alpine
 
+# ffmpeg vajadzīgs skaļuma izlīdzināšanas (loudness normalization) mērīšanai
+# augšupielādes brīdī. Ja tas kādreiz trūktu, augšupielāde turpina strādāt
+# normāli — mērīšanas funkcija droši atgriežas pie neitrālas vērtības.
+RUN apk add --no-cache ffmpeg
+
 WORKDIR /app
 
 COPY package*.json ./

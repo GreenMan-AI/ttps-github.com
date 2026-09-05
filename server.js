@@ -6,6 +6,8 @@ const multer     = require('multer');
 const path       = require('path');
 const fs         = require('fs');
 const crypto     = require('crypto');
+const os         = require('os');
+const { execFile } = require('child_process');
 const mongoose   = require('mongoose');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -17,6 +19,48 @@ let _mmModule = null;
 async function getMusicMetadata() {
   if (!_mmModule) _mmModule = await import('music-metadata');
   return _mmModule;
+}
+
+// ── Skaļuma izlīdzināšana (loudness normalization) ──
+// Izmanto ffmpeg (jau iebūvēts Docker attēlā), lai izmērītu dziesmas
+// reālo skaļumu (LUFS) un aprēķinātu, cik daudz tas jāpalielina/jāsamazina,
+// lai visas dziesmas skanētu aptuveni vienādi skaļi. TAS NEKO NEMAINA
+// PAŠĀ AUDIO FAILĀ — tikai saglabā skaitli datubāzē, ko pārlūks vēlāk
+// pielieto caur parasto, drošo <audio>.volume īpašību (0–1 diapazonā),
+// NEVIS caur Web Audio API — tāpēc šai funkcijai NAV UN NEVAR BŪT nekādas
+// ietekmes uz atskaņošanas uzticamību, pat ja tā pilnībā neizdodas.
+const LOUDNESS_TARGET_LUFS = -14; // nozares standarts straumēšanas platformām
+function measureLoudnessGain(buffer) {
+  return new Promise((resolve) => {
+    const tmpPath = path.join(os.tmpdir(), `loudness_${crypto.randomBytes(8).toString('hex')}.audio`);
+    try {
+      fs.writeFileSync(tmpPath, buffer);
+    } catch (e) {
+      return resolve(1); // nevarējām pat ierakstīt pagaidu failu — droši atgriežam neitrālu vērtību
+    }
+    const cleanup = () => { try { fs.unlinkSync(tmpPath); } catch (e) { /* nekritiski */ } };
+
+    execFile('ffmpeg', [
+      '-i', tmpPath, '-af', `loudnorm=I=${LOUDNESS_TARGET_LUFS}:print_format=json`, '-f', 'null', '-',
+    ], { timeout: 20000 }, (err, stdout, stderr) => {
+      cleanup();
+      try {
+        // ffmpeg raksta JSON uz stderr, ne stdout
+        const match = (stderr || '').match(/\{[\s\S]*?\}/);
+        if (!match) return resolve(1);
+        const data = JSON.parse(match[0]);
+        const measured = parseFloat(data.input_i);
+        if (!isFinite(measured)) return resolve(1);
+        let gain = Math.pow(10, (LOUDNESS_TARGET_LUFS - measured) / 20);
+        // Ierobežojam, lai nekad pārmērīgi nepastiprinātu troksni (klusam
+        // failam) vai nepārgrieztu skaņu (jau skaļam failam).
+        gain = Math.max(0.3, Math.min(1.6, gain));
+        resolve(Math.round(gain * 1000) / 1000);
+      } catch (e) {
+        resolve(1); // jebkura kļūda mērīšanā — droši turpinām bez izlīdzināšanas
+      }
+    });
+  });
 }
 const OTPAuth = require('otpauth');
 
@@ -174,7 +218,7 @@ const galleryStorage = new CloudinaryStorage({
     folder: 'Gajon/gallery',
     resource_type: 'image',
     public_id: 'gal_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
-    transformation: [{ width: 1600, height: 1600, crop: 'limit', quality: 'auto' }],
+    transformation: [{ width: 1600, height: 1600, crop: 'limit', quality: 'auto', fetch_format: 'auto' }],
   }),
 });
 const bgStorage = new CloudinaryStorage({
@@ -183,7 +227,7 @@ const bgStorage = new CloudinaryStorage({
     folder: 'Gajon/background',
     resource_type: 'image',
     public_id: 'bg_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
-    transformation: [{ width: 1920, height: 1920, crop: 'limit', quality: 'auto' }],
+    transformation: [{ width: 1920, height: 1920, crop: 'limit', quality: 'auto', fetch_format: 'auto' }],
   }),
 });
 
@@ -203,7 +247,7 @@ const avatarStorage = new CloudinaryStorage({
     folder: 'Gajon/avatar',
     resource_type: 'image',
     public_id: 'avatar_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
-    transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face', quality: 'auto' }],
+    transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face', quality: 'auto', fetch_format: 'auto' }],
   }),
 });
 
@@ -213,7 +257,7 @@ const adPosterStorage = new CloudinaryStorage({
     folder: 'Gajon/ad-poster',
     resource_type: 'image',
     public_id: 'ad_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
-    transformation: [{ width: 800, crop: 'limit', quality: 'auto' }], // negriežam — afiša var būt jebkādās proporcijās
+    transformation: [{ width: 800, crop: 'limit', quality: 'auto', fetch_format: 'auto' }], // negriežam — afiša var būt jebkādās proporcijās
   }),
 });
 const uploadAdPosterImg = multer({ storage: adPosterStorage, fileFilter: imageFilter, limits: { fileSize: 8 * 1024 * 1024 } });
@@ -271,6 +315,10 @@ const TrackSchema = new mongoose.Schema({
   fileHash: { type: String, index: true }, // SHA-256 no audio faila satura — dublikātu noteikšanai
   playCount: { type: Number, default: 0 },
   order: { type: Number, default: 0, index: true },
+  // Skaļuma izlīdzināšana: reizinātājs (0.3–1.6), aprēķināts augšupielādes
+  // brīdī no izmērītā LUFS līmeņa, lai klausītājam nebūtu jāregulē skaļums
+  // katru dziesmu. 1 = bez izmaiņām (noklusējums, ja mērīšana neizdodas).
+  volumeGain: { type: Number, default: 1 },
 }, { timestamps: true });
 
 const BgSlideSchema = new mongoose.Schema({
@@ -972,6 +1020,12 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
         } catch (e) { /* nav ID3 taga vai fails to nesatur — tas ir OK, turpinām bez vāka */ }
       }
 
+      // ── Skaļuma izlīdzināšana — mērām PIRMS Cloudinary augšupielādes, no
+      //    tā paša oriģinālā faila bufera. Ja mērīšana neizdodas (piem.,
+      //    ffmpeg trūkst), volumeGain vienkārši paliek 1 (bez izmaiņām) —
+      //    augšupielāde NEKAD netiek bloķēta šī iemesla dēļ. ──
+      const volumeGain = await measureLoudnessGain(audioFile.buffer);
+
       const audioResult = await uploadBufferToCloudinary(audioFile.buffer, {
         folder: 'Gajon/audio',
         resource_type: 'video', // Cloudinary glabā audio zem "video" resursa tipa
@@ -984,7 +1038,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
           folder: 'Gajon/covers',
           resource_type: 'image',
           public_id: 'cover_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'),
-          transformation: [{ width: 500, height: 500, crop: 'fill', quality: 'auto' }],
+          transformation: [{ width: 500, height: 500, crop: 'fill', quality: 'auto', fetch_format: 'auto' }],
         });
       }
 
@@ -999,6 +1053,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
         coverUrl: coverResult?.secure_url || '',
         coverPublicId: coverResult?.public_id || '',
         fileHash,
+        volumeGain,
       });
       res.status(201).json({ track, coverFromId3: coverIsFromId3 });
     } catch (e) {

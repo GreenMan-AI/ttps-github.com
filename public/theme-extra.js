@@ -179,45 +179,6 @@
 })();
 
 // ══════════════════════════════════════════════════
-//  NĀKAMĀS DZIESMAS PRIEKŠIELĀDE — minimizē pauzi starp dziesmām
-//  — tikai vieglā, droša priekšielāde (pārlūks sāk lejupielādēt
-//  nākamo failu fonā, PIRMS pašreizējā beidzas), NEVIS Web Audio
-//  pieslēgšanās — nekāda ietekme uz atskaņošanas drošumu.
-// ══════════════════════════════════════════════════
-(function () {
-  const pbAudio = document.getElementById('pb-audio');
-  if (!pbAudio) return;
-  let preloadedUrl = null;
-  let preloadEl = null;
-
-  pbAudio.addEventListener('timeupdate', () => {
-    if (!pbAudio.duration || !isFinite(pbAudio.duration)) return;
-    const remaining = pbAudio.duration - pbAudio.currentTime;
-    if (remaining > 6 || remaining <= 0) return; // priekšielādējam tikai pēdējās sekundēs
-    if (typeof shuffleOn !== 'undefined' && shuffleOn) return; // shuffle režīmā nākamā dziesma nav paredzama — izlaižam
-
-    try {
-      const allTracks = window._tracks || [];
-      if (typeof currentTrackId === 'undefined' || !currentTrackId || !allTracks.length) return;
-      const tracks = (typeof activeBrowseLanguage !== 'undefined' && activeBrowseLanguage)
-        ? allTracks.filter(t2 => t2.language === activeBrowseLanguage)
-        : allTracks;
-      const idx = tracks.findIndex(t2 => t2._id === currentTrackId);
-      if (idx < 0 || !tracks.length) return;
-      const next = tracks[(idx + 1) % tracks.length];
-      if (!next || !next.cloudUrl || next.cloudUrl === preloadedUrl) return;
-
-      preloadedUrl = next.cloudUrl;
-      if (preloadEl) preloadEl.src = '';
-      preloadEl = new Audio();
-      preloadEl.preload = 'auto';
-      preloadEl.src = next.cloudUrl;
-      preloadEl.load(); // liek pārlūkam sākt bufferēt fonā, bez atskaņošanas
-    } catch (e) { /* nekritiski — vienkārši nesaņem paātrinājumu šoreiz */ }
-  });
-})();
-
-// ══════════════════════════════════════════════════
 //  PILNEKRĀNA "NOW PLAYING" REŽĪMS — atveras, uzspiežot uz vāciņa
 // ══════════════════════════════════════════════════
 (function () {
@@ -1042,4 +1003,159 @@
   pbAudio.addEventListener('timeupdate', updatePosition);
   pbAudio.addEventListener('seeked', updatePosition);
   pbAudio.addEventListener('play', updatePosition);
+})();
+
+// ══════════════════════════════════════════════════
+//  "NĀKAMĀS RINDĀ" PRIEKŠSKATĪJUMS — pilnekrāna skatā
+//  Secīgā režīmā rāda nākamās 3 dziesmas precīzi. Jaukšanas (shuffle)
+//  režīmā godīgi rāda TIKAI apstiprināto nākamo dziesmu (kad tā jau
+//  izvēlēta ~5s pirms beigām, sk. app.js priekšielādes loģiku) — nevis
+//  izdomātu minējumu, kas varētu neatbilst tam, kas reāli tiks atskaņots.
+// ══════════════════════════════════════════════════
+(function () {
+  const queueEl = document.getElementById('np-queue');
+  const npOverlay = document.getElementById('nowplaying-overlay');
+  const pbAudio = document.getElementById('pb-audio');
+  if (!queueEl || !npOverlay || !pbAudio) return;
+
+  let lastSignature = null;
+
+  function renderQueue() {
+    if (!npOverlay.classList.contains('open')) return;
+    try {
+      const usingPlaylist = typeof playingFromMyPlaylist !== 'undefined' && playingFromMyPlaylist && myPlaylistIds.length;
+      const list = usingPlaylist
+        ? myPlaylistIds.map(id => (window._tracks || []).find(t2 => t2._id === id)).filter(Boolean)
+        : ((typeof activeBrowseLanguage !== 'undefined' && activeBrowseLanguage)
+            ? (window._tracks || []).filter(t2 => t2.language === activeBrowseLanguage)
+            : (window._tracks || []));
+
+      if (!list.length || typeof currentTrackId === 'undefined' || !currentTrackId) {
+        if (lastSignature !== '') { queueEl.innerHTML = ''; lastSignature = ''; }
+        return;
+      }
+      const idx = list.findIndex(t2 => t2._id === currentTrackId);
+      if (idx < 0) { queueEl.innerHTML = ''; lastSignature = ''; return; }
+
+      const isShuffle = typeof shuffleOn !== 'undefined' && shuffleOn;
+      let items = [];
+      if (isShuffle) {
+        if (typeof preselectedNextId !== 'undefined' && preselectedNextId) {
+          const nt = list.find(t2 => t2._id === preselectedNextId);
+          if (nt) items = [nt];
+        }
+      } else if (list.length > 1) {
+        for (let i = 1; i <= Math.min(3, list.length - 1); i++) items.push(list[(idx + i) % list.length]);
+      }
+
+      const signature = isShuffle + '|' + items.map(t2 => t2._id).join(',');
+      if (signature === lastSignature) return; // nekas nemainījās — netērējam DOM darbu
+      lastSignature = signature;
+
+      if (!items.length) {
+        queueEl.innerHTML = isShuffle
+          ? '<div class="np-queue-label">🔀 Jaukta secība — nākamā tiks izvēlēta pie dziesmas beigām</div>'
+          : '';
+        return;
+      }
+
+      const label = isShuffle ? '🔀 Nākamā (jauktā secībā)' : 'Nākamās rindā';
+      const source = usingPlaylist ? 'playlist' : 'library';
+      queueEl.innerHTML = `<div class="np-queue-label">${label}</div>` + items.map(t2 => `
+        <div class="np-queue-item" onclick="playTrack('${t2._id}', '${source}')">
+          <img src="${t2.coverUrl || ''}" alt="" loading="lazy">
+          <div class="nq-meta">
+            <div class="nq-t">${escapeHtml(t2.title || '')}</div>
+            <div class="nq-a">${escapeHtml(t2.artist || '')}</div>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) { /* nekritiski — rinda vienkārši nerādās šoreiz */ }
+  }
+
+  document.getElementById('pb-cover')?.addEventListener('click', () => setTimeout(renderQueue, 50));
+  pbAudio.addEventListener('play', () => setTimeout(renderQueue, 50));
+  pbAudio.addEventListener('timeupdate', renderQueue); // lēts pateicoties signature pārbaudei augšā
+})();
+
+// ══════════════════════════════════════════════════
+//  RADIO DJ CROSSFADE — mīksta izgaišana/iegaišana starp dziesmām
+//  (TIKAI radio režīmā). Šis NEIZMANTO Web Audio API un NEPIESLĒDZAS
+//  audio elementam nekādā riskantā veidā — tikai regulē to pašu drošo
+//  .volume īpašību (caur radioFadeMultiplier + applyEffectiveVolume),
+//  ko jau lieto skaļuma izlīdzināšana. Tāpēc šis NEKAD nevar ietekmēt
+//  atskaņošanas ielādi vai uzticamību — tikai skaļuma līkni.
+//
+//  PIEZĪME: šis IR secīga izgaišana/iegaišana, NEVIS īsts pārklājošs
+//  crossfade (kur abas dziesmas spēlētu vienlaicīgi) — tas prasītu
+//  otru, paralēlu audio kanālu tieši dziesmu maiņas brīdī, kas ir
+//  precīzi tas brīdis, kur iepriekš radās atskaņošanas problēmas.
+//  Šis risinājums dod līdzīgu, mīkstu radio sajūtu bez tā riska.
+// ══════════════════════════════════════════════════
+(function () {
+  const pbAudio = document.getElementById('pb-audio');
+  const radioBtn = document.getElementById('radio-mode-btn');
+  if (!pbAudio || !radioBtn || typeof applyEffectiveVolume !== 'function') return;
+
+  const FADE_SECONDS = 3;
+  let fadeOutRafId = null;
+  let fadeInRafId = null;
+
+  function isRadioOn() { return radioBtn.classList.contains('active'); }
+
+  function cancelFades() {
+    if (fadeOutRafId) { cancelAnimationFrame(fadeOutRafId); fadeOutRafId = null; }
+    if (fadeInRafId) { cancelAnimationFrame(fadeInRafId); fadeInRafId = null; }
+  }
+
+  // ── Izgaišana pēdējās FADE_SECONDS sekundēs pirms dziesma beidzas ──
+  let fadingOutFor = null; // dziesmas ID, kurai jau sākta izgaišana (izvairāmies no atkārtotas iedarbināšanas)
+  pbAudio.addEventListener('timeupdate', () => {
+    if (!isRadioOn()) return;
+    if (!pbAudio.duration || !isFinite(pbAudio.duration)) return;
+    const remaining = pbAudio.duration - pbAudio.currentTime;
+    if (remaining > FADE_SECONDS || remaining <= 0) return;
+    if (fadingOutFor === pbAudio.src) return; // jau sākta šai dziesmai
+    fadingOutFor = pbAudio.src;
+
+    const startTime = performance.now();
+    function step() {
+      const elapsed = (performance.now() - startTime) / 1000;
+      const progress = Math.min(1, elapsed / FADE_SECONDS);
+      radioFadeMultiplier = Math.max(0, 1 - progress);
+      applyEffectiveVolume();
+      if (progress < 1 && isRadioOn()) fadeOutRafId = requestAnimationFrame(step);
+    }
+    step();
+  });
+
+  // ── Iegaišana jaunas dziesmas pirmajās FADE_SECONDS sekundēs ──
+  pbAudio.addEventListener('play', () => {
+    if (!isRadioOn()) { radioFadeMultiplier = 1; return; }
+    cancelFades();
+    fadingOutFor = null;
+    radioFadeMultiplier = 0;
+    applyEffectiveVolume();
+
+    const startTime = performance.now();
+    function step() {
+      const elapsed = (performance.now() - startTime) / 1000;
+      const progress = Math.min(1, elapsed / FADE_SECONDS);
+      radioFadeMultiplier = progress;
+      applyEffectiveVolume();
+      if (progress < 1 && isRadioOn()) fadeInRafId = requestAnimationFrame(step);
+      else radioFadeMultiplier = 1, applyEffectiveVolume();
+    }
+    step();
+  });
+
+  // Ja radio tiek izslēgts — nekavējoties atgriežam pilnu skaļumu, lai
+  // lietotājs "neiestrēgst" ar klusu skaņu.
+  radioBtn.addEventListener('click', () => {
+    if (!isRadioOn()) { // šis notiek PĒC uzspiešanas, kad state jau mainīts uz off
+      cancelFades();
+      radioFadeMultiplier = 1;
+      applyEffectiveVolume();
+    }
+  });
 })();
