@@ -48,14 +48,14 @@ function toast(msg, type = 'ok') {
 // ══════════════════════════════════════════════════
 const I18N = {
   lv: {
-    nav_about: 'Informācīja', nav_gallery: 'Bildes', nav_music: 'Mūzika', nav_chat: 'Čats',
+    nav_about: 'Informācīja', nav_gallery: 'Attēli', nav_music: 'Mūzika', nav_chat: 'Čats',
     nav_share: '🔗 Dalies', share_title: 'Dalies ar draugiem', share_copy: 'Kopēt saiti', share_more: 'Vairāk...',
-    admin_bar: '🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot bildes un mūziku',
-    logout: 'Iziet', edit_text: '✏️ Rediģēt tekstu', edit_bg: '🖼️ Fona bilde', edit_bg_title: 'Fona bilde', about_title: 'Informācīja',
-    edit_hero_img: '🙂 Profila bilde', hero_img_title: 'Profila bilde',
-    hero_img_hint: 'Neliela apļveida bilde, kas parādās virs virsraksta.', hero_img_remove: '🗑️ Noņemt',
+    admin_bar: '🔧 Admin režīms ieslēgts — vari rediģēt saturu, pievienot attēlus un mūziku',
+    logout: 'Iziet', edit_text: '✏️ Rediģēt tekstu', edit_bg: '🖼️ Fona attēls', edit_bg_title: 'Fona attēls', about_title: 'Informācīja',
+    edit_hero_img: '🙂 Profila attēls', hero_img_title: 'Profila attēls',
+    hero_img_hint: 'Neliels apļveida attēls, kas parādās virs virsraksta.', hero_img_remove: '🗑️ Noņemt',
     genre_label: 'Žanrs (nav obligāts, piem. Hip-Hop, Metal, Balāde)',
-    gallery_title: 'Bildes', add_image: '➕ Pievienot bildi',
+    gallery_title: 'Attēli', add_image: '➕ Pievienot attēlu',
     music_title: 'Mūzika', add_track: '➕ Pievienot dziesmu',
     track_search_ph: '🔍 Meklēt dziesmu vai izpildītāju...',
     lyrics_label: 'Dziesmas vārdi (nav obligāti)',
@@ -68,23 +68,23 @@ const I18N = {
     edit_content_title: 'Rediģēt lapas tekstu', site_title_label: 'Lapas nosaukums',
     contact_email_label: 'Kontakta e-pasts', social_link_label: 'Sociālo tīklu saite',
     close: 'Aizvērt', save: 'Saglabāt',
-    add_image_title: 'Pievienot bildi', image_label: 'Bilde', category_label: 'Kategorija',
+    add_image_title: 'Pievienot attēlu', image_label: 'Attēls', category_label: 'Kategorija',
     caption_label: 'Paraksts (nav obligāts)', upload: 'Augšupielādēt',
     add_track_title: 'Pievienot dziesmu', title_label: 'Nosaukums', artist_label: 'Izpildītājs (nav obligāts)',
-    audio_file_label: 'Audio fails (MP3, WAV, OGG...)', cover_label: 'Vāciņa bilde (nav obligāta)',
+    audio_file_label: 'Audio fails (MP3, WAV, OGG...)', cover_label: 'Vāciņa attēls (nav obligāts)',
     gallery_empty: 'Vēl nav pievienotu bilžu.', music_empty: 'Vēl nav pievienotu dziesmu.',
     filter_all: 'Visas',
     add_bulk: '📦 Pievienot vairākas uzreiz', add_bulk_title: 'Pievienot vairākas dziesmas uzreiz',
     audio_files_label: 'Audio faili (vari izvēlēties vairākus)',
     bulk_hint: 'Nosaukumi tiks ņemti no failu nosaukumiem — pēc tam tos vari rediģēt atsevišķi.',
-    bg_image_label: 'Fona bilde (parādās aiz visas lapas)', bg_remove: '🗑️ Noņemt fona bildi',
+    bg_image_label: 'Fona attēls (parādās aiz visas lapas)', bg_remove: '🗑️ Noņemt fona attēlu',
     bg_upload: '⬆️ Augšupielādēt un uzstādīt fonu',
-    bg_hint: 'Fona bilde saglabājas uzreiz pēc augšupielādes (neatkarīgi no "Saglabāt" pogas apakšā).',
-    bg_position_label: 'Bildes novietojums (centrējums)',
-    bg_size_label: 'Bildes izmērs', size_cover: 'Aizpildīt ekrānu (var apgriezt malas)', size_contain: 'Rādīt visu bildi (var būt tukšas malas)',
+    bg_hint: 'Fona attēls saglabājas uzreiz pēc augšupielādes (neatkarīgi no "Saglabāt" pogas apakšā).',
+    bg_position_label: 'Attēla novietojums (centrējums)',
+    bg_size_label: 'Attēla izmērs', size_cover: 'Aizpildīt ekrānu (var apgriezt malas)', size_contain: 'Rādīt visu attēlu (var būt tukšas malas)',
     bg_overlay_label: 'Tumšuma pārklājums (lai teksts būtu salasāms)',
-    bg_add_label: 'Pievienot bildi(-es) fonam', bg_current_label: 'Pašreizējās fona bildes',
-    bg_interval_label: 'Nomaiņas intervāls (sekundēs, ja vairākas bildes)',
+    bg_add_label: 'Pievienot attēlu(-us) fonam', bg_current_label: 'Pašreizējie fona attēli',
+    bg_interval_label: 'Nomaiņas intervāls (sekundēs, ja vairāki attēli)',
     pos_center: 'Centrā', pos_top: 'Augšā', pos_bottom: 'Apakšā', pos_left: 'Kreisajā pusē', pos_right: 'Labajā pusē',
     pos_top_left: 'Augšā kreisi', pos_top_right: 'Augšā labi', pos_bottom_left: 'Apakšā kreisi', pos_bottom_right: 'Apakšā labi',
     new_this_week: '🆕 Šīs nedēļas jaunumi', all_tracks: '🎵 Visas dziesmas',
@@ -333,8 +333,8 @@ function applyContentForLang() {
     else { avatarEl.style.display = 'none'; avatarEl.src = ''; }
   }
 
-  // Fona bilde tagad tiek pārvaldīta atsevišķi caur loadBgSlideshow() /
-  // startBgSlideshow() (skat. zemāk) — atbalsta gan 1, gan vairākas bildes.
+  // Fona attēls tagad tiek pārvaldīts atsevišķi caur loadBgSlideshow() /
+  // startBgSlideshow() (skat. zemāk) — atbalsta gan 1, gan vairākus attēlus.
 }
 
 function openContentModal() {
@@ -447,19 +447,19 @@ async function uploadHeroImage() {
     const data = await r.json();
     btn.disabled = false;
     if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
-    toast(currentLang === 'lv' ? '✅ Profila bilde uzstādīta!' : '✅ Profile image set!', 'ok');
+    toast(currentLang === 'lv' ? '✅ Profila attēls uzstādīts!' : '✅ Profile image set!', 'ok');
     closeModal('hero-img-modal');
     await loadContent();
   } catch (e) { btn.disabled = false; errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
 }
 
 async function removeHeroImage() {
-  if (!confirm(currentLang === 'lv' ? 'Noņemt profila bildi?' : 'Remove profile image?')) return;
+  if (!confirm(currentLang === 'lv' ? 'Noņemt profila attēlu?' : 'Remove profile image?')) return;
   try {
     const r = await fetch(API + '/api/content/hero-avatar', { method: 'DELETE', headers: authHeaders() });
     const data = await r.json();
     if (!r.ok) { toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
-    toast(currentLang === 'lv' ? '🗑️ Profila bilde noņemta' : '🗑️ Profile image removed', 'ok');
+    toast(currentLang === 'lv' ? '🗑️ Profila attēls noņemts' : '🗑️ Profile image removed', 'ok');
     closeModal('hero-img-modal');
     await loadContent();
   } catch (e) { toast('❌ Servera kļūda', 'err'); }
@@ -552,7 +552,7 @@ async function uploadCustomMediaFile() {
 }
 
 async function removeCustomMedia() {
-  if (!confirm('Noņemt šo bildi/video?')) return;
+  if (!confirm('Noņemt šo attēlu/video?')) return;
   try {
     const r = await fetch(API + '/api/content/custom-media', { method: 'DELETE', headers: authHeaders() });
     const data = await r.json();
@@ -587,7 +587,7 @@ async function renderBgSlidesAdmin() {
     const { slides } = await r.json();
     window._bgSlides = slides;
     if (!slides.length) {
-      listEl.innerHTML = `<p class="empty-msg">${currentLang === 'lv' ? 'Vēl nav pievienota neviena fona bilde.' : 'No background images added yet.'}</p>`;
+      listEl.innerHTML = `<p class="empty-msg">${currentLang === 'lv' ? 'Vēl nav pievienots neviens fona attēls.' : 'No background images added yet.'}</p>`;
       return;
     }
     listEl.innerHTML = slides.map(s => `
@@ -603,7 +603,7 @@ async function uploadBgSlides() {
   const errEl = document.getElementById('bg-err');
   errEl.textContent = '';
   const files = Array.from(document.getElementById('f-bgImage').files);
-  if (!files.length) { errEl.textContent = currentLang === 'lv' ? 'Izvēlies vismaz vienu bildi' : 'Choose at least one image'; return; }
+  if (!files.length) { errEl.textContent = currentLang === 'lv' ? 'Izvēlies vismaz vienu attēlu' : 'Choose at least one image'; return; }
   const progressEl = document.getElementById('bg-upload-progress');
   progressEl.innerHTML = '';
   const btn = document.getElementById('bg-upload-btn');
@@ -627,11 +627,11 @@ async function uploadBgSlides() {
   document.getElementById('f-bgImage').value = '';
   await renderBgSlidesAdmin();
   await loadBgSlideshow();
-  toast(currentLang === 'lv' ? '✅ Fona bildes atjauninātas!' : '✅ Background images updated!', 'ok');
+  toast(currentLang === 'lv' ? '✅ Fona attēli atjaunināti!' : '✅ Background images updated!', 'ok');
 }
 
 async function deleteBgSlide(id) {
-  if (!confirm(currentLang === 'lv' ? 'Dzēst šo fona bildi?' : 'Delete this background image?')) return;
+  if (!confirm(currentLang === 'lv' ? 'Dzēst šo fona attēlu?' : 'Delete this background image?')) return;
   try {
     const r = await fetch(API + '/api/content/bg-slides/' + id, { method: 'DELETE', headers: authHeaders() });
     if (!r.ok) { toast('❌ ' + (currentLang === 'lv' ? 'Neizdevās dzēst' : 'Delete failed'), 'err'); return; }
@@ -665,7 +665,7 @@ async function saveBgSettings() {
 }
 
 // ══════════════════════════════════════════════════
-//  FONA SLAIDRĀDE (publiskā puse — 1 vai vairākas bildes ar crossfade)
+//  FONA SLAIDRĀDE (publiskā puse — 1 vai vairāki attēli ar crossfade)
 // ══════════════════════════════════════════════════
 let bgSlideTimer = null;
 let bgSlideIndex = 0;
@@ -801,7 +801,7 @@ document.getElementById('content-form').addEventListener('submit', async (e) => 
 });
 
 // ══════════════════════════════════════════════════
-//  GALERIJA (bildes + kategorijas)
+//  GALERIJA (attēli + kategorijas)
 // ══════════════════════════════════════════════════
 let galleryItems = [];
 
@@ -852,7 +852,7 @@ document.getElementById('gallery-form').addEventListener('submit', async (e) => 
   const errEl = document.getElementById('gallery-err');
   errEl.textContent = '';
   const file = document.getElementById('g-file').files[0];
-  if (!file) { errEl.textContent = 'Izvēlies bildi'; return; }
+  if (!file) { errEl.textContent = 'Izvēlies attēlu'; return; }
   const fd = new FormData();
   fd.append('image', file);
   fd.append('caption', document.getElementById('g-caption').value);
@@ -862,17 +862,17 @@ document.getElementById('gallery-form').addEventListener('submit', async (e) => 
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
     closeModal('gallery-modal');
-    toast(currentLang === 'lv' ? '✅ Bilde pievienota!' : '✅ Photo added!', 'ok');
+    toast(currentLang === 'lv' ? '✅ Attēls pievienots!' : '✅ Photo added!', 'ok');
     await loadGallery();
   } catch (e) { errEl.textContent = 'Servera kļūda'; toast('❌ Servera kļūda', 'err'); }
 });
 
 async function deleteGalleryItem(id) {
-  if (!confirm('Dzēst šo bildi?')) return;
+  if (!confirm('Dzēst šo attēlu?')) return;
   try {
     const r = await fetch(API + '/api/gallery/' + id, { method: 'DELETE', headers: authHeaders() });
     if (!r.ok) { toast('❌ ' + (currentLang === 'lv' ? 'Neizdevās dzēst' : 'Delete failed'), 'err'); return; }
-    toast(currentLang === 'lv' ? '🗑️ Bilde dzēsta' : '🗑️ Photo deleted', 'ok');
+    toast(currentLang === 'lv' ? '🗑️ Attēls dzēsts' : '🗑️ Photo deleted', 'ok');
     await loadGallery();
   } catch (e) { toast('❌ ' + (currentLang === 'lv' ? 'Servera kļūda' : 'Server error'), 'err'); }
 }
@@ -1684,7 +1684,7 @@ document.getElementById('track-form').addEventListener('submit', async (e) => {
     if (!r.ok) { errEl.textContent = data.error || 'Kļūda'; toast('❌ ' + (data.error || 'Kļūda'), 'err'); return; }
     closeModal('track-modal');
     if (data.coverFromId3) {
-      toast(currentLang === 'lv' ? '✅ Dziesma pievienota! 🖼️ Vāka bilde automātiski atrasta failā' : '✅ Track added! 🖼️ Cover art found in file', 'ok');
+      toast(currentLang === 'lv' ? '✅ Dziesma pievienota! 🖼️ Vāka attēls automātiski atrasts failā' : '✅ Track added! 🖼️ Cover art found in file', 'ok');
     } else {
       toast(currentLang === 'lv' ? '✅ Dziesma pievienota!' : '✅ Track added!', 'ok');
     }

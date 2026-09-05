@@ -160,7 +160,7 @@ app.use((req, res, next) => {
 // Static files — no-cache priekš CSS/JS/HTML, lai pēc katra deploy pārlūks
 // vienmēr paņem jaunāko versiju (nevis veco no kešatmiņas).
 // index:false — jo "/" apkalpojam paši zemāk (skat. renderIndexHtml),
-// lai varam ielikt katras dziesmas savu vāciņa bildi dalīšanās priekšskatam.
+// lai varam ielikt katras dziesmas savu vāciņa attēlu dalīšanās priekšskatam.
 app.use(express.static(path.join(__dirname, 'public'), { index: false, setHeaders: (res) => {
   res.setHeader('Cache-Control', 'no-cache, must-revalidate');
 }}));
@@ -345,7 +345,7 @@ const DEFAULT_CONTENT = {
   tagline_en: 'My music. My world.',
   heroTitle_lv: 'Sveiki, esmu DJ Gajon!',
   heroTitle_en: 'Hi, I\'m DJ Gajon!',
-  heroSubtitle_lv: 'Šeit klausies manu pašsacerēto mūziku un skaties bildes.',
+  heroSubtitle_lv: 'Šeit klausies manu pašsacerēto mūziku un skaties attēlus.',
   heroSubtitle_en: 'Listen to my original music and browse photos here.',
   aboutText_lv: 'Šeit vēlāk būs stāsts par mani un manu mūziku.',
   aboutText_en: 'A story about me and my music will go here.',
@@ -509,7 +509,7 @@ setInterval(() => { const now = Date.now(); for (const [t, exp] of sessions) if 
 //  Automātiska "mojibake" (sabojātu burtu, piem. ā→Ä, š→Å¡) labošana —
 //  tas pats princips kā vienreizējā scripts/fix-encoding.js, bet tagad
 //  pielietots AUTOMĀTISKI ikreiz, kad kāds teksts tiek saglabāts (dziesmu
-//  nosaukumi, izpildītāji, bildes paraksti utt.), lai latviešu burti
+//  nosaukumi, izpildītāji, attēlu paraksti utt.), lai latviešu burti
 //  (ā,ē,ī,ņ,ļ,ķ,š,ž,č,ģ) vienmēr paliktu pareizi un korekti izlasāmi.
 function looksCorrupted(str) {
   if (typeof str !== 'string' || !str) return false;
@@ -793,8 +793,8 @@ app.put('/api/content', requireAdmin, (req, res) => {
   })();
 });
 
-// Fona bilde — atsevišķa, tūlītēja darbība (ne daļa no lielā teksta saglabāšanas)
-// ── Fona bildes iestatījumi (pozīcija, izmērs, tumšums, intervāls) ──
+// Fona attēls — atsevišķa, tūlītēja darbība (ne daļa no lielā teksta saglabāšanas)
+// ── Fona attēla iestatījumi (pozīcija, izmērs, tumšums, intervāls) ──
 app.put('/api/content/bg-settings', requireAdmin, async (req, res) => {
   try {
     const { position, size, overlayOpacity, interval } = req.body || {};
@@ -823,13 +823,13 @@ app.put('/api/content/bg-settings', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── Fona bilžu slaidrāde (var būt 1 vai vairākas bildes) ──
-// ── Profila (hero) bilde — neliela apļveida bilde virs virsraksta ──
+// ── Fona attēlu slaidrāde (var būt 1 vai vairāki attēli) ──
+// ── Profila (hero) attēls — neliels apļveida attēls virs virsraksta ──
 app.post('/api/content/hero-avatar', requireAdmin, uploadLimiter, (req, res) => {
   uploadAvatarImg.single('image')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     try {
-      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
+      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēts attēls' });
       const old = await Content.findOne({ key: 'heroAvatarPublicId' });
       if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
       await Content.findOneAndUpdate({ key: 'heroAvatarUrl' }, { value: req.file.path }, { upsert: true });
@@ -849,13 +849,13 @@ app.delete('/api/content/hero-avatar', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── Reklāmas/afišas attēls — neliela banera bilde, ko admins var uzlikt
+// ── Reklāmas/afišas attēls — neliels banera attēls, ko admins var uzlikt
 //    lapas augšā; ja nav uzlikts, apmeklētāji to vienkārši neredz. ──
 app.post('/api/content/ad-poster', requireAdmin, uploadLimiter, (req, res) => {
   uploadAdPosterImg.single('image')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     try {
-      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
+      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēts attēls' });
       const old = await Content.findOne({ key: 'adPosterPublicId' });
       if (old?.value) { try { await cloudinary.uploader.destroy(old.value, { resource_type: 'image' }); } catch (e) {} }
       await Content.findOneAndUpdate({ key: 'adPosterUrl' }, { value: req.file.path }, { upsert: true });
@@ -875,7 +875,7 @@ app.delete('/api/content/ad-poster', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── Pielāgotā media vieta hero sadaļā — bilde vai video, ko admins var
+// ── Pielāgotā media vieta hero sadaļā — attēls vai video, ko admins var
 //    uzlikt jebkurā brīdī; ja nekas nav uzlikts, apmeklētāji to nemaz neredz. ──
 app.post('/api/content/custom-media', requireAdmin, uploadLimiter, (req, res) => {
   uploadCustomMedia.single('media')(req, res, async (err) => {
@@ -921,7 +921,7 @@ app.post('/api/content/bg-slides', requireAdmin, uploadLimiter, (req, res) => {
   uploadBgImg.single('image')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     try {
-      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēta bilde' });
+      if (!req.file) return res.status(400).json({ error: 'Nav izvēlēts attēls' });
       const count = await BgSlide.countDocuments();
       const slide = await BgSlide.create({ url: req.file.path, publicId: req.file.filename, order: count });
       res.status(201).json({ slide });
@@ -939,7 +939,7 @@ app.delete('/api/content/bg-slides/:id', requireAdmin, async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════
-//  GALERIJA (bildes)
+//  GALERIJA (attēli)
 // ══════════════════════════════════════════════════
 app.get('/api/gallery', async (req, res) => {
   try {
@@ -1008,7 +1008,7 @@ app.post('/api/tracks', requireAdmin, uploadLimiter, (req, res) => {
       let coverBuffer = coverFile?.buffer || null;
       let coverIsFromId3 = false;
 
-      // ── Ja admins pats nepievienoja vāka bildi, mēģinam izgūt to, kas jau
+      // ── Ja admins pats nepievienoja vāka attēlu, mēģinam izgūt to, kas jau
       //    ir "iekšā" audio failā (ID3 tags) — attēls, kas dziesmai pievienots
       //    kopš tās izveides brīža. Ja tāda nav, dziesma paliek bez vāka. ──
       if (!coverBuffer) {
@@ -1228,7 +1228,7 @@ app.get('/privacy', (req, res) => {
 //  Dinamisks priekšskats sociālajiem tīkliem (Facebook/WhatsApp/X/Telegram u.c.)
 //  Kad kāds kopīgo konkrētas dziesmas saiti (?track=ID), robots, kas nolasa
 //  saiti, neizpilda JavaScript — tāpēc tam JĀREDZ jau gatavā HTML atbildē
-//  pareizais dziesmas vāciņš un nosaukums, nevis vispārīgā lapas bilde.
+//  pareizais dziesmas vāciņš un nosaukums, nevis vispārīgais lapas attēls.
 //  Parastam apmeklētājam tas nekādi netraucē — lapa strādā tāpat kā agrāk.
 // ══════════════════════════════════════════════════
 const indexHtmlPath = path.join(__dirname, 'public', 'index.html');
